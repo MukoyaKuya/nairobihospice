@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}MDT Care Plans - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-3">
+    
+    <!-- Compact Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-2xs">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-lg font-black text-slate-900 tracking-tight">Multidisciplinary Care Plans</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                Palliative Plans
+            </span>
+        </div>
+        {% if not is_receptionist %}
+        <a href="{% url 'care:care_plan_create' %}" class="inline-flex items-center px-3.5 py-1.5 bg-[#002D62] hover:bg-[#0B2545] text-white text-xs font-bold rounded-lg shadow-2xs transition space-x-1.5">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Initiate Care Plan</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="bg-white px-3 py-2.5 rounded-xl border border-slate-200 shadow-sm">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+            <div class="sm:col-span-8 relative">
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search patient name, hospice ID..."
+                       class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+            </div>
+            <div class="sm:col-span-4 flex items-center space-x-2">
+                <select name="status" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-bold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                    <option value="">All Statuses</option>
+                    <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                    <option value="DRAFT" {% if request.GET.status == 'DRAFT' %}selected{% endif %}>Draft</option>
+                    <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                </select>
+                <button type="submit" class="px-3 py-1.5 bg-[#002D62] text-white text-xs font-bold rounded-lg hover:bg-[#0B2545] transition">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Care Plans Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left divide-y divide-slate-200 text-xs">
+                <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                        <th class="px-3 py-2.5 whitespace-nowrap">Patient</th>
+                        <th class="px-3 py-2.5">Primary Diagnosis</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap">Created Date</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap">Review Due</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap text-center">Status</th>
+                        <th class="px-3 py-2.5 text-right whitespace-nowrap">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for cp in care_plans %}
+                    <tr class="hover:bg-slate-50/90 transition duration-150 group">
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <a href="{% url 'patients:patient_detail' cp.patient.id %}" class="font-bold text-slate-900 group-hover:text-[#002D62] block leading-tight">
+                                {{ cp.patient.full_name }}
+                            </a>
+                            <span class="text-[10px] text-[#002D62] font-semibold block font-mono">{{ cp.patient.hospice_number }}</span>
+                        </td>
+                        <td class="px-3 py-2 text-slate-800 font-medium max-w-[220px] truncate text-[11px]" title="{{ cp.primary_diagnosis }}">
+                            {{ cp.primary_diagnosis|default:"-" }}
+                        </td>
+                        <td class="px-3 py-2 text-slate-500 font-mono text-[10px] whitespace-nowrap">
+                            {{ cp.created_at|date:"d M Y" }}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            {% if cp.review_date %}
+                            <span class="font-mono text-slate-700 text-[10px] font-medium">{{ cp.review_date|date:"d M Y" }}</span>
+                            {% else %}
+                            <span class="text-slate-400 text-[10px]">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                                {% if cp.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif cp.status == 'DRAFT' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                {{ cp.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
+                            <a href="{% url 'care:care_plan_detail' cp.id %}" 
+                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/70 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-md transition duration-150 space-x-1">
+                                <span>View Plan</span>
+                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-400">
+                            <i data-lucide="heart-handshake" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
+                            No multidisciplinary care plans found matching your criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

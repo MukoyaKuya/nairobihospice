@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Encounter: {{ encounter.patient.full_name }} - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'patients:patient_detail' encounter.patient.pk %}" class="text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Patient Workspace
+            </a>
+            <h1 class="text-2xl font-extrabold text-slate-900">{{ encounter.get_encounter_type_display }}</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Patient: <strong>{{ encounter.patient.full_name }}</strong> ({{ encounter.patient.hospice_number }})</p>
+        </div>
+        <span class="text-xs font-bold text-teal-700 px-3 py-1 bg-teal-50 border border-teal-200 rounded-xl">
+            {{ encounter.encounter_date|date:"d M Y" }}
+        </span>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+        <div class="grid grid-cols-2 gap-4 text-xs pb-4 border-b border-slate-100">
+            <div>
+                <p class="text-slate-400 uppercase font-bold text-[10px]">Location</p>
+                <p class="font-semibold text-slate-800 mt-0.5">{{ encounter.location }}</p>
+            </div>
+            <div>
+                <p class="text-slate-400 uppercase font-bold text-[10px]">Clinician</p>
+                <p class="font-semibold text-slate-800 mt-0.5">{{ encounter.recorded_by.display_name }}</p>
+            </div>
+        </div>
+
+        <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Reason for Encounter</h3>
+            <p class="text-xs font-bold text-slate-900">{{ encounter.reason }}</p>
+        </div>
+
+        <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Clinical Progress Notes</h3>
+            <div class="p-4 bg-slate-50 rounded-xl text-xs text-slate-800 whitespace-pre-line leading-relaxed border border-slate-100">
+                {{ encounter.clinical_notes }}
+            </div>
+        </div>
+
+        {% if encounter.interventions_performed %}
+        <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Interventions & Procedures</h3>
+            <div class="p-4 bg-teal-50/50 rounded-xl text-xs text-teal-900 whitespace-pre-line leading-relaxed border border-teal-100">
+                {{ encounter.interventions_performed }}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if encounter.next_followup_date or encounter.next_followup_plan %}
+        <div class="pt-4 border-t border-slate-100 text-xs">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Next Follow-Up Plan</h3>
+            <p class="text-slate-700"><strong>Date:</strong> {{ encounter.next_followup_date|date:"d M Y"|default:"Not scheduled" }}</p>
+            <p class="text-slate-700 mt-0.5"><strong>Plan:</strong> {{ encounter.next_followup_plan|default:"As needed" }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

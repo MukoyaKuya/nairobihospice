@@ -1,0 +1,417 @@
+<!-- ================= 3. DOCTOR / CLINICAL OFFICER WORKSPACE ================= -->
+<div class="space-y-4">
+    
+    <!-- Top 4 KPIs for Doctor / Clinician -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- KPI 1: Today's Consultations -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Today's Consultations</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ today_appts_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Clinic & Home Care</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#002D62] flex items-center justify-center">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'appointments:calendar' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>View schedule</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI 2: Care Plan Reviews Due -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Care Plan Reviews Due</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ due_reviews_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Next 7 days</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                    <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'care:care_plan_list' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>View reviews</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI 3: Pending Triage -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Pending Triage</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ pending_referrals_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Awaiting review</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                    <i data-lucide="inbox" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'referrals:referral_list' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>Review now</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI 4: Acute Distress Flags -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Acute Distress Flags</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ recent_high_distress|length }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">ESAS severity alerts</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-red-50 text-[#991B1B] flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'assessments:assessment_list' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>View all</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Middle Row: 3 Clinical Operations Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        
+        <!-- Left: Today's Scheduled Consultations & Visits -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-[#002D62]"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Today's Scheduled Consultations</h2>
+                    </div>
+                    <a href="{% url 'appointments:calendar' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-0.5">
+                        <span>View schedule &rarr;</span>
+                    </a>
+                </div>
+
+                <div class="divide-y divide-slate-100 mt-2">
+                    {% for appt in today_appts|slice:":3" %}
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-start space-x-3 min-w-0">
+                            <span class="px-2 py-1 bg-blue-50 text-[#002D62] border border-blue-200 rounded-lg text-[10px] font-mono font-bold whitespace-nowrap">
+                                {{ appt.scheduled_time|time:"h:i A" }}
+                            </span>
+                            <div class="min-w-0">
+                                <a href="{% url 'patients:patient_detail' appt.patient.id %}" class="font-bold text-xs text-slate-900 hover:text-[#002D62] block truncate">
+                                    {{ appt.patient.full_name }}
+                                </a>
+                                <p class="text-[11px] text-slate-500 truncate mt-0.5">
+                                    {% if appt.location %}{{ appt.location }}{% else %}{{ appt.patient.county }}{% endif %}
+                                </p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">
+                                    {{ appt.get_appointment_type_display }} &bull; {{ appt.staff_member.user.display_name|default:"Clinical Staff" }}
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{% url 'encounters:encounter_create' appt.patient.id %}" class="px-2.5 py-1.5 bg-[#002D62] hover:bg-[#0B2545] text-white text-[10px] font-bold rounded-lg whitespace-nowrap shadow-xs transition">
+                            Start Encounter
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center text-xs text-slate-400">
+                        <i data-lucide="calendar-check" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
+                        No scheduled consultations remaining today.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'appointments:calendar' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>View all consultations</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Middle: Pending Triage -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="inbox" class="w-4 h-4 text-purple-700"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Pending Triage</h2>
+                    </div>
+                    <a href="{% url 'referrals:referral_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-0.5">
+                        <span>View all &rarr;</span>
+                    </a>
+                </div>
+
+                <div class="divide-y divide-slate-100 mt-2">
+                    {% for ref in pending_referrals|slice:":3" %}
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                                {{ ref.patient_name|slice:":2"|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <a href="{% url 'referrals:referral_detail' ref.id %}" class="font-bold text-xs text-slate-900 hover:text-[#002D62] block truncate">
+                                    {{ ref.patient_name }}
+                                </a>
+                                <p class="text-[11px] text-slate-500 truncate mt-0.5">Referred by: {{ ref.referring_facility|default:ref.referring_clinician_name|default:"Hospital" }}</p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">{{ ref.referral_date|date:"d M Y" }}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                            Awaiting Review
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center text-xs text-slate-400">
+                        <i data-lucide="check-circle" class="w-6 h-6 mx-auto text-emerald-500 mb-1"></i>
+                        No pending referrals awaiting triage.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'referrals:referral_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>Go to triage queue</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right: Severe Symptom Distress Alerts -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-[#991B1B]"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Severe Symptom Distress Alerts</h2>
+                    </div>
+                </div>
+
+                {% if recent_high_distress %}
+                <div class="divide-y divide-slate-100 mt-2">
+                    {% for dist in recent_high_distress|slice:":3" %}
+                    <div class="py-3 flex items-center justify-between">
+                        <div>
+                            <a href="{% url 'patients:patient_detail' dist.patient.id %}" class="font-bold text-xs text-slate-900 hover:text-[#002D62] block">
+                                {{ dist.patient.full_name }}
+                            </a>
+                            <span class="text-[10px] text-slate-400">{{ dist.recorded_at|timesince }} ago</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded bg-red-100 text-red-800 text-[10px] font-bold">
+                            Score: {{ dist.total_distress_score }}/90
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="py-10 flex flex-col items-center justify-center text-center">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mb-3">
+                        <i data-lucide="clipboard-check" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-xs font-bold text-slate-700">No critical symptom alerts.</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">All monitored patients are within stable ESAS thresholds.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'assessments:assessment_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>View all alerts</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Row: 3 Activity & Analytical Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        
+        <!-- Left: Recent Clinical Encounters Log -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="clipboard-list" class="w-4 h-4 text-[#002D62]"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Recent Clinical Encounters Log</h2>
+                    </div>
+                    <a href="{% url 'encounters:encounter_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-0.5">
+                        <span>View all</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <div class="divide-y divide-slate-100 mt-2">
+                    {% for enc in recent_encounters|slice:":3" %}
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 text-[#002D62] font-bold text-[10px] flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200">
+                                {% if enc.patient.photo %}
+                                <img src="{% url 'patients:patient_photo' enc.patient.pk %}" alt="{{ enc.patient.full_name }}" class="w-full h-full object-cover">
+                                {% else %}
+                                <span>{{ enc.patient.first_name|first }}{{ enc.patient.last_name|first }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="min-w-0">
+                                <a href="{% url 'patients:patient_detail' enc.patient.id %}" class="font-bold text-xs text-slate-900 hover:text-[#002D62] block truncate">
+                                    {{ enc.patient.full_name }}
+                                </a>
+                                <p class="text-[10px] text-slate-500 mt-0.5 truncate">
+                                    {{ enc.get_encounter_type_display }} &bull; {{ enc.encounter_date|date:"d M" }}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Completed
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center text-xs text-slate-400">
+                        No recorded encounters this week.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'encounters:encounter_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>View all encounters</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Middle: Care Plan Reviews Due Breakdown -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-amber-600"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Care Plan Reviews Due</h2>
+                    </div>
+                    <a href="{% url 'care:care_plan_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-0.5">
+                        <span>View all</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+
+                <div class="py-4 flex items-center justify-center space-x-6">
+                    <div class="relative w-24 h-24 rounded-full border-8 border-amber-400/80 flex items-center justify-center bg-amber-50/50 shadow-inner">
+                        <div class="text-center">
+                            <span class="text-xl font-black text-slate-900 block leading-tight">{{ due_reviews_count }}</span>
+                            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Total Due</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                            <span class="text-slate-600 text-[11px]">Overdue</span>
+                            <strong class="text-slate-900 font-mono text-[11px]">0 (0%)</strong>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                            <span class="text-slate-600 text-[11px]">Due Today</span>
+                            <strong class="text-slate-900 font-mono text-[11px]">0 (0%)</strong>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span class="text-slate-600 text-[11px]">Next 7 Days</span>
+                            <strong class="text-slate-900 font-mono text-[11px]">{{ due_reviews_count }} (100%)</strong>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="text-slate-600 text-[11px]">Later</span>
+                            <strong class="text-slate-900 font-mono text-[11px]">0 (0%)</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'care:care_plan_list' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>Go to care plans</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right: Quick Clinical Actions -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+                <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Quick Actions</h2>
+            </div>
+
+            <div class="space-y-2">
+                <a href="{% url 'patients:patient_list' %}" class="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#002D62] hover:bg-slate-50 transition flex items-center justify-between group">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center">
+                            <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-xs font-bold text-slate-900 group-hover:text-[#002D62] block leading-tight">Start New Encounter</span>
+                            <span class="text-[10px] text-slate-500 block">Open patient encounter</span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+                </a>
+
+                <a href="{% url 'referrals:referral_create' %}" class="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#991B1B] hover:bg-slate-50 transition flex items-center justify-between group">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-red-50 text-[#991B1B] flex items-center justify-center">
+                            <i data-lucide="inbox" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-xs font-bold text-slate-900 group-hover:text-[#991B1B] block leading-tight">New Referral</span>
+                            <span class="text-[10px] text-slate-500 block">Create a new referral</span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+                </a>
+
+                <a href="{% url 'care:care_plan_list' %}" class="w-full p-2.5 rounded-xl border border-slate-200 hover:border-purple-600 hover:bg-slate-50 transition flex items-center justify-between group">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                            <i data-lucide="heart-handshake" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-xs font-bold text-slate-900 group-hover:text-purple-700 block leading-tight">MDT Meeting</span>
+                            <span class="text-[10px] text-slate-500 block">Schedule MDT meeting</span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+                </a>
+
+                <a href="{% url 'reporting:management_dashboard' %}" class="w-full p-2.5 rounded-xl border border-slate-200 hover:border-emerald-600 hover:bg-slate-50 transition flex items-center justify-between group">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-700 block leading-tight">Reports & Analytics</span>
+                            <span class="text-[10px] text-slate-500 block">View clinical reports</span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>

@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Referral {{ referral.referral_number }} - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-4">
+    
+    <!-- Breadcrumb Navigation -->
+    <nav class="flex items-center space-x-2 text-xs text-slate-500">
+        <a href="{% url 'reporting:clinical_dashboard' %}" class="hover:text-slate-900 transition">Home</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <a href="{% url 'referrals:referral_list' %}" class="hover:text-slate-900 transition">Referrals & Triage</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <span class="font-bold text-slate-900 font-mono">{{ referral.referral_number }}</span>
+    </nav>
+
+    <!-- Top Header Banner & Quick Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-red-50 text-[#991B1B] font-black text-base flex items-center justify-center border border-red-200 shadow-sm">
+                {{ referral.patient_name|slice:":2"|upper }}
+            </div>
+            <div>
+                <div class="flex items-center space-x-2.5">
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{{ referral.patient_name }}</h1>
+                    <span class="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#002D62] border border-blue-200">
+                        {{ referral.referral_number }}
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1 flex items-center space-x-2">
+                    <span>Referred on {{ referral.referral_date|date:"d F Y" }}</span>
+                    <span>&bull;</span>
+                    <span>Source: <strong>{{ referral.get_referral_source_display }}</strong></span>
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            {% if referral.converted_patient %}
+            <a href="{% url 'patients:patient_detail' referral.converted_patient.pk %}" 
+               class="inline-flex items-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition space-x-1.5">
+                <i data-lucide="folder-check" class="w-4 h-4 text-red-300"></i>
+                <span>Open Converted Patient Dossier &rarr;</span>
+            </a>
+            {% elif referral.status != 'REJECTED' %}
+            <form method="POST" action="{% url 'referrals:referral_convert' referral.pk %}" class="inline">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('Convert this referral into a registered patient and active care episode?')" 
+                        class="inline-flex items-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition space-x-1.5">
+                    <i data-lucide="user-plus" class="w-4 h-4 text-red-300"></i>
+                    <span>Convert to Registered Patient</span>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main Content Layout (2 Columns) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        
+        <!-- Left 8 Cols: Clinical Information & Contacts -->
+        <div class="lg:col-span-8 space-y-4">
+            
+            <!-- Card 1: Clinical Referral Details -->
+            {% if clinical_access %}
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center space-x-2.5 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center">
+                        <i data-lucide="stethoscope" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900">Clinical Referral Dossier</h3>
+                </div>
+
+                <div class="space-y-3.5 text-xs">
+                    <div>
+                        <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Primary Diagnosis</span>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-900 font-bold text-sm">
+                            {{ referral.primary_diagnosis }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason for Referral</span>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 font-medium whitespace-pre-line leading-relaxed">
+                            {{ referral.reason_for_referral|default:"Palliative care evaluation and symptom management." }}
+                        </div>
+                    </div>
+
+                    {% if referral.clinical_summary %}
+                    <div>
+                        <span class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Clinical Summary & Background</span>
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-800 whitespace-pre-line leading-relaxed">
+                            {{ referral.clinical_summary }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+                <p class="text-sm font-semibold text-slate-700">Clinical referral details are restricted to clinical and management staff.</p>
+                <p class="text-xs text-slate-500 mt-2">Front-desk staff may track intake status and coordinate contact without viewing diagnosis or treatment information.</p>
+            </div>
+            {% endif %}
+
+            <!-- Card 2: Patient Demographics & Facility Contacts -->
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center space-x-2.5 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                        <i data-lucide="building-2" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900">Patient & Referring Facility Contacts</h3>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    
+                    <!-- Referring Facility Box -->
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Referring Institution</span>
+                        <p class="text-sm font-bold text-slate-900">{{ referral.referring_facility }}</p>
+                        <div class="text-slate-600 space-y-0.5 pt-1 border-t border-slate-200">
+                            <p>Clinician: <strong>{{ referral.referring_clinician_name|default:"Not specified" }}</strong></p>
+                            <p class="font-mono text-[11px]">Phone: {{ referral.referring_clinician_phone|default:"—" }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Patient Contact Box -->
+                    <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Patient Contacts</span>
+                        <p class="text-sm font-bold text-slate-900 font-mono">{{ referral.phone_number|default:"—" }}</p>
+                        <div class="text-slate-600 space-y-0.5 pt-1 border-t border-slate-200">
+                            <p>County: <strong>{{ referral.county }}{% if referral.sub_county %}, {{ referral.sub_county }}{% endif %}</strong></p>
+                            {% if referral.landmark %}
+                            <p class="text-slate-500">Landmark: {{ referral.landmark }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right 4 Cols: Triage Status & Review Card -->
+        <div class="lg:col-span-4 space-y-4">
+            
+            <!-- Triage Status Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                
+                <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                    <i data-lucide="clipboard-check" class="w-4 h-4 text-[#002D62]"></i>
+                    <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Triage Assessment</h3>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Triage Priority</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                            {% if referral.priority == 'EMERGENCY' %}bg-rose-50 text-rose-700 border border-rose-200
+                            {% elif referral.priority == 'URGENT' %}bg-amber-50 text-amber-700 border border-amber-200
+                            {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                            {{ referral.get_priority_display }}
+                        </span>
+                    </div>
+
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Current Status</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+                            {% if referral.status == 'CONVERTED' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                            {% elif referral.status == 'ACCEPTED' %}bg-teal-50 text-teal-700 border border-teal-200
+                            {% elif referral.status == 'REJECTED' %}bg-rose-50 text-rose-700 border border-rose-200
+                            {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                            <span class="w-1.5 h-1.5 rounded-full mr-1.5
+                                {% if referral.status == 'CONVERTED' %}bg-emerald-500
+                                {% elif referral.status == 'ACCEPTED' %}bg-teal-500
+                                {% elif referral.status == 'REJECTED' %}bg-rose-500
+                                {% else %}bg-blue-500{% endif %}">
+                            </span>
+                            {{ referral.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Update Triage Form -->
+                {% if clinical_access %}
+                <form method="POST" action="{% url 'referrals:referral_review' referral.pk %}" class="pt-3 border-t border-slate-100 space-y-3 text-xs">
+                    {% csrf_token %}
+                    <h4 class="font-bold uppercase tracking-wider text-slate-800 text-[10px]">Update Triage Status</h4>
+                    
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Status</label>
+                        <select name="status" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                            <option value="RECEIVED" {% if referral.status == 'RECEIVED' %}selected{% endif %}>Received</option>
+                            <option value="UNDER_REVIEW" {% if referral.status == 'UNDER_REVIEW' %}selected{% endif %}>Under Review</option>
+                            <option value="ACCEPTED" {% if referral.status == 'ACCEPTED' %}selected{% endif %}>Accepted</option>
+                            <option value="REJECTED" {% if referral.status == 'REJECTED' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Triage / Review Notes</label>
+                        <textarea name="review_notes" rows="3" placeholder="Clinical review impressions..." 
+                                  class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">{{ referral.review_notes }}</textarea>
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full py-2 px-3 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-sm transition">
+                        Save Triage Update
+                    </button>
+                </form>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

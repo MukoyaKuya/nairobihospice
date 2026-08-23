@@ -1,0 +1,63 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | Nairobi Hospice PCMS Admin{% endblock %}
+
+{% block branding %}
+<div id="site-name" style="display: flex; align-items: center; gap: 12px; padding: 6px 0;">
+    <a href="{% url 'admin:index' %}" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #ffffff;">
+        <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" style="height: 38px; width: auto; background: white; padding: 3px 6px; border-radius: 8px;">
+        <div>
+            <div style="font-weight: 900; font-size: 15px; letter-spacing: -0.02em; line-height: 1.2;">NAIROBI HOSPICE</div>
+            <div style="font-size: 10px; font-weight: 700; color: #fca5a5; letter-spacing: 0.08em; text-transform: uppercase;">PCMS Administration</div>
+        </div>
+    </a>
+</div>
+{% endblock %}
+
+{% block nav-global %}
+<div style="display: flex; align-items: center; gap: 14px; margin-right: 16px;">
+    <a href="{% url 'reporting:clinical_dashboard' %}" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 8px; color: #ffffff; text-decoration: none; border: 1px solid rgba(255,255,255,0.2);">
+        <span>← Back to Clinical Portal</span>
+    </a>
+</div>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    :root {
+        --primary: #002D62;
+        --secondary: #0B2545;
+        --accent: #991B1B;
+        --primary-fg: #ffffff;
+        --header-bg: #002D62;
+        --header-color: #ffffff;
+        --header-branding-color: #ffffff;
+        --header-link-color: #fca5a5;
+    }
+    #header {
+        background: #002D62 !important;
+        border-bottom: 2px solid #991B1B !important;
+    }
+    .module h2, .module caption, .inline-group h2 {
+        background: #002D62 !important;
+    }
+    div.breadcrumbs {
+        background: #0B2545 !important;
+    }
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: #002D62 !important;
+        border-radius: 8px !important;
+    }
+    .button:hover, input[type=submit]:hover, input[type=button]:hover {
+        background: #0B2545 !important;
+    }
+    .button.default, input[type=submit].default, .submit-row input.default {
+        background: #002D62 !important;
+    }
+    .object-tools a:hover {
+        background: #002D62 !important;
+    }
+</style>
+{% endblock %}

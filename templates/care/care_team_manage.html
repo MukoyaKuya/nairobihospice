@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Care Team: {{ patient.full_name }} - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div>
+        <a href="{% url 'patients:patient_detail' patient.pk %}" class="text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center mb-1">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Patient Workspace
+        </a>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Multidisciplinary Care Team Assignment</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Patient: <strong>{{ patient.full_name }}</strong> ({{ patient.hospice_number }})</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Left 2 Cols: Currently Assigned Team -->
+        <div class="md:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Current Assigned Team Members</h3>
+            <div class="divide-y divide-slate-100 text-xs">
+                {% for m in team_members %}
+                <div class="py-3 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-slate-900 block">{{ m.staff_member.user.display_name }}</span>
+                        <span class="text-teal-700 font-semibold text-[11px] block">{{ m.get_role_display }}</span>
+                    </div>
+                    {% if m.is_primary %}
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800">Primary</span>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="text-slate-400 py-6 text-center">No care team members assigned yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right Col: Add Team Member Form -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Assign Clinician</h3>
+            <form method="POST" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Staff Member *</label>
+                    {{ form.staff_member }}
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Team Role *</label>
+                    {{ form.role }}
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="checkbox" name="is_primary" id="id_is_primary" class="rounded text-teal-600 focus:ring-teal-500">
+                    <label for="id_is_primary" class="font-semibold text-slate-700">Set as Primary for this role</label>
+                </div>
+                <button type="submit" class="w-full py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg shadow-sm transition">
+                    Assign to Patient
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

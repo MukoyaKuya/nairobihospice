@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Supplier & Vendor Directory - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    
+    <!-- Top Header Banner -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-50 text-purple-700 border border-purple-200">
+                    Procurement & Supply Chain
+                </span>
+                <span class="text-xs text-slate-400">&bull;</span>
+                <span class="text-xs text-slate-500 font-medium">Vendors Directory</span>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight mt-1">Suppliers & Vendor Directory</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Approved distributors, pharmaceutical partners, and medical equipment vendors.</p>
+        </div>
+
+        <a href="{% url 'operations:vendor_create' %}" 
+           class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition space-x-1.5 self-start sm:self-auto">
+            <i data-lucide="plus" class="w-4 h-4 text-blue-300"></i>
+            <span>Register New Vendor</span>
+        </a>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-3 sm:p-4">
+        <form method="GET" class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search vendor name, code, contact person..." 
+                       class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+            </div>
+
+            <select name="category" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                <option value="">All Categories</option>
+                <option value="PHARMACEUTICAL" {% if request.GET.category == 'PHARMACEUTICAL' %}selected{% endif %}>Pharmaceutical & Meds</option>
+                <option value="CONSUMABLES" {% if request.GET.category == 'CONSUMABLES' %}selected{% endif %}>Medical Consumables</option>
+                <option value="OXYGEN_EQUIPMENT" {% if request.GET.category == 'OXYGEN_EQUIPMENT' %}selected{% endif %}>Oxygen & Equipment</option>
+                <option value="PPE_SANITATION" {% if request.GET.category == 'PPE_SANITATION' %}selected{% endif %}>PPE & Sanitation</option>
+                <option value="NUTRITION" {% if request.GET.category == 'NUTRITION' %}selected{% endif %}>Nutrition & Feeds</option>
+            </select>
+
+            <select name="status" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                <option value="">All Statuses</option>
+                <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active</option>
+                <option value="PREFERRED" {% if request.GET.status == 'PREFERRED' %}selected{% endif %}>Preferred Partner</option>
+                <option value="UNDER_REVIEW" {% if request.GET.status == 'UNDER_REVIEW' %}selected{% endif %}>Under Review</option>
+            </select>
+
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition">
+                Filter
+            </button>
+        </form>
+    </div>
+
+    <!-- Vendor Cards Table -->
+    <div class="bg-white rounded-xl shadow-2xs border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Vendor / Supplier</th>
+                        <th class="px-4 py-3">Category</th>
+                        <th class="px-4 py-3">Contact Person</th>
+                        <th class="px-4 py-3">Phone & Email</th>
+                        <th class="px-4 py-3">Payment Terms</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for v in vendors %}
+                    <tr class="hover:bg-slate-50/80 transition group">
+                        <td class="px-4 py-3">
+                            <a href="{% url 'operations:vendor_detail' v.pk %}" class="font-bold text-slate-900 group-hover:text-[#002D62] block leading-tight">
+                                {{ v.name }}
+                            </a>
+                            <span class="text-[10px] font-mono text-slate-400 block">{{ v.code }} &bull; KRA: {{ v.kra_pin|default:"N/A" }}</span>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-slate-700">
+                            {{ v.get_category_display }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-800 font-medium">
+                            {{ v.contact_person }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-[11px] text-slate-900 block">{{ v.phone_number }}</span>
+                            <span class="text-[10px] text-slate-400 block">{{ v.email|default:"-" }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 font-mono text-[11px]">
+                            {{ v.payment_terms }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                                {% if v.status == 'PREFERRED' %}bg-purple-50 text-purple-700 border border-purple-200
+                                {% elif v.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif v.status == 'UNDER_REVIEW' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                {{ v.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <a href="{% url 'operations:vendor_detail' v.pk %}" 
+                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/70 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-md transition duration-150 space-x-1">
+                                <span>Profile & Items</span>
+                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <i data-lucide="building-2" class="w-8 h-8 mx-auto text-slate-300 mb-1"></i>
+                            No suppliers found matching your query.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

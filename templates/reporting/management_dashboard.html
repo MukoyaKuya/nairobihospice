@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block title %}Management Analytics & KPIs - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    
+    <!-- Top Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div>
+            <div class="flex items-center space-x-2.5">
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Executive Management Dashboard</h1>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#002D62] border border-blue-200">
+                    Governance & KPIs
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Operational KPIs, service activity breakdown, and disease distribution for Nairobi Hospice.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'reporting:export_patients_csv' %}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl shadow-xs transition space-x-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-[#002D62]"></i>
+                <span>Export Patients CSV</span>
+            </a>
+            <a href="{% url 'reporting:export_encounters_csv' %}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-xs transition space-x-1.5">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-red-300"></i>
+                <span>Export Encounters CSV</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Management KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Active Patient Cohort</span>
+                    <span class="text-3xl font-black text-[#002D62] mt-1.5 block tracking-tight">{{ total_active_patients }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">+{{ new_patients_this_month }} registered this month</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#002D62] flex items-center justify-center">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'patients:patient_list' %}" class="text-xs font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>View cohort directory</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Total Encounters (MTD)</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ total_encounters_month }}</span>
+                    <span class="text-[11px] text-slate-500 mt-0.5 block">{{ home_visits_count }} Home &bull; {{ clinic_visits_count }} Clinic</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="stethoscope" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'encounters:encounter_list' %}" class="text-xs font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>View encounter log</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Referrals Inflow (MTD)</span>
+                    <span class="text-3xl font-black text-[#991B1B] mt-1.5 block tracking-tight">{{ total_referrals_month }}</span>
+                    <span class="text-[11px] text-emerald-600 font-semibold mt-0.5 block">{{ converted_referrals_month }} converted into care</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-red-50 text-[#991B1B] flex items-center justify-center">
+                    <i data-lucide="inbox" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'referrals:referral_list' %}" class="text-xs font-bold text-[#991B1B] hover:underline flex items-center space-x-1">
+                    <span>View referral pipeline</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Discharged / Deceased</span>
+                    <span class="text-3xl font-black text-slate-700 mt-1.5 block tracking-tight">{{ total_discharged }} / {{ total_deceased }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Cumulative registry total</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                    <i data-lucide="archive" class="w-5 h-5"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'patients:patient_list' %}?status=DECEASED" class="text-xs font-bold text-[#002D62] hover:underline flex items-center space-x-1">
+                    <span>View closed records</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Analytics Charts & Distributions -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        <!-- Service Encounter Breakdown -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-[#002D62]"></i>
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Encounters by Service Modality</h3>
+            </div>
+            
+            <div class="space-y-3.5 text-xs">
+                <div>
+                    <div class="flex justify-between font-semibold mb-1">
+                        <span class="text-slate-700">Home Visits</span>
+                        <span class="text-[#002D62] font-bold">{{ home_visits_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                        <div class="bg-[#002D62] h-2 rounded-full" style="width: {% if total_encounters_month > 0 %}{% widthratio home_visits_count total_encounters_month 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between font-semibold mb-1">
+                        <span class="text-slate-700">Hospice Clinic Consultations</span>
+                        <span class="text-[#002D62] font-bold">{{ clinic_visits_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: {% if total_encounters_month > 0 %}{% widthratio clinic_visits_count total_encounters_month 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between font-semibold mb-1">
+                        <span class="text-slate-700">Telephone Follow-ups</span>
+                        <span class="text-[#002D62] font-bold">{{ phone_consults_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                        <div class="bg-sky-500 h-2 rounded-full" style="width: {% if total_encounters_month > 0 %}{% widthratio phone_consults_count total_encounters_month 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between font-semibold mb-1">
+                        <span class="text-slate-700">Psychosocial & Counselling</span>
+                        <span class="text-[#002D62] font-bold">{{ counselling_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2">
+                        <div class="bg-purple-600 h-2 rounded-full" style="width: {% if total_encounters_month > 0 %}{% widthratio counselling_count total_encounters_month 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Geographic & Disease Cohorts -->
+        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                <i data-lucide="map-pin" class="w-4 h-4 text-[#991B1B]"></i>
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Top Patient Counties & Coverage</h3>
+            </div>
+            
+            <div class="divide-y divide-slate-100 text-xs">
+                {% for c in county_distribution %}
+                <div class="py-2.5 flex items-center justify-between">
+                    <span class="font-semibold text-slate-800">{{ c.county|default:"Nairobi" }}</span>
+                    <span class="px-2.5 py-0.5 rounded-full font-bold bg-blue-50 text-[#002D62] border border-blue-200">{{ c.count }} Patients</span>
+                </div>
+                {% empty %}
+                <p class="text-slate-400 py-4 text-center">No county distribution data available.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

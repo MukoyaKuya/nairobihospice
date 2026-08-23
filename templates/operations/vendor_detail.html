@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}{{ vendor.name }} - Supplier Profile - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-xs text-slate-500">
+        <a href="{% url 'operations:dashboard' %}" class="hover:text-slate-900 transition">Operations</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <a href="{% url 'operations:vendor_list' %}" class="hover:text-slate-900 transition">Vendors</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <span class="font-bold text-slate-900">{{ vendor.name }}</span>
+    </nav>
+
+    <!-- Top Supplier Banner -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold text-lg border border-purple-200 shadow-2xs">
+                <i data-lucide="building-2" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="flex items-center space-x-2.5">
+                    <h1 class="text-lg font-black text-slate-900 tracking-tight">{{ vendor.name }}</h1>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        {{ vendor.code }}
+                    </span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                        {% if vendor.status == 'PREFERRED' %}bg-purple-50 text-purple-700 border border-purple-200
+                        {% elif vendor.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                        {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+                        {{ vendor.get_status_display }}
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Category: <strong>{{ vendor.get_category_display }}</strong> &bull; Terms: <strong>{{ vendor.payment_terms }}</strong></p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'operations:procurement_create' %}" class="px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition flex items-center space-x-1">
+                <i data-lucide="plus" class="w-3.5 h-3.5 text-blue-300"></i>
+                <span>Create Purchase Order</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Details Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        
+        <!-- Left Col: Contact & Business Dossier -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-5 space-y-4 text-xs">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100">Supplier Information</h2>
+            
+            <div class="space-y-3">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Contact Person</span>
+                    <span class="font-bold text-slate-900 text-sm">{{ vendor.contact_person }}</span>
+                </div>
+
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Phone & WhatsApp</span>
+                    <span class="font-mono text-slate-900 font-bold">{{ vendor.phone_number }}</span>
+                </div>
+
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Email Address</span>
+                    <span class="text-slate-800">{{ vendor.email|default:"Not specified" }}</span>
+                </div>
+
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">KRA Tax PIN</span>
+                    <span class="font-mono font-bold text-slate-800">{{ vendor.kra_pin|default:"N/A" }}</span>
+                </div>
+
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Physical Address</span>
+                    <span class="text-slate-700 leading-relaxed">{{ vendor.physical_address|default:"Nairobi, Kenya" }}</span>
+                </div>
+
+                {% if vendor.notes %}
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-slate-600">
+                    <span class="text-[10px] font-bold uppercase text-slate-400 block mb-1">Procurement Notes</span>
+                    {{ vendor.notes }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right 2 Cols: Catalog Items & Purchase Orders -->
+        <div class="lg:col-span-2 space-y-4">
+            
+            <!-- Supplied Catalog Items -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-5 space-y-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100">
+                    Supplied Catalog Items ({{ supplied_items.count }})
+                </h2>
+
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for item in supplied_items %}
+                    <div class="py-2.5 flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-slate-900 block leading-tight">{{ item.name }}</span>
+                            <span class="text-[10px] font-mono text-slate-400">{{ item.item_code }} &bull; {{ item.get_category_display }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-slate-900">KES {{ item.unit_cost_kes|intcomma }} / {{ item.unit_of_measure }}</span>
+                            <span class="text-[10px] text-slate-500 block">In Stock: <strong>{{ item.quantity_on_hand }}</strong></span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-3 text-center">No specific catalog items mapped to this supplier.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Past Procurement Orders -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-5 space-y-3">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100">
+                    Recent Purchase Orders
+                </h2>
+
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for order in orders %}
+                    <div class="py-2.5 flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'operations:procurement_detail' order.pk %}" class="font-bold text-[#002D62] hover:underline">
+                                    {{ order.po_number }}
+                                </a>
+                                <span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase
+                                    {% if order.status == 'COMPLETED' %}bg-emerald-50 text-emerald-700
+                                    {% elif order.status == 'APPROVED' %}bg-blue-50 text-[#002D62]
+                                    {% else %}bg-amber-50 text-amber-700{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 block">{{ order.order_date|date:"d M Y" }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-bold text-slate-900">KES {{ order.total_amount_kes|intcomma }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 py-3 text-center">No purchase orders recorded for this vendor yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Incoming Referral - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Breadcrumb Navigation & Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'referrals:referral_list' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:underline mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Referral Pipeline
+            </a>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Log Incoming Patient Referral</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Intake and triage dossier from external hospitals, oncologists, community health promoters, or families.</p>
+        </div>
+    </div>
+
+    <!-- Main Grid: Form on Left (8 cols), Guidance Panel on Right (4 cols) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Left: Referral Intake Form (8 cols) -->
+        <div class="lg:col-span-8">
+            <form method="POST" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-8">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 space-y-1">
+                    <p class="font-bold flex items-center">
+                        <i data-lucide="alert-circle" class="w-4 h-4 mr-1.5 text-rose-600"></i>
+                        Please correct the following errors:
+                    </p>
+                    <ul class="list-disc pl-5 space-y-0.5 text-slate-700">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li><strong>{{ field.label }}</strong>: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <!-- Section 1: Patient Demographics -->
+                <div class="space-y-4">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
+                        <i data-lucide="user" class="w-4 h-4 text-[#002D62]"></i>
+                        <span>1. Patient Demographics & Contact</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Patient Full Name *</label>
+                            <input type="text" name="patient_name" value="{{ form.patient_name.value|default:'' }}" required placeholder="e.g. Grace Njeri Mwangi"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Sex *</label>
+                            <select name="sex" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                                <option value="F" {% if form.sex.value == 'F' or not form.sex.value %}selected{% endif %}>Female</option>
+                                <option value="M" {% if form.sex.value == 'M' %}selected{% endif %}>Male</option>
+                                <option value="O" {% if form.sex.value == 'O' %}selected{% endif %}>Other</option>
+                                <option value="U" {% if form.sex.value == 'U' %}selected{% endif %}>Unknown</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
+                            <input type="date" name="date_of_birth" value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Approximate Age</label>
+                            <input type="number" name="approximate_age" value="{{ form.approximate_age.value|default:'' }}" placeholder="Years (if exact DOB unknown)" min="0" max="120"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Phone *</label>
+                            <input type="text" name="phone_number" value="{{ form.phone_number.value|default:'' }}" placeholder="+254 7..."
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Alternative Phone</label>
+                            <input type="text" name="alternative_phone" value="{{ form.alternative_phone.value|default:'' }}" placeholder="Next of kin / caregiver"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">County</label>
+                            <input type="text" name="county" value="{{ form.county.value|default:'Nairobi' }}"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Sub-County / Area</label>
+                            <input type="text" name="sub_county" value="{{ form.sub_county.value|default:'' }}" placeholder="e.g. Kibra, Mavoko"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Landmark / Nearest Stage</label>
+                        <input type="text" name="landmark" value="{{ form.landmark.value|default:'' }}" placeholder="e.g. Near Makina Mosque, Stage 2"
+                               class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                    </div>
+                </div>
+
+                <!-- Section 2: Referral Source & Priority -->
+                <div class="space-y-4">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
+                        <i data-lucide="building-2" class="w-4 h-4 text-[#002D62]"></i>
+                        <span>2. Referral Source & Referring Institution</span>
+                    </h2>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Referral Source *</label>
+                            <select name="referral_source" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                                <option value="HOSPITAL" {% if form.referral_source.value == 'HOSPITAL' or not form.referral_source.value %}selected{% endif %}>Public / Private Hospital</option>
+                                <option value="HEALTH_CENTRE" {% if form.referral_source.value == 'HEALTH_CENTRE' %}selected{% endif %}>Health Centre / Clinic</option>
+                                <option value="COMMUNITY_WORKER" {% if form.referral_source.value == 'COMMUNITY_WORKER' %}selected{% endif %}>Community Health Promoter</option>
+                                <option value="SELF_FAMILY" {% if form.referral_source.value == 'SELF_FAMILY' %}selected{% endif %}>Self / Family Referral</option>
+                                <option value="OTHER_HOSPICE" {% if form.referral_source.value == 'OTHER_HOSPICE' %}selected{% endif %}>Other Hospice</option>
+                                <option value="OTHER" {% if form.referral_source.value == 'OTHER' %}selected{% endif %}>Other Source</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Referring Facility / Hospital *</label>
+                            <input type="text" name="referring_facility" value="{{ form.referring_facility.value|default:'' }}" required placeholder="e.g. Kenyatta National Hospital (KNH Oncology Unit)"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Referring Clinician</label>
+                            <input type="text" name="referring_clinician_name" value="{{ form.referring_clinician_name.value|default:'' }}" placeholder="Dr. / Clinical Officer Name"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Clinician Phone</label>
+                            <input type="text" name="referring_clinician_phone" value="{{ form.referring_clinician_phone.value|default:'' }}" placeholder="+254 7..."
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Referral Date</label>
+                            <input type="date" name="referral_date" value="{{ form.referral_date.value|date:'Y-m-d'|default:'' }}"
+                                   class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Initial Triage Priority *</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <label class="flex items-center p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition has-[:checked]:border-[#002D62] has-[:checked]:bg-blue-50/50">
+                                <input type="radio" name="priority" value="ROUTINE" {% if form.priority.value == 'ROUTINE' or not form.priority.value %}checked{% endif %} class="text-[#002D62] focus:ring-[#002D62]">
+                                <div class="ml-2.5">
+                                    <span class="text-xs font-bold text-slate-900 block">Routine</span>
+                                    <span class="text-[10px] text-slate-500">Review within 5 days</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50/50">
+                                <input type="radio" name="priority" value="URGENT" {% if form.priority.value == 'URGENT' %}checked{% endif %} class="text-amber-600 focus:ring-amber-500">
+                                <div class="ml-2.5">
+                                    <span class="text-xs font-bold text-slate-900 block">Urgent</span>
+                                    <span class="text-[10px] text-slate-500">Review within 48 hours</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition has-[:checked]:border-[#991B1B] has-[:checked]:bg-red-50/50">
+                                <input type="radio" name="priority" value="EMERGENCY" {% if form.priority.value == 'EMERGENCY' %}checked{% endif %} class="text-[#991B1B] focus:ring-[#991B1B]">
+                                <div class="ml-2.5">
+                                    <span class="text-xs font-bold text-slate-900 block">Emergency</span>
+                                    <span class="text-[10px] text-slate-500">Review within 24 hours</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Clinical Information -->
+                <div class="space-y-4">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-[#002D62]"></i>
+                        <span>3. Clinical Information & Indication</span>
+                    </h2>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Diagnosis *</label>
+                        <input type="text" name="primary_diagnosis" value="{{ form.primary_diagnosis.value|default:'' }}" required placeholder="e.g. Ca Cervix Stage IV with bone metastases"
+                               class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Reason for Referral *</label>
+                        <textarea name="reason_for_referral" required rows="3" placeholder="Symptom management, pain control, home palliative nursing, psychological support..."
+                                  class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">{{ form.reason_for_referral.value|default:'' }}</textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Clinical Summary / Previous Treatments</label>
+                            <textarea name="clinical_summary" rows="3" placeholder="Past chemoradiotherapy, surgical interventions, current functional status..."
+                                      class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">{{ form.clinical_summary.value|default:'' }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Current Medications</label>
+                            <textarea name="current_medications" rows="3" placeholder="Analgesics, antiemetics, steroids, other regular medications..."
+                                      class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">{{ form.current_medications.value|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit / Cancel Action Bar -->
+                <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
+                    <a href="{% url 'referrals:referral_list' %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition flex items-center space-x-1.5 cursor-pointer">
+                        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                        <span>Submit & Log Referral</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right: Guidance & Triage Protocol Sidebar (4 cols) -->
+        <div class="lg:col-span-4 space-y-5 lg:sticky lg:top-24">
+            
+            <!-- Triage Priority Reference Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3.5">
+                <div class="flex items-center space-x-2 pb-2 border-b border-slate-100">
+                    <div class="w-7 h-7 rounded-lg bg-red-50 text-[#991B1B] flex items-center justify-center">
+                        <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">Triage Priority Protocol</h3>
+                </div>
+
+                <div class="space-y-2.5 text-xs">
+                    <div class="p-3 bg-red-50 rounded-xl border border-red-200">
+                        <span class="font-bold text-[#991B1B] flex items-center text-xs">
+                            <span class="w-2 h-2 rounded-full bg-[#991B1B] mr-1.5"></span> Emergency (&lt; 24 Hours)
+                        </span>
+                        <p class="text-slate-600 text-[11px] mt-1 leading-relaxed">
+                            Severe intractable pain crisis, acute spinal cord compression, acute airway compromise, or massive bleeding.
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                        <span class="font-bold text-amber-800 flex items-center text-xs">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span> Urgent (&lt; 48 Hours)
+                        </span>
+                        <p class="text-slate-600 text-[11px] mt-1 leading-relaxed">
+                            Rapid functional decline, severe persistent nausea/vomiting, malignant bowel sub-obstruction, acute caregiver distress.
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-blue-50 rounded-xl border border-blue-200">
+                        <span class="font-bold text-[#002D62] flex items-center text-xs">
+                            <span class="w-2 h-2 rounded-full bg-[#002D62] mr-1.5"></span> Routine (&lt; 5 Days)
+                        </span>
+                        <p class="text-slate-600 text-[11px] mt-1 leading-relaxed">
+                            Stable advanced illness, long-term palliative trajectory, ongoing counseling, and home care coordination.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intake Pipeline Workflow -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center space-x-2 pb-2 border-b border-slate-100">
+                    <div class="w-7 h-7 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center">
+                        <i data-lucide="git-merge" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">Intake Process Flow</h3>
+                </div>
+
+                <ol class="relative border-l border-slate-200 ml-2 space-y-3.5 text-xs">
+                    <li class="pl-4">
+                        <span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-[#002D62] border-2 border-white"></span>
+                        <p class="font-bold text-slate-900">1. Log Dossier</p>
+                        <p class="text-[11px] text-slate-500">Capture patient demographics, source hospital & contact.</p>
+                    </li>
+                    <li class="pl-4">
+                        <span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-amber-500 border-2 border-white"></span>
+                        <p class="font-bold text-slate-900">2. Clinical Triage</p>
+                        <p class="text-[11px] text-slate-500">Medical team reviews diagnosis & assigns priority score.</p>
+                    </li>
+                    <li class="pl-4">
+                        <span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
+                        <p class="font-bold text-slate-900">3. Convert to Patient</p>
+                        <p class="text-[11px] text-slate-500">One-click registration into active palliative care episode.</p>
+                    </li>
+                </ol>
+            </div>
+
+            <!-- Support & Triage Desk Contacts -->
+            <div class="p-4 bg-slate-900 text-white rounded-2xl shadow-sm space-y-2 text-xs">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="phone-call" class="w-4 h-4 text-red-400"></i>
+                    <span class="font-bold text-xs">Nairobi Hospice Intake Desk</span>
+                </div>
+                <p class="text-slate-300 text-[11px]">
+                    For emergency clinical escalations or urgent doctor inquiries:
+                </p>
+                <div class="font-mono text-xs font-bold text-red-300">
+                    +254 722 200 413 &bull; +254 732 200 413
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Movement & Audit Ledger - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    
+    <!-- Top Header Banner -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                    Stock Audit & Compliance
+                </span>
+                <span class="text-xs text-slate-400">&bull;</span>
+                <span class="text-xs text-slate-500 font-medium">Movement Ledger</span>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight mt-1">Inventory Movements & Burn Rate Ledger</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Immutable transaction audit trail for incoming deliveries, clinical dispenses, and home route transfers.</p>
+        </div>
+
+        <a href="{% url 'operations:inventory_list' %}" 
+           class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs transition space-x-1.5 self-start sm:self-auto">
+            <i data-lucide="package" class="w-4 h-4 text-slate-500"></i>
+            <span>Current Stock Catalog</span>
+        </a>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-3 sm:p-4">
+        <form method="GET" class="flex flex-wrap gap-2.5">
+            <select name="type" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                <option value="">All Movement Types</option>
+                <option value="RECEIVE" {% if request.GET.type == 'RECEIVE' %}selected{% endif %}>Stock Received (Delivery)</option>
+                <option value="DISPENSE" {% if request.GET.type == 'DISPENSE' %}selected{% endif %}>Dispensed to Patient</option>
+                <option value="TRANSFER" {% if request.GET.type == 'TRANSFER' %}selected{% endif %}>Transfer to Home Care Kits</option>
+                <option value="ADJUSTMENT" {% if request.GET.type == 'ADJUSTMENT' %}selected{% endif %}>Audit Adjustment</option>
+                <option value="WASTAGE" {% if request.GET.type == 'WASTAGE' %}selected{% endif %}>Wastage / Expired</option>
+            </select>
+
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition">
+                Filter Ledger
+            </button>
+        </form>
+    </div>
+
+    <!-- Movement Ledger Table -->
+    <div class="bg-white rounded-xl shadow-2xs border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 whitespace-nowrap">Timestamp</th>
+                        <th class="px-4 py-3">Stock Item</th>
+                        <th class="px-4 py-3">Movement Type</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Quantity Delta</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Balance After</th>
+                        <th class="px-4 py-3">Reference / Patient</th>
+                        <th class="px-4 py-3">Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for mov in movements %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-4 py-3 font-mono text-[11px] text-slate-900 whitespace-nowrap">
+                            {{ mov.created_at|date:"d M Y H:i" }}
+                        </td>
+                        <td class="px-4 py-3 font-bold text-slate-900">
+                            {{ mov.stock_item.name }}
+                            <span class="text-[10px] font-mono text-slate-400 block">{{ mov.stock_item.item_code }}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                                {% if mov.movement_type == 'RECEIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif mov.movement_type == 'DISPENSE' %}bg-blue-50 text-[#002D62] border border-blue-200
+                                {% elif mov.movement_type == 'TRANSFER' %}bg-purple-50 text-purple-700 border border-purple-200
+                                {% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
+                                {{ mov.get_movement_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-sm whitespace-nowrap
+                            {% if mov.quantity > 0 %}text-emerald-700{% else %}text-slate-800{% endif %}">
+                            {% if mov.quantity > 0 %}+{% endif %}{{ mov.quantity }} {{ mov.stock_item.unit_of_measure }}
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                            {{ mov.balance_after }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-700 font-medium">
+                            {{ mov.reference_document|default:"-" }}
+                            {% if mov.notes %}
+                            <span class="text-[10px] text-slate-400 block">{{ mov.notes }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 text-xs">
+                            {{ mov.recorded_by.display_name|default:"System" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <i data-lucide="history" class="w-8 h-8 mx-auto text-slate-300 mb-1"></i>
+                            No stock movement transactions recorded yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

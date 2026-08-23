@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Invoicing & Financial Billing - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="invoice-page space-y-5">
+    
+    <!-- Top Header Banner -->
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-[#002D62] border border-slate-200">
+                    Procurement & Supply Chain
+                </span>
+                <span class="text-xs text-slate-400">&bull;</span>
+                <span class="text-xs text-slate-500 font-medium">Financial Invoicing & Vouchers</span>
+            </div>
+            <h1 class="text-2xl font-black text-slate-950 tracking-tight mt-1">Invoicing & billing</h1>
+            <p class="text-sm text-slate-500 mt-1 leading-6">Track supplier payables, patient receivables, donor subsidies, and official PDF vouchers in one place.</p>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <a href="{% url 'operations:invoice_create' %}" 
+               class="inline-flex items-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-md shadow-sm transition space-x-1.5">
+                <i data-lucide="file-plus" class="w-4 h-4 text-blue-300"></i>
+                <span>Create New Invoice</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Financial KPI Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-1">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block">Total Invoices Logged</span>
+            <span class="text-2xl font-black text-slate-900">{{ total_invoices_count }}</span>
+            <p class="text-[11px] text-slate-500">Across supplier & patient accounts</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-1">
+            <span class="text-[10px] font-bold uppercase text-slate-400 block">Total Billed Amount</span>
+            <span class="text-2xl font-black text-slate-900">KES {{ total_billed_kes|intcomma }}</span>
+            <p class="text-[11px] text-slate-500">Gross billing volume</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-1">
+            <span class="text-[10px] font-bold uppercase text-emerald-600 block">Total Amount Paid</span>
+            <span class="text-2xl font-black text-emerald-700">KES {{ total_collected_kes|intcomma }}</span>
+            <p class="text-[11px] text-emerald-600">Reconciled payments</p>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-1">
+            <span class="text-[10px] font-bold uppercase text-rose-600 block">Outstanding Balance Due</span>
+            <span class="text-2xl font-black text-rose-700">KES {{ outstanding_balance_kes|intcomma }}</span>
+            <p class="text-[11px] text-rose-600">Pending receivables & payables</p>
+        </div>
+
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm p-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div class="flex items-center flex-wrap gap-2" aria-label="Invoice filters">
+            <a href="{% url 'operations:invoice_list' %}" 
+               class="px-3 py-1.5 text-xs font-bold rounded-md border transition {% if not current_type and not current_status %}bg-[#002D62] text-white border-[#002D62]{% else %}bg-white text-slate-600 hover:bg-slate-50 border-slate-300{% endif %}">
+                All Invoices
+            </a>
+            <a href="{% url 'operations:invoice_list' %}?type=SUPPLIER_PURCHASE" 
+               class="px-3 py-1.5 text-xs font-bold rounded-md border transition {% if current_type == 'SUPPLIER_PURCHASE' %}bg-[#002D62] text-white border-[#002D62]{% else %}bg-white text-slate-600 hover:bg-slate-50 border-slate-300{% endif %}">
+                Supplier Payables
+            </a>
+            <a href="{% url 'operations:invoice_list' %}?type=PATIENT_SERVICE" 
+               class="px-3 py-1.5 text-xs font-bold rounded-md border transition {% if current_type == 'PATIENT_SERVICE' %}bg-[#002D62] text-white border-[#002D62]{% else %}bg-white text-slate-600 hover:bg-slate-50 border-slate-300{% endif %}">
+                Patient Receivables
+            </a>
+            <a href="{% url 'operations:invoice_list' %}?status=ISSUED" 
+               class="px-3 py-1.5 text-xs font-bold rounded-md border transition {% if current_status == 'ISSUED' %}bg-[#8a5a00] text-white border-[#8a5a00]{% else %}bg-white text-[#8a5a00] hover:bg-amber-50 border-amber-300{% endif %}">
+                Awaiting Payment
+            </a>
+            <a href="{% url 'operations:invoice_list' %}?status=PAID" 
+               class="px-3 py-1.5 text-xs font-bold rounded-md border transition {% if current_status == 'PAID' %}bg-[#087f5b] text-white border-[#087f5b]{% else %}bg-white text-[#087f5b] hover:bg-emerald-50 border-emerald-300{% endif %}">
+                Fully Paid
+            </a>
+        </div>
+
+        <form method="get" class="flex w-full xl:w-auto items-center gap-2">
+            {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+            {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+            <div class="relative w-full xl:w-72">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search invoice #, vendor, patient..." 
+                       class="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+            </div>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i> Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+            <div>
+                <h2 class="text-sm font-bold text-slate-900">Invoice register</h2>
+                <p class="mt-1 text-xs text-slate-400">Amounts are shown in Kenyan shillings (KES).</p>
+            </div>
+            <i data-lucide="receipt" class="h-5 w-5 text-[#002D62]"></i>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-[1180px] w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                        <th class="py-3 px-4">Invoice #</th>
+                        <th class="py-3 px-4">Type</th>
+                        <th class="py-3 px-4">Recipient / Party</th>
+                        <th class="py-3 px-4">Issue Date</th>
+                        <th class="py-3 px-4 text-right">Total Billed</th>
+                        <th class="py-3 px-4 text-right">Paid</th>
+                        <th class="py-3 px-4 text-right">Balance Due</th>
+                        <th class="py-3 px-4 text-center">Status</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-slate-800">
+                    {% for invoice in invoices %}
+                    <tr class="group hover:bg-blue-50/30 transition">
+                        <td class="py-3 px-4 font-bold">
+                            <a href="{% url 'operations:invoice_detail' invoice.pk %}" class="text-[#002D62] hover:underline font-mono font-black">
+                                {{ invoice.invoice_number }}
+                            </a>
+                            {% if invoice.procurement_order %}
+                            <span class="block text-[10px] font-normal text-slate-400 font-mono">PO: {{ invoice.procurement_order.po_number }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="inline-flex max-w-[220px] px-2 py-1 rounded-sm text-[10px] font-bold uppercase leading-4
+                                {% if invoice.invoice_type == 'SUPPLIER_PURCHASE' %}bg-slate-100 text-slate-700 border border-slate-300
+                                {% elif invoice.invoice_type == 'PATIENT_SERVICE' %}bg-slate-100 text-[#24527a] border border-slate-300
+                                {% else %}bg-teal-50 text-[#176b68] border border-teal-200{% endif %}">
+                                {{ invoice.get_invoice_type_display }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            {% if invoice.vendor %}
+                            <span class="font-bold text-slate-900 block">{{ invoice.vendor.name }}</span>
+                            <span class="text-[10px] text-slate-400">PIN: {{ invoice.vendor.kra_pin|default:"N/A" }}</span>
+                            {% elif invoice.patient %}
+                            <span class="font-bold text-slate-900 block">{{ invoice.patient.full_name }}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">Hospice: {{ invoice.patient.hospice_number }}</span>
+                            {% else %}
+                            <span class="text-slate-500">General Billing</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 font-mono text-slate-600">
+                            {{ invoice.issue_date|date:"d M Y" }}
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold text-slate-900">
+                            KES {{ invoice.total_amount_kes|intcomma }}
+                        </td>
+                        <td class="py-3 px-4 text-right font-semibold text-emerald-700">
+                            KES {{ invoice.amount_paid_kes|intcomma }}
+                        </td>
+                        <td class="py-3 px-4 text-right font-bold {% if invoice.balance_due_kes > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">
+                            KES {{ invoice.balance_due_kes|intcomma }}
+                        </td>
+                        <td class="py-3 px-4 text-center">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                {% if invoice.status == 'PAID' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif invoice.status == 'PARTIALLY_PAID' %}bg-blue-50 text-blue-700 border border-blue-200
+                                {% elif invoice.status == 'ISSUED' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% elif invoice.status == 'CANCELLED' %}bg-slate-100 text-slate-500 border border-slate-200
+                                {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                {{ invoice.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
+                            <a href="{% url 'operations:invoice_pdf' invoice.pk %}" target="_blank"
+                               class="inline-flex items-center px-2 py-1 text-[11px] font-bold text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-md transition"
+                               title="Download PDF Document">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1"></i>
+                                <span>PDF</span>
+                            </a>
+                            <a href="{% url 'operations:invoice_detail' invoice.pk %}" 
+                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-100 border border-slate-300 rounded-md transition">
+                                <span>Manage</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="py-8 text-center text-slate-400">
+                            <i data-lucide="receipt" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+                            <p class="font-medium">No invoices matching the selected criteria.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if is_paginated %}
+        <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            <div class="flex space-x-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold hover:bg-slate-50">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="px-3 py-1.5 bg-white border border-slate-300 rounded-lg font-bold hover:bg-slate-50">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

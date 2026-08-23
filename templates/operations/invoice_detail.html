@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+{% load humanize static %}
+
+{% block title %}
+{% if invoice.invoice_type == 'SUPPLIER_PURCHASE' %}Supplier Voucher {{ invoice.invoice_number }}{% else %}Patient Clinical Invoice {{ invoice.invoice_number }}{% endif %} - Nairobi Hospice PCMS
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-5" x-data="{ addLineOpen: false, payModalOpen: false }">
+    
+    <!-- Top Action Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'operations:invoice_list' %}" class="text-xs font-bold text-[#002D62] hover:underline flex items-center">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i>
+                    Back to Invoices
+                </a>
+                <span class="text-xs text-slate-400">&bull;</span>
+                <span class="text-xs font-mono font-bold text-slate-500">{{ invoice.invoice_number }}</span>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight mt-1 flex items-center space-x-2">
+                <span>{% if invoice.invoice_type == 'SUPPLIER_PURCHASE' %}Supplier Purchase Voucher{% else %}Patient Clinical Tax Invoice{% endif %}: {{ invoice.invoice_number }}</span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase
+                    {% if invoice.status == 'PAID' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                    {% elif invoice.status == 'PARTIALLY_PAID' %}bg-blue-50 text-blue-700 border border-blue-200
+                    {% elif invoice.status == 'ISSUED' %}bg-amber-50 text-amber-700 border border-amber-200
+                    {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                    {{ invoice.get_status_display }}
+                </span>
+            </h1>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2">
+            <button @click="payModalOpen = true" 
+                    class="inline-flex items-center px-3 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="credit-card" class="w-4 h-4"></i>
+                <span>{% if invoice.invoice_type == 'SUPPLIER_PURCHASE' %}Record Disbursement{% else %}Record Payment{% endif %}</span>
+            </button>
+            <button @click="addLineOpen = true" 
+                    class="inline-flex items-center px-3 py-2 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-[#002D62]"></i>
+                <span>Add Item</span>
+            </button>
+            <a href="{% url 'operations:invoice_pdf' invoice.pk %}" target="_blank"
+               class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="printer" class="w-4 h-4 text-blue-300"></i>
+                <span>Generate Official PDF</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Paper Document Container -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        
+        <!-- ================= PATIENT CLINICAL INVOICE FORMAT ================= -->
+        {% if invoice.invoice_type != 'SUPPLIER_PURCHASE' %}
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start pb-5 border-b-2 border-[#002D62] gap-4">
+            <div class="flex items-center space-x-3.5">
+                <img src="{% static 'images/hospice_symbol.png' %}" alt="Nairobi Hospice Emblem" class="w-12 h-12 shrink-0 object-contain">
+                <div class="space-y-0.5">
+                    <h2 class="text-xl font-black text-[#002D62] tracking-tight">NAIROBI HOSPICE</h2>
+                    <p class="text-xs italic text-[#991B1B] font-serif font-medium">"Put life into their days, not just days into their life"</p>
+                    <p class="text-[11px] text-slate-500">KNH Grounds &bull; Tel: +254 20 2712383 &bull; PIN: P051100234K</p>
+                </div>
+            </div>
+
+            <div class="sm:text-right space-y-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400 block">PATIENT CLINICAL TAX INVOICE</span>
+                <span class="text-lg font-mono font-black text-[#002D62] block">{{ invoice.invoice_number }}</span>
+                <p class="text-xs text-slate-500">Date: <strong>{{ invoice.issue_date|date:"d M Y" }}</strong></p>
+            </div>
+        </div>
+
+        <!-- Patient Dossier Card -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <div class="space-y-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-[#002D62] block flex items-center space-x-1">
+                    <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                    <span>Patient Dossier</span>
+                </span>
+                {% if invoice.patient %}
+                <h3 class="font-bold text-slate-900 text-sm">{{ invoice.patient.full_name }}</h3>
+                <p class="text-slate-600">Hospice Number: <span class="font-mono font-bold text-[#002D62]">{{ invoice.patient.hospice_number }}</span> (Age: {{ invoice.patient.age|default:"-" }} yrs &bull; {{ invoice.patient.get_sex_display }})</p>
+                <p class="text-slate-600">Diagnosis: <strong>{{ invoice.patient.primary_diagnosis }}</strong></p>
+                <p class="text-slate-500">Phone: {{ invoice.patient.phone_number }} &bull; County: {{ invoice.patient.county|default:"Nairobi" }}</p>
+                {% else %}
+                <h3 class="font-bold text-slate-900">General Outpatient Recipient</h3>
+                {% endif %}
+            </div>
+
+            <div class="space-y-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-[#002D62] block flex items-center space-x-1">
+                    <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
+                    <span>Payment Specifications</span>
+                </span>
+                <p class="text-slate-600">Payment Channel: <strong>{{ invoice.payment_method|default:"M-PESA / Cash" }}</strong></p>
+                <p class="text-slate-600">Transaction Ref: <span class="font-mono font-semibold">{{ invoice.payment_reference|default:"Pending Confirmation" }}</span></p>
+                <p class="text-slate-500">Issued By: {{ invoice.created_by.display_name|default:"Accounts Desk" }} on {{ invoice.created_at|date:"d M Y H:i" }}</p>
+            </div>
+        </div>
+
+        <!-- Clinical Services Table -->
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-[#002D62] text-white font-bold uppercase text-[11px]">
+                        <th class="py-2.5 px-3">#</th>
+                        <th class="py-2.5 px-3">Clinical Service / Palliative Medication Course</th>
+                        <th class="py-2.5 px-3 text-center">Qty</th>
+                        <th class="py-2.5 px-3 text-right">Unit Fee (KES)</th>
+                        <th class="py-2.5 px-3 text-right">Total (KES)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in invoice.items.all %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 px-3 font-mono text-slate-400">{{ forloop.counter }}</td>
+                        <td class="py-2.5 px-3 font-bold text-slate-800">{{ item.description }}</td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-700">{{ item.quantity }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono text-slate-600">{{ item.unit_price_kes|intcomma }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{{ item.total_price_kes|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">1</td>
+                        <td class="py-2.5 px-3 font-bold text-slate-800">{{ invoice.notes|default:"Comprehensive Palliative Clinical Package & Medicines" }}</td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-700">1</td>
+                        <td class="py-2.5 px-3 text-right font-mono text-slate-600">{{ invoice.total_amount_kes|intcomma }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{{ invoice.total_amount_kes|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals & Paybill Block -->
+        <div class="flex flex-col sm:flex-row justify-between items-start pt-2 gap-4">
+            <div class="w-full sm:w-1/2 p-3.5 rounded-lg bg-emerald-50/60 border border-emerald-200 text-xs space-y-1">
+                <span class="font-bold text-emerald-800 uppercase tracking-wider block text-[10px] flex items-center space-x-1">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+                    <span>Official M-PESA Paybill Details</span>
+                </span>
+                <p class="text-slate-700"><b>Business Paybill No:</b> <span class="font-mono font-bold text-emerald-800">981234</span></p>
+                <p class="text-slate-700"><b>Account No:</b> <span class="font-mono font-bold text-emerald-800">{{ invoice.patient.hospice_number|default:invoice.invoice_number }}</span></p>
+                <p class="text-[10px] text-slate-500 pt-1">Cash and cards are accepted at Nairobi Hospice Front Accounts Counter.</p>
+            </div>
+
+            <div class="w-full sm:w-72 space-y-1.5 text-xs text-right">
+                <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Gross Clinical Fee:</span>
+                    <span class="font-bold text-slate-800 font-mono">KES {{ invoice.subtotal_amount_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Palliative Care Subsidy:</span>
+                    <span class="text-emerald-700 font-mono font-semibold">- KES {{ invoice.discount_amount_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b-2 border-[#002D62] text-sm">
+                    <span class="font-black text-[#002D62]">Net Payable:</span>
+                    <span class="font-black text-[#002D62] font-mono">KES {{ invoice.total_amount_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 text-emerald-700">
+                    <span class="font-bold">Amount Paid:</span>
+                    <span class="font-bold font-mono">KES {{ invoice.amount_paid_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 text-rose-700 font-bold border-b border-rose-200">
+                    <span class="uppercase text-[11px]">Balance Due:</span>
+                    <span class="font-mono text-sm">KES {{ invoice.balance_due_kes|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUPPLIER PROCUREMENT VOUCHER FORMAT ================= -->
+        {% else %}
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start pb-5 border-b-2 border-slate-800 gap-4">
+            <div class="flex items-center space-x-3.5">
+                <img src="{% static 'images/hospice_symbol.png' %}" alt="Nairobi Hospice Emblem" class="w-12 h-12 shrink-0 object-contain">
+                <div class="space-y-0.5">
+                    <h2 class="text-xl font-black text-slate-900 tracking-tight">NAIROBI HOSPICE</h2>
+                    <p class="text-xs uppercase font-bold text-purple-700 tracking-wider">PROCUREMENT & SUPPLY CHAIN DIVISION</p>
+                    <p class="text-[11px] text-slate-500">P.O. Box 48290-00100 Nairobi &bull; PIN: P051100234K &bull; KNH Grounds</p>
+                </div>
+            </div>
+
+            <div class="sm:text-right space-y-1">
+                <span class="text-xs font-bold uppercase tracking-wider text-purple-700 block">PURCHASE VOUCHER & ACCOUNTS PAYABLE</span>
+                <span class="text-lg font-mono font-black text-slate-900 block">{{ invoice.invoice_number }}</span>
+                <p class="text-xs text-slate-500">Date: <strong>{{ invoice.issue_date|date:"d M Y" }}</strong> &bull; Due: <strong>{{ invoice.due_date|date:"d M Y"|default:"30 Days Net" }}</strong></p>
+            </div>
+        </div>
+
+        <!-- Supplier & PO Linking Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <div class="space-y-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-800 block flex items-center space-x-1">
+                    <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+                    <span>Supplier / Vendor Credentials</span>
+                </span>
+                {% if invoice.vendor %}
+                <h3 class="font-bold text-slate-900 text-sm">{{ invoice.vendor.name }}</h3>
+                <p class="text-slate-600">Vendor Code: <span class="font-mono font-bold">{{ invoice.vendor.code }}</span> &bull; KRA PIN: <span class="font-mono font-bold">{{ invoice.vendor.kra_pin|default:"N/A" }}</span></p>
+                <p class="text-slate-600">Contact: {{ invoice.vendor.contact_person }} ({{ invoice.vendor.phone_number }})</p>
+                <p class="text-slate-500">Address: {{ invoice.vendor.physical_address|default:"Nairobi, Kenya" }}</p>
+                {% endif %}
+            </div>
+
+            <div class="space-y-1">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-purple-800 block flex items-center space-x-1">
+                    <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+                    <span>Purchase Order & Payment Terms</span>
+                </span>
+                {% if invoice.procurement_order %}
+                <p class="text-slate-700"><b>Linked Purchase Order:</b> <a href="{% url 'operations:procurement_detail' invoice.procurement_order.pk %}" class="text-purple-700 font-bold hover:underline font-mono">{{ invoice.procurement_order.po_number }}</a></p>
+                {% else %}
+                <p class="text-slate-700"><b>Linked PO:</b> Direct Operational Requisition</p>
+                {% endif %}
+                <p class="text-slate-600">Payment Terms: <strong>{{ invoice.vendor.payment_terms|default:"30 Days Net" }}</strong></p>
+                <p class="text-slate-600">Payment Channel: <strong>{{ invoice.payment_method|default:"Bank EFT / RTGS" }}</strong></p>
+                <p class="text-slate-500">Requisitioned By: {{ invoice.created_by.display_name|default:"Operations Manager" }}</p>
+            </div>
+        </div>
+
+        <!-- Supplies Line Items Table -->
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-900 text-white font-bold uppercase text-[11px]">
+                        <th class="py-2.5 px-3">#</th>
+                        <th class="py-2.5 px-3">Stock Catalog SKU & Description</th>
+                        <th class="py-2.5 px-3 text-center">Qty Recv</th>
+                        <th class="py-2.5 px-3 text-right">Unit Cost (KES)</th>
+                        <th class="py-2.5 px-3 text-right">Total Cost (KES)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in invoice.items.all %}
+                    <tr class="hover:bg-slate-50">
+                        <td class="py-2.5 px-3 font-mono text-slate-400">{{ forloop.counter }}</td>
+                        <td class="py-2.5 px-3 font-bold text-slate-800">
+                            {{ item.description }}
+                            {% if item.stock_item %}
+                            <span class="block text-[10px] text-slate-400 font-mono">SKU: {{ item.stock_item.item_code }} &bull; {{ item.stock_item.get_category_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-700">{{ item.quantity }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono text-slate-600">{{ item.unit_price_kes|intcomma }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{{ item.total_price_kes|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td class="py-2.5 px-3 font-mono text-slate-400">1</td>
+                        <td class="py-2.5 px-3 font-bold text-slate-800">{{ invoice.notes|default:"Medical Supplies Batch" }}</td>
+                        <td class="py-2.5 px-3 text-center font-bold text-slate-700">1</td>
+                        <td class="py-2.5 px-3 text-right font-mono text-slate-600">{{ invoice.total_amount_kes|intcomma }}</td>
+                        <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">{{ invoice.total_amount_kes|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Supplier Totals & Authorizations -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                <span class="font-bold text-slate-800 uppercase tracking-wider block text-[10px]">Three-Tier Audit Authorizations</span>
+                <p class="text-slate-600">1. Verified & Stock Inward Logged by Stores</p>
+                <p class="text-slate-600">2. Audited Against PO & Delivery Note</p>
+                <p class="text-slate-600">3. Disbursement Approved by Executive Management</p>
+            </div>
+
+            <div class="space-y-1.5 text-xs text-right">
+                <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-500">Subtotal:</span>
+                    <span class="font-bold text-slate-800 font-mono">KES {{ invoice.subtotal_amount_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b-2 border-slate-900 text-sm">
+                    <span class="font-black text-slate-900">Total Payable:</span>
+                    <span class="font-black text-slate-900 font-mono">KES {{ invoice.total_amount_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-100 text-emerald-700">
+                    <span class="font-bold">Disbursed / Paid:</span>
+                    <span class="font-bold font-mono">KES {{ invoice.amount_paid_kes|intcomma }}</span>
+                </div>
+                <div class="flex justify-between py-1.5 text-rose-700 font-bold border-b border-rose-200">
+                    <span class="uppercase text-[11px]">Outstanding Payable:</span>
+                    <span class="font-mono text-sm">KES {{ invoice.balance_due_kes|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+    <!-- Modal: Add Line Item -->
+    <div x-cloak x-show="addLineOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="addLineOpen = false" class="bg-white rounded-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 shadow-xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Add Line Item to Invoice</h3>
+                <button @click="addLineOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form method="post" action="{% url 'operations:invoice_add_item' invoice.pk %}" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Item Description / Service Name *</label>
+                    {{ item_form.description }}
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Quantity *</label>
+                        {{ item_form.quantity }}
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Unit Price (KES) *</label>
+                        {{ item_form.unit_price_kes }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Link Inventory SKU (Optional)</label>
+                    {{ item_form.stock_item }}
+                </div>
+                <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+                    <button type="button" @click="addLineOpen = false" class="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 bg-[#002D62] text-white font-bold rounded-lg hover:bg-[#0B2545]">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Record Payment -->
+    <div x-cloak x-show="payModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div @click.away="payModalOpen = false" class="bg-white rounded-xl max-w-lg w-full p-5 space-y-4 border border-slate-200 shadow-xl">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <h3 class="text-sm font-bold text-slate-900">Record Payment for Invoice {{ invoice.invoice_number }}</h3>
+                <button @click="payModalOpen = false" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form method="post" class="space-y-4 text-xs">
+                {% csrf_token %}
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Cumulative Amount Paid (KES) *</label>
+                    {{ payment_form.amount_paid_kes }}
+                    <span class="text-[10px] text-slate-400">Total Billed: KES {{ invoice.total_amount_kes|intcomma }}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Payment Status *</label>
+                        {{ payment_form.status }}
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Payment Method</label>
+                        {{ payment_form.payment_method }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Transaction Ref / Cheque No.</label>
+                    {{ payment_form.payment_reference }}
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Receipt Notes</label>
+                    {{ payment_form.notes }}
+                </div>
+                <div class="pt-3 border-t border-slate-100 flex justify-end space-x-2">
+                    <button type="button" @click="payModalOpen = false" class="px-3 py-1.5 border border-slate-300 rounded-lg text-slate-600 font-bold hover:bg-slate-50">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700">Save Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

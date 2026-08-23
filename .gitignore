@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.sqlite3
+production_db.sqlite3
+media/
+private_media/
+backups/
+.env
+.env.local
+.env.*.local
+staticfiles/
+# Build/tooling artifacts
+.coverage
+htmlcov/
+*.egg-info/
+# E2E / Playwright
+e2e/node_modules/
+e2e/playwright-report/
+e2e/test-results/
+# Local agent tooling cache
+.deslop/

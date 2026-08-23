@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Invoice - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-5">
+    
+    <!-- Top Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'operations:invoice_list' %}" class="text-xs font-bold text-[#002D62] hover:underline flex items-center">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i>
+                    Back to Invoices
+                </a>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight mt-1">Issue New Financial Invoice / Voucher</h1>
+            <p class="text-xs text-slate-500">Record supplier purchase bills, patient clinical care packages, or donor subsidy vouchers.</p>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-5 sm:p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700">
+                <p class="font-bold">Please correct the errors below:</p>
+                <ul class="list-disc list-inside mt-1">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Section 1: Classification & Core Identifiers -->
+            <div>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i data-lucide="file-text" class="w-4 h-4 text-[#002D62]"></i>
+                    <span>Invoice Metadata & Category</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Invoice Number</span>
+                            <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">Auto-Generated</span>
+                        </label>
+                        {{ form.invoice_number }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Invoice Type *</label>
+                        {{ form.invoice_type }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Status *</label>
+                        {{ form.status }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Recipient Party & PO Reference -->
+            <div>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i data-lucide="users" class="w-4 h-4 text-[#002D62]"></i>
+                    <span>Billed Recipient Party</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Supplier / Vendor (Payable)</label>
+                        {{ form.vendor }}
+                        <span class="text-[10px] text-slate-400">Select if billing a supplier PO</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Patient Client (Receivable)</label>
+                        {{ form.patient }}
+                        <span class="text-[10px] text-slate-400">Select if billing clinical care</span>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Linked Purchase Order (PO)</label>
+                        {{ form.procurement_order }}
+                        <span class="text-[10px] text-slate-400">Optional PO linkage</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Financial Pricing & Amounts -->
+            <div>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i data-lucide="banknote" class="w-4 h-4 text-[#002D62]"></i>
+                    <span>Financial Totals & Dates (KES)</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Issue Date *</label>
+                        {{ form.issue_date }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Due Date</label>
+                        {{ form.due_date }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Total Amount (KES) *</label>
+                        {{ form.total_amount_kes }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Initial Amount Paid (KES)</label>
+                        {{ form.amount_paid_kes }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Payment Terms & Notes -->
+            <div>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-900 pb-2 border-b border-slate-100 flex items-center space-x-2">
+                    <i data-lucide="credit-card" class="w-4 h-4 text-[#002D62]"></i>
+                    <span>Payment Channel & Internal Remarks</span>
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Method</label>
+                        {{ form.payment_method }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Reference / Tx ID</label>
+                        {{ form.payment_reference }}
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Invoice Notes / Line Items Description</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <a href="{% url 'operations:invoice_list' %}" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-lg border border-slate-200">
+                    Cancel
+                </a>
+                <button type="submit" class="px-5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition flex items-center space-x-1.5">
+                    <i data-lucide="check" class="w-4 h-4 text-blue-300"></i>
+                    <span>Save & Generate Invoice</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

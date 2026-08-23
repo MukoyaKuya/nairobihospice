@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Assessment: {{ assessment.patient.full_name }} - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'patients:patient_detail' assessment.patient.pk %}" class="text-xs font-semibold text-[#002D62] hover:underline flex items-center mb-1 space-x-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>Back to Patient Workspace</span>
+            </a>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight">{{ assessment.get_assessment_type_display }}</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Patient: <strong>{{ assessment.patient.full_name }}</strong> ({{ assessment.patient.hospice_number }})</p>
+        </div>
+        <span class="text-xs font-bold text-[#002D62] px-3 py-1 bg-blue-50 border border-blue-200 rounded-lg shadow-2xs font-mono">
+            {{ assessment.assessment_date|date:"d M Y" }}
+        </span>
+    </div>
+
+    <!-- Assessment Details Card -->
+    <div class="bg-white rounded-xl p-5 sm:p-6 shadow-2xs border border-slate-200 space-y-5">
+        <div class="flex flex-wrap gap-3 text-xs font-semibold pb-4 border-b border-slate-100">
+            {% if assessment.pain_score is not None %}
+            <div class="p-3 bg-rose-50/80 rounded-lg border border-rose-200/80">
+                <span class="text-[10px] text-rose-600 uppercase font-bold block">Pain Numeric Score</span>
+                <span class="text-lg font-black text-rose-900">{{ assessment.pain_score }}/10</span>
+            </div>
+            {% endif %}
+
+            {% if assessment.pps_score is not None %}
+            <div class="p-3 bg-teal-50/80 rounded-lg border border-teal-200/80">
+                <span class="text-[10px] text-teal-600 uppercase font-bold block">PPS Performance</span>
+                <span class="text-lg font-black text-teal-900">{{ assessment.pps_score }}%</span>
+            </div>
+            {% endif %}
+
+            {% if assessment.ecog_score is not None %}
+            <div class="p-3 bg-indigo-50/80 rounded-lg border border-indigo-200/80">
+                <span class="text-[10px] text-indigo-600 uppercase font-bold block">ECOG Status</span>
+                <span class="text-lg font-black text-indigo-900">{{ assessment.ecog_score }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Clinical Impressions & Management Synthesis</h3>
+            <div class="p-4 bg-slate-50 rounded-lg text-xs text-slate-800 whitespace-pre-line leading-relaxed border border-slate-200">
+                {{ assessment.clinical_summary }}
+            </div>
+        </div>
+
+        <!-- Amendment History Trail -->
+        {% if amendments %}
+        <div class="pt-4 border-t border-slate-100 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center space-x-1.5">
+                <i data-lucide="history" class="w-4 h-4 text-amber-600"></i>
+                <span>Clinical Amendment Audit Trail</span>
+            </h3>
+            {% for amd in amendments %}
+            <div class="p-3 bg-amber-50/60 rounded-lg border border-amber-200/60 text-xs">
+                <div class="flex items-center justify-between font-bold text-amber-900">
+                    <span>Amended by {{ amd.amended_by.display_name }}</span>
+                    <span class="font-mono text-[11px]">{{ amd.amended_at|date:"d M Y H:i" }}</span>
+                </div>
+                <p class="text-amber-800 mt-1"><strong>Reason for Amendment:</strong> {{ amd.reason_for_amendment }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Amend Clinical Record Form (Clinical Record Integrity) -->
+    <div class="bg-white rounded-xl p-5 sm:p-6 shadow-2xs border border-slate-200 space-y-4">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center space-x-2">
+            <i data-lucide="edit-3" class="w-4 h-4 text-[#002D62]"></i>
+            <span>Clinical Correction / Record Amendment</span>
+        </h3>
+        <p class="text-xs text-slate-500">Clinical records are immutable; amendments will be permanently logged with your name, timestamp, and clinical justification.</p>
+
+        <form method="POST" action="{% url 'assessments:assessment_amend' assessment.pk %}" class="space-y-4 text-xs">
+            {% csrf_token %}
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Clinical Reason for Amendment *</label>
+                {{ amendment_form.reason_for_amendment }}
+            </div>
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Updated Clinical Summary *</label>
+                {{ amendment_form.amended_notes }}
+            </div>
+            <button type="submit" onclick="return confirm('Log permanent clinical amendment to this assessment?')" 
+                    class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-2xs transition">
+                Submit Amendment
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

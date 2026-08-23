@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Staff Directory & Roles - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Staff Directory & Multidisciplinary Roles</h1>
+            <p class="text-xs text-slate-500 mt-1">Clinical and operational staff assigned to Nairobi Hospice palliative care teams.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left">
+                <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <tr>
+                        <th class="px-6 py-3.5">Staff Member</th>
+                        <th class="px-6 py-3.5">Role</th>
+                        <th class="px-6 py-3.5">Department</th>
+                        <th class="px-6 py-3.5">License / ID</th>
+                        <th class="px-6 py-3.5">Phone</th>
+                        <th class="px-6 py-3.5">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% for member in staff_members %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-bold flex items-center justify-center">
+                                    {{ member.user.first_name|first }}{{ member.user.last_name|first }}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-slate-900 block">{{ member.user.display_name }}</span>
+                                    <span class="text-[11px] text-slate-400 block">{{ member.user.email }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[10px] uppercase bg-teal-50 text-teal-800 border border-teal-200">
+                                {{ member.get_role_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 font-medium text-slate-700">{{ member.department }}</td>
+                        <td class="px-6 py-4 font-mono text-slate-600">{{ member.license_number|default:"-" }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ member.user.phone_number|default:"-" }}</td>
+                        <td class="px-6 py-4">
+                            {% if member.is_active_staff %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Active</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400">No staff members found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Verify MFA - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <div>
+        <h1 class="text-xl font-black text-slate-900">Verify your sign-in</h1>
+        <p class="text-sm text-slate-600 mt-2">Enter a current authenticator code or a saved recovery code.</p>
+    </div>
+    <form method="post" class="space-y-3">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <label class="block text-xs font-bold text-slate-700">Authenticator code</label>
+        {{ form.token }}
+        <label class="block text-xs font-bold text-slate-700">Recovery code</label>
+        {{ form.recovery_code }}
+        {% for error in form.non_field_errors %}<p class="text-xs text-red-700">{{ error }}</p>{% endfor %}
+        <button class="w-full rounded-xl bg-[#002D62] text-white px-4 py-2.5 text-sm font-bold">Continue</button>
+    </form>
+</div>
+{% endblock %}

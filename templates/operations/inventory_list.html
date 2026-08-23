@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Pharmacy & Medical Supplies Inventory - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    
+    <!-- Top Header Banner -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#002D62] border border-blue-200">
+                    Hospice Pharmacy & Stores
+                </span>
+                <span class="text-xs text-slate-400">&bull;</span>
+                <span class="text-xs text-slate-500 font-medium">Live Inventory</span>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight mt-1">Pharmacy & Medical Supplies Catalog</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Real-time stock levels, controlled opioid balances, reorder alerts, and bin locations.</p>
+        </div>
+
+        <div class="flex items-center flex-wrap gap-2">
+            <a href="{% url 'operations:stock_movements' %}" 
+               class="inline-flex items-center px-3 py-2 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
+                <span>Movement Ledger</span>
+            </a>
+            <a href="{% url 'operations:stock_receive' %}" 
+               class="inline-flex items-center px-3 py-2 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="package-plus" class="w-4 h-4 text-[#002D62]"></i>
+                <span>Receive Stock</span>
+            </a>
+            <a href="{% url 'operations:stock_item_create' %}" 
+               class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="plus" class="w-4 h-4 text-blue-300"></i>
+                <span>New Catalog Item</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-3 sm:p-4">
+        <form method="GET" class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search item code, drug name, or consumable..." 
+                       class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+            </div>
+
+            <select name="category" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                <option value="">All Categories</option>
+                <option value="CONTROLLED_OPIOID" {% if request.GET.category == 'CONTROLLED_OPIOID' %}selected{% endif %}>Controlled Opioids</option>
+                <option value="ESSENTIAL_MEDICINE" {% if request.GET.category == 'ESSENTIAL_MEDICINE' %}selected{% endif %}>Essential Medications</option>
+                <option value="WOUND_CARE" {% if request.GET.category == 'WOUND_CARE' %}selected{% endif %}>Wound Care & Dressings</option>
+                <option value="OXYGEN_EQUIPMENT" {% if request.GET.category == 'OXYGEN_EQUIPMENT' %}selected{% endif %}>Oxygen & Equipment</option>
+                <option value="PPE_SANITATION" {% if request.GET.category == 'PPE_SANITATION' %}selected{% endif %}>PPE & Sanitation</option>
+                <option value="NUTRITIONAL_FEED" {% if request.GET.category == 'NUTRITIONAL_FEED' %}selected{% endif %}>Nutrition & Feeds</option>
+            </select>
+
+            <select name="filter" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                <option value="">All Stock Levels</option>
+                <option value="low_stock" {% if request.GET.filter == 'low_stock' %}selected{% endif %}>⚠️ Low Stock Alerts Only</option>
+            </select>
+
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition">
+                Filter
+            </button>
+        </form>
+    </div>
+
+    <!-- Inventory Items Table -->
+    <div class="bg-white rounded-xl shadow-2xs border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 whitespace-nowrap">Item Code</th>
+                        <th class="px-4 py-3">Description / Medication</th>
+                        <th class="px-4 py-3">Category</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Stock on Hand</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Reorder Level</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Unit Cost (KES)</th>
+                        <th class="px-4 py-3">Preferred Supplier</th>
+                        <th class="px-4 py-3">Storage Location</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for item in stock_items %}
+                    <tr class="hover:bg-slate-50/80 transition group {% if item.is_low_stock %}bg-rose-50/30{% endif %}">
+                        <td class="px-4 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                            {{ item.item_code }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-bold text-slate-900 leading-tight">{{ item.name }}</span>
+                                {% if item.is_controlled_substance %}
+                                <span class="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                                    Controlled
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-700">
+                            {{ item.get_category_display }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="font-black text-sm {% if item.is_low_stock %}text-rose-700{% else %}text-slate-900{% endif %}">
+                                    {{ item.quantity_on_hand }}
+                                </span>
+                                <span class="text-[10px] text-slate-500">{{ item.unit_of_measure }}</span>
+                                {% if item.is_low_stock %}
+                                <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-600" title="Below reorder threshold"></i>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                            {{ item.minimum_reorder_level }} {{ item.unit_of_measure }}
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                            KES {{ item.unit_cost_kes|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-700">
+                            {{ item.preferred_vendor.name|default:"-" }}
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 font-mono text-[11px]">
+                            {{ item.location_bin|default:"Main Stores" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center text-slate-400">
+                            <i data-lucide="package" class="w-8 h-8 mx-auto text-slate-300 mb-1"></i>
+                            No stock items found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

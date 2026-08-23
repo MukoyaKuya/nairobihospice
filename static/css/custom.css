@@ -1,0 +1,55 @@
+/* Nairobi Hospice PCMS Custom Styles */
+
+/* Google Fonts: Sora */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+
+/* Matter Font Definitions & Fallback */
+@font-face {
+    font-family: 'Matter';
+    src: local('Matter'), local('Matter-Regular'), local('Matter Regular');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Matter';
+    src: local('Matter-Medium'), local('Matter Medium');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Matter';
+    src: local('Matter-SemiBold'), local('Matter SemiBold'), local('Matter-Bold'), local('Matter Bold');
+    font-weight: 600 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Matter';
+    src: local('Matter-Heavy'), local('Matter Heavy'), local('Matter-Black'), local('Matter Black');
+    font-weight: 800 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* Global Font Variables & Base Rules */
+:root {
+    --font-main: 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    --font-title: 'Matter', 'Sora', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+body {
+    font-family: var(--font-main);
+}
+
+/* Titles and Headings use Matter font */
+h1, h2, h3, h4, h5, h6,
+.font-matter,
+.font-title,
+.font-heading {
+    font-family: var(--font-title);
+}

@@ -1,0 +1,240 @@
+<!-- ================= 1. RECEPTIONIST / FRONT DESK WORKSPACE ================= -->
+<div class="space-y-4">
+    
+    <!-- Top Section: Quick Intake & Reception Actions -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5">
+        <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i>
+            <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Quick Intake & Reception Actions</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+            <a href="{% url 'patients:patient_register' %}" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#002D62] hover:bg-slate-50 transition flex items-center justify-between group bg-white shadow-2xs">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center border border-blue-100">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-900 group-hover:text-[#002D62] block">Register Walk-in Patient</span>
+                        <span class="text-[10px] text-slate-500">New patient intake dossier</span>
+                    </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+            </a>
+
+            <a href="{% url 'referrals:referral_create' %}" class="p-3.5 rounded-lg border border-slate-200 hover:border-[#991B1B] hover:bg-slate-50 transition flex items-center justify-between group bg-white shadow-2xs">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-red-50 text-[#991B1B] flex items-center justify-center border border-red-100">
+                        <i data-lucide="inbox" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-900 group-hover:text-[#991B1B] block">Log Incoming Referral</span>
+                        <span class="text-[10px] text-slate-500">Hospital & community referrals</span>
+                    </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+            </a>
+
+            <a href="{% url 'appointments:calendar' %}" class="p-3.5 rounded-lg border border-slate-200 hover:border-teal-600 hover:bg-slate-50 transition flex items-center justify-between group bg-white shadow-2xs">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center border border-teal-100">
+                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-bold text-slate-900 group-hover:text-teal-700 block">Schedule Appointment</span>
+                        <span class="text-[10px] text-slate-500">Book clinic or home visit</span>
+                    </div>
+                </div>
+                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Top 4 KPIs for Reception -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- KPI 1: Today's Clinic Arrivals -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Today's Clinic Arrivals</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ clinic_visits_today.count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Expected at Reception Desk</span>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center">
+                    <i data-lucide="user-check" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'appointments:calendar' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>View arrivals agenda</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI 2: Incoming Referrals Awaiting Intake -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Incoming Referrals</span>
+                    <span class="text-3xl font-black text-[#991B1B] mt-1.5 block tracking-tight">{{ pending_referrals_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Awaiting Triage / Intake</span>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-red-50 text-[#991B1B] flex items-center justify-center">
+                    <i data-lucide="inbox" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'referrals:referral_list' %}" class="inline-flex items-center text-xs font-bold text-[#991B1B] hover:text-[#7F1D1D] space-x-1">
+                    <span>Process triage queue</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI 3: Total Scheduled Today -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Total Visits Today</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ today_appts_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Clinic & Home Care</span>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'appointments:calendar' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>View full calendar</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- KPI 4: Active Patient Cohort -->
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition">
+            <div class="flex items-start justify-between">
+                <div>
+                    <span class="text-xs font-bold text-slate-600 block">Active Registry</span>
+                    <span class="text-3xl font-black text-slate-900 mt-1.5 block tracking-tight">{{ active_cohort_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">+{{ new_registrations_month }} new this month</span>
+                </div>
+                <div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'patients:patient_list' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:text-[#0B2545] space-x-1">
+                    <span>Open Patient Directory</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Middle Row: 2 Large Cards (Arrival Check-In & Referral Pipeline) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        
+        <!-- Card 1: Today's Clinic Check-In & Arrival Desk -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="user-check" class="w-4 h-4 text-[#002D62]"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Today's Clinic Check-In Agenda</h2>
+                    </div>
+                    <a href="{% url 'appointments:calendar' %}" class="text-[11px] font-bold text-[#002D62] hover:underline flex items-center space-x-0.5">
+                        <span>All Visits &rarr;</span>
+                    </a>
+                </div>
+
+                <div class="divide-y divide-slate-100 mt-2">
+                    {% for appt in today_appts|slice:":4" %}
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-start space-x-3 min-w-0">
+                            <span class="px-2 py-1 bg-blue-50 text-[#002D62] border border-blue-200 rounded-md text-[10px] font-mono font-bold whitespace-nowrap">
+                                {{ appt.scheduled_time|time:"h:i A" }}
+                            </span>
+                            <div class="min-w-0">
+                                <a href="{% url 'patients:patient_detail' appt.patient.id %}" class="font-bold text-xs text-slate-900 hover:text-[#002D62] block truncate">
+                                    {{ appt.patient.full_name }}
+                                </a>
+                                <p class="text-[11px] text-slate-500 truncate mt-0.5 font-mono">
+                                    ID: {{ appt.patient.hospice_number }} &bull; {{ appt.patient.phone_number|default:"No phone" }}
+                                </p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">
+                                    Clinician: <strong>{{ appt.staff_member.user.display_name|default:"Assigned Team" }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                            Scheduled
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center text-xs text-slate-400">
+                        <i data-lucide="calendar-check" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
+                        No appointments scheduled for today.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: Incoming Referrals Triage Pipeline -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col justify-between p-5">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="inbox" class="w-4 h-4 text-[#991B1B]"></i>
+                        <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Incoming Referrals Triage Pipeline</h2>
+                    </div>
+                    <a href="{% url 'referrals:referral_create' %}" class="text-[11px] font-bold text-[#991B1B] hover:underline flex items-center space-x-0.5">
+                        <span>+ Log Referral</span>
+                    </a>
+                </div>
+
+                <div class="divide-y divide-slate-100 mt-2">
+                    {% for ref in pending_referrals|slice:":4" %}
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center space-x-3 min-w-0">
+                            <div class="w-8 h-8 rounded-full bg-red-50 text-[#991B1B] font-bold text-[10px] flex items-center justify-center flex-shrink-0 border border-red-100">
+                                {{ ref.patient_name|slice:":2"|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <a href="{% url 'referrals:referral_detail' ref.id %}" class="font-bold text-xs text-slate-900 hover:text-[#002D62] block truncate">
+                                    {{ ref.patient_name }}
+                                </a>
+                                <p class="text-[11px] text-slate-500 truncate mt-0.5">
+                                    {{ ref.referring_facility }} &bull; {{ ref.primary_diagnosis }}
+                                </p>
+                                <p class="text-[10px] text-slate-400 mt-0.5">{{ ref.referral_date|date:"d M Y" }}</p>
+                            </div>
+                        </div>
+                        <a href="{% url 'referrals:referral_detail' ref.id %}" class="px-2.5 py-1 text-[10px] font-bold text-[#991B1B] bg-red-50 hover:bg-[#991B1B] hover:text-white rounded-md border border-red-200 transition whitespace-nowrap">
+                            Triage &rarr;
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center text-xs text-slate-400">
+                        <i data-lucide="check-circle" class="w-6 h-6 mx-auto text-emerald-500 mb-1"></i>
+                        No incoming referrals awaiting triage.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100">
+                <a href="{% url 'referrals:referral_list' %}" class="text-[11px] font-bold text-[#991B1B] hover:underline flex items-center space-x-1">
+                    <span>Go to triage pipeline</span>
+                    <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+</div>

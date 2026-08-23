@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Procurement Orders & Requisitions - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    
+    <!-- Top Header Banner -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Supply Chain Management
+                </span>
+                <span class="text-xs text-slate-400">&bull;</span>
+                <span class="text-xs text-slate-500 font-medium">Purchase Orders</span>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight mt-1">Procurement Orders & Requisitions</h1>
+            <p class="text-xs text-slate-500 mt-0.5">Manage supply purchase orders, track deliveries, and monitor operational hospital spending.</p>
+        </div>
+
+        <a href="{% url 'operations:procurement_create' %}" 
+           class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition space-x-1.5 self-start sm:self-auto">
+            <i data-lucide="plus" class="w-4 h-4 text-blue-300"></i>
+            <span>Create Purchase Order</span>
+        </a>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-3 sm:p-4">
+        <form method="GET" class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search PO number or vendor..." 
+                       class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+            </div>
+
+            <select name="status" class="px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                <option value="">All Statuses</option>
+                <option value="DRAFT" {% if request.GET.status == 'DRAFT' %}selected{% endif %}>Draft</option>
+                <option value="PENDING_APPROVAL" {% if request.GET.status == 'PENDING_APPROVAL' %}selected{% endif %}>Pending Approval</option>
+                <option value="APPROVED" {% if request.GET.status == 'APPROVED' %}selected{% endif %}>Approved</option>
+                <option value="COMPLETED" {% if request.GET.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                <option value="CANCELLED" {% if request.GET.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+            </select>
+
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition">
+                Filter
+            </button>
+        </form>
+    </div>
+
+    <!-- Procurement Table -->
+    <div class="bg-white rounded-xl shadow-2xs border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3 whitespace-nowrap">PO Number</th>
+                        <th class="px-4 py-3">Vendor / Supplier</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Order Date</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Expected Delivery</th>
+                        <th class="px-4 py-3">Total Amount</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for order in orders %}
+                    <tr class="hover:bg-slate-50/80 transition group">
+                        <td class="px-4 py-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                            <a href="{% url 'operations:procurement_detail' order.pk %}" class="group-hover:text-[#002D62]">
+                                {{ order.po_number }}
+                            </a>
+                        </td>
+                        <td class="px-4 py-3 font-semibold text-slate-800">
+                            {{ order.vendor.name }}
+                        </td>
+                        <td class="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                            {{ order.order_date|date:"d M Y" }}
+                        </td>
+                        <td class="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                            {{ order.expected_delivery_date|date:"d M Y"|default:"-" }}
+                        </td>
+                        <td class="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">
+                            KES {{ order.total_amount_kes|intcomma }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                                {% if order.status == 'COMPLETED' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif order.status == 'APPROVED' %}bg-blue-50 text-[#002D62] border border-blue-200
+                                {% elif order.status == 'PENDING_APPROVAL' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <a href="{% url 'operations:procurement_detail' order.pk %}" 
+                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/70 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-md transition duration-150 space-x-1">
+                                <span>Details & Items</span>
+                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                            <i data-lucide="shopping-cart" class="w-8 h-8 mx-auto text-slate-300 mb-1"></i>
+                            No procurement orders found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

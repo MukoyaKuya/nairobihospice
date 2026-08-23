@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Staff Profile - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-4"
+     x-data="{
+        isEditing: true,
+        previewUrl: '{% if profile.profile_picture %}{{ profile.profile_picture.url }}{% endif %}',
+        handleFileChange(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.previewUrl = URL.createObjectURL(file);
+            }
+        }
+     }">
+
+    <!-- Breadcrumb Navigation -->
+    <nav class="flex items-center space-x-2 text-xs text-slate-500">
+        <a href="{% url 'reporting:clinical_dashboard' %}" class="hover:text-slate-900 transition">Home</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <span>Staff</span>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <span class="font-bold text-slate-900">My Profile</span>
+    </nav>
+
+    <!-- Page Title & Status Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Staff Profile</h1>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[#002D62] border border-blue-200">
+                {{ user_role_display }}
+            </span>
+        </div>
+        <div class="flex items-center space-x-3 text-xs text-slate-500">
+            <span>Joined {{ user.date_joined|date:"M Y" }}</span>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                Active
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Profile Form -->
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Hero Header Card with Official Navy Theme -->
+        <div class="bg-gradient-to-r from-[#002D62] via-[#0B2545] to-[#0A192F] rounded-2xl p-6 sm:p-7 text-white shadow-md relative overflow-hidden">
+            <!-- Subtle wave accent overlay -->
+            <div class="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none opacity-40"></div>
+
+            <div class="relative z-10 flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+                
+                <!-- Left: Avatar + Details -->
+                <div class="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-5 text-center sm:text-left">
+                    
+                    <!-- Avatar with live status dot and upload trigger -->
+                    <div class="relative group">
+                        <div class="w-24 h-24 rounded-2xl bg-white/10 border-2 border-slate-400/40 overflow-hidden shadow-xl flex items-center justify-center text-3xl font-black text-white">
+                            <template x-if="previewUrl">
+                                <img :src="previewUrl" alt="Staff Avatar" class="w-full h-full object-cover">
+                            </template>
+                            <template x-if="!previewUrl">
+                                <span>{{ user.first_name|first }}{{ user.last_name|first }}</span>
+                            </template>
+                        </div>
+                        <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#002D62]"></span>
+
+                        <label for="id_profile_picture" 
+                               class="absolute inset-0 bg-slate-950/60 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-150 flex flex-col items-center justify-center cursor-pointer text-[10px] font-bold text-white">
+                            <i data-lucide="camera" class="w-5 h-5 mb-1 text-red-300"></i>
+                            <span>Change</span>
+                        </label>
+                        <input type="file" name="profile_picture" id="id_profile_picture" accept="image/*" class="hidden" @change="handleFileChange($event)">
+                    </div>
+
+                    <!-- Name, Email, and Badges -->
+                    <div class="space-y-1.5">
+                        <h2 class="text-2xl font-black text-white tracking-tight">{{ user.display_name }}</h2>
+                        <p class="text-xs text-blue-200 font-mono">{{ user.email }}</p>
+                        
+                        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#991B1B] text-white shadow-xs">
+                                {{ user_role_display }}
+                            </span>
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-200 border border-white/15">
+                                {{ profile.department|default:"Registration & Front Office" }}
+                            </span>
+                        </div>
+
+                        <!-- Meta Info Row -->
+                        <div class="pt-3 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-[11px] text-slate-300">
+                            <div class="flex items-center space-x-1.5">
+                                <i data-lucide="id-card" class="w-3.5 h-3.5 text-blue-300"></i>
+                                <span>Staff ID: <strong class="text-white font-mono">NH-STF-{{ user.id|stringformat:".4s"|upper }}</strong></span>
+                            </div>
+                            <div class="flex items-center space-x-1.5">
+                                <i data-lucide="building-2" class="w-3.5 h-3.5 text-blue-300"></i>
+                                <span>Dept: <strong class="text-white">{{ profile.department|default:"Registration & Front Office" }}</strong></span>
+                            </div>
+                            <div class="flex items-center space-x-1.5">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-blue-300"></i>
+                                <span>Location: <strong class="text-white">Nairobi Hospice HQ</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Change Photo Button -->
+                <div>
+                    <label for="id_profile_picture" class="cursor-pointer inline-flex items-center space-x-2 text-xs font-bold bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 rounded-xl border border-white/20 shadow-sm transition">
+                        <i data-lucide="upload" class="w-4 h-4 text-red-300"></i>
+                        <span>Change Photo</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 Column Section: Personal & Professional Information -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            
+            <!-- Left Card: Personal & Contact Details -->
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center">
+                            <i data-lucide="user" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900">Personal & Contact Details</h3>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">First Name</label>
+                        <input type="text" name="first_name" value="{{ form.first_name.value|default:user.first_name }}" required
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Last Name</label>
+                        <input type="text" name="last_name" value="{{ form.last_name.value|default:user.last_name }}" required
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                    </div>
+                </div>
+
+                <div class="text-xs space-y-3 pt-1">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="email" value="{{ user.email }}" disabled
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-mono cursor-not-allowed">
+                            <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Verified
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                            <input type="text" name="phone_number" value="{{ form.phone_number.value|default:user.phone_number }}" placeholder="+254 7..."
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Alternative Number</label>
+                            <input type="text" placeholder="—" disabled
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-400 font-mono cursor-not-allowed">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Institutional Login</label>
+                        <p class="text-xs font-mono text-slate-800 font-semibold">{{ user.email }}</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">Managed by system administrator</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Card: Professional Information -->
+            <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-800 flex items-center justify-center">
+                            <i data-lucide="briefcase" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900">Professional Information</h3>
+                    </div>
+                </div>
+
+                <div class="text-xs space-y-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
+                        <input type="text" value="{{ profile.department|default:'Registration & Front Office' }}" disabled
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-not-allowed">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Role</label>
+                        <input type="text" value="{{ user_role_display }}" disabled
+                               class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-bold cursor-not-allowed">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">License / Reg Number</label>
+                            <input type="text" name="license_number" value="{{ form.license_number.value|default:profile.license_number }}" placeholder="N/A"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Qualifications & Certifications</label>
+                            <input type="text" name="qualifications" value="{{ form.qualifications.value|default:profile.qualifications }}" placeholder="Palliative Care Certification"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Employment Type</label>
+                            <p class="text-xs font-bold text-slate-800">Full-time</p>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date Joined</label>
+                            <p class="text-xs font-bold text-slate-800">{{ user.date_joined|date:"M Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 3 Modular Cards: Security, Activity, Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- 1. Account Security -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-[#002D62]"></i>
+                        <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Account Security</h4>
+                    </div>
+                    <div class="mt-3 flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full {% if user.is_mfa_enabled %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+                        <span class="text-xs text-slate-700 font-medium">Two-factor authentication {% if user.is_mfa_enabled %}enabled{% else %}setup required{% endif %}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-0.5">Required for privileged accounts at sign-in</p>
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'accounts:mfa_enroll' %}" class="block text-center w-full py-1.5 px-3 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition">
+                        {% if user.is_mfa_enabled %}Rotate MFA setup{% else %}Set up MFA{% endif %}
+                    </a>
+                </div>
+            </div>
+
+            <!-- 2. Activity Overview -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                        <i data-lucide="activity" class="w-4 h-4 text-blue-600"></i>
+                        <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Activity Overview</h4>
+                    </div>
+                    <div class="mt-3 space-y-2 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500">Last Login:</span>
+                            <span class="font-bold text-slate-800">Today, {{ user.last_login|date:"h:i A"|default:"Active" }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500">Login Session:</span>
+                            <span class="font-mono text-slate-700 font-medium">127.0.0.1</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                    Encrypted TLS 1.3 Session
+                </div>
+            </div>
+
+            <!-- 3. Account Actions -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 pb-3 border-b border-slate-100">
+                        <i data-lucide="settings" class="w-4 h-4 text-slate-700"></i>
+                        <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Account Actions</h4>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Manage session credentials or request account deactivation from HR.</p>
+                </div>
+                <div class="mt-4 flex items-center space-x-2">
+                    <a href="{% url 'accounts:logout' %}" class="flex-1 py-1.5 px-3 rounded-lg text-xs font-bold text-center text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition">
+                        Reset Password
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Bottom Audit & Save Bar -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-2 text-xs text-slate-500">
+                <i data-lucide="shield" class="w-4 h-4 text-slate-400"></i>
+                <span>All changes are logged and monitored for security and compliance.</span>
+            </div>
+            <button type="submit" 
+                    class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition space-x-2">
+                <i data-lucide="save" class="w-3.5 h-3.5 text-red-300"></i>
+                <span>Save Profile Changes</span>
+            </button>
+        </div>
+
+    </form>
+
+</div>
+{% endblock %}

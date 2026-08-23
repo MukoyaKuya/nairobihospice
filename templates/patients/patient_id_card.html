@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient ID Card - {{ patient.full_name }} ({{ patient.hospice_number }}) - Nairobi Hospice</title>
+    {% load static %}
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Style+Script&family=Sora:wght@300;400;500;600;700;800&family=Libre+Barcode+39&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                        heading: ['Matter', 'Sora', 'sans-serif'],
+                        title: ['Matter', 'Sora', 'sans-serif'],
+                        matter: ['Matter', 'Sora', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Sora', sans-serif;
+            background-color: #F1F5F9;
+            color: #0F172A;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        h1, h2, h3, h4, h5, h6, .font-heading, .font-title, .font-matter {
+            font-family: 'Matter', 'Sora', sans-serif;
+        }
+
+        .style-script-regular {
+            font-family: "Style Script", cursive;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        .barcode {
+            font-family: 'Libre Barcode 39', cursive, monospace;
+            font-size: 38px;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        /* Enlarged proof; print uses the CR80 physical card standard below. */
+        .id-card {
+            width: 428px;
+            height: 270px;
+            box-sizing: border-box;
+        }
+
+        .id-card--front {
+            background: linear-gradient(135deg, #ffffff 0%, #ffffff 74%, #eef4f9 74%, #eef4f9 100%);
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .print-container {
+                padding: 20px !important;
+                display: flex !important;
+                flex-direction: row !important;
+                gap: 20px !important;
+                justify-content: center !important;
+            }
+            .id-card {
+                width: 85.6mm !important;
+                height: 53.98mm !important;
+                box-shadow: none !important;
+                border: 1px solid #CBD5E1 !important;
+                page-break-inside: avoid !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4 flex flex-col items-center justify-center">
+
+    <!-- Action Bar (Hidden on Print) -->
+    <div class="no-print w-full max-w-4xl mb-8 bg-white p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 bg-blue-50 text-[#002D62] flex items-center justify-center border border-blue-100">
+                <i data-lucide="id-card" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-black text-slate-900">Official Nairobi Hospice Patient ID Card</h1>
+                <p class="text-xs text-slate-500">Hospice Number: <span class="font-mono font-bold text-[#002D62]">{{ patient.hospice_number }}</span></p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            <button onclick="window.print()" class="px-4 py-2 bg-[#002D62] hover:bg-[#0B2545] text-white text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer">
+                <i data-lucide="printer" class="w-4 h-4 text-red-300"></i>
+                <span>Print / Save PDF</span>
+            </button>
+            <button onclick="window.close()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition cursor-pointer">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Cards Container (Front & Back) -->
+    <div class="print-container flex flex-col lg:flex-row gap-6 items-center justify-center">
+        
+        <!-- ================= CARD FRONT ================= -->
+        <div class="id-card id-card--front border border-slate-300 shadow-xl overflow-hidden flex flex-col justify-between relative">
+            
+            <!-- Top Header Band: Navy + Red Accent Line -->
+            <div>
+                <div class="bg-[#002D62] px-4 py-2 flex items-center justify-between text-white border-b-[3px] border-[#991B1B]">
+                    <div class="flex items-center space-x-2.5">
+                        <img src="{% static 'images/hospice_emblem.png' %}" alt="Nairobi Hospice Emblem" class="h-7 w-7 object-contain">
+                        <div>
+                            <span class="text-xs font-black tracking-wide block leading-tight text-white">NAIROBI HOSPICE</span>
+                            <span class="style-script-regular text-[13px] block leading-none font-normal" style="color: #F87171;">Patient Identification Card</span>
+                        </div>
+                    </div>
+                    <span class="px-1.5 py-0.5 bg-white/10 text-[8px] font-mono font-bold text-white border border-white/20">
+                        OFFICIAL
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="px-4 py-3 flex-1 flex items-center gap-4">
+                
+                <!-- Left: Patient Avatar & Photo -->
+                <div class="flex flex-col items-center justify-center flex-shrink-0">
+                    <div class="w-20 h-20 bg-[#002D62] text-white flex items-center justify-center font-black text-2xl border-l-4 border-[#991B1B] mb-1 overflow-hidden">
+                        {% if patient.photo %}
+                        <img src="{% url 'patients:patient_photo' patient.pk %}" alt="{{ patient.full_name }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <span>{{ patient.first_name|first }}{{ patient.last_name|first }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-[8px] font-bold tracking-wide text-slate-500 uppercase">{% if patient.sex != 'U' %}{{ patient.get_sex_display }}{% else %}--{% endif %}</span>
+                </div>
+
+                <!-- Right: Patient Information -->
+                <div class="flex-1 min-w-0 space-y-2">
+                    <div>
+                        <span class="text-[8px] uppercase tracking-wider text-slate-400 font-bold block">Patient Name</span>
+                        <h2 class="text-sm font-black text-slate-900 leading-tight truncate uppercase">{{ patient.full_name }}</h2>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-0.5">
+                        <div>
+                            <span class="text-[7.5px] uppercase tracking-wider text-slate-400 font-bold block">Hospice Number</span>
+                            <span class="text-xs font-mono font-black text-[#002D62] block leading-tight">{{ patient.hospice_number }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[7.5px] uppercase tracking-wider text-slate-400 font-bold block">National ID</span>
+                            <span class="text-[9px] font-mono font-bold text-slate-800 block leading-tight">{{ patient.identification_number|default:"N/A" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <div>
+                            <span class="text-[7.5px] uppercase tracking-wider text-slate-400 font-bold block">Phone</span>
+                            <span class="text-[8.5px] font-bold text-slate-800 block leading-tight">{{ patient.phone_number|default:"N/A" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[7.5px] uppercase tracking-wider text-slate-400 font-bold block">Issued / Enrolled</span>
+                            <span class="text-[8.5px] font-semibold text-slate-700 block leading-tight">{{ patient.registration_date|date:"d/m/Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Card Bottom Bar: Barcode & Security Strip -->
+            <div class="bg-slate-50 px-4 py-1.5 border-t border-slate-200 flex items-center justify-between text-[8px] text-slate-500">
+                <span class="barcode text-slate-800">*{{ patient.hospice_number }}*</span>
+                <span class="text-[7.5px] italic text-[#991B1B] font-semibold">Tender Loving Care</span>
+            </div>
+
+        </div>
+
+        <!-- ================= CARD BACK ================= -->
+        <div class="id-card bg-white border border-slate-300 shadow-xl overflow-hidden flex flex-col justify-between relative p-4">
+            
+            <!-- Top: Location & Next of Kin -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between pb-2 border-b-2 border-[#002D62]">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-[#002D62]">Home Location & Emergency Info</span>
+                    <span class="text-[8px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 border border-emerald-200">ACTIVE MEMBER</span>
+                </div>
+
+                <!-- Residence Coordinates -->
+                <div class="text-[9px] text-slate-700 space-y-1">
+                    <p><strong class="text-slate-900">Residence:</strong> {{ patient.county }} County &bull; {{ patient.sub_county }}{% if patient.ward %}, {{ patient.ward }} Ward{% endif %}</p>
+                    <p><strong class="text-[#991B1B]">Bus Stop / Stage:</strong> {{ patient.landmark|default:patient.address|default:"Not specified" }}</p>
+                    {% if patient.address %}
+                    <p><strong class="text-slate-900">Estate / House:</strong> {{ patient.address }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Next of Kin -->
+                <div class="bg-slate-50 p-2 border-l-2 border-[#991B1B] text-[8.5px]">
+                    <span class="text-[7px] uppercase font-bold text-slate-400 block">Next of Kin / Family Contact</span>
+                    {% with nok=patient.next_of_kin.first %}
+                    {% if nok %}
+                    <p class="font-bold text-slate-900">{{ nok.name }} ({{ nok.relationship }})</p>
+                    <p class="font-mono text-slate-700 font-semibold">{{ nok.phone_number }}</p>
+                    {% else %}
+                    <p class="text-slate-500 italic">Emergency contact on clinical file</p>
+                    {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Bottom: Hospice Helpline Contacts -->
+            <div class="pt-2 border-t border-slate-200 text-[7.5px] text-slate-500 leading-tight text-center">
+                <p class="font-bold text-[#002D62]">NAIROBI HOSPICE &bull; PALLIATIVE CARE CENTRE</p>
+                <p>Hospital Road, Next to KNH &bull; P.O. Box 44295-00100 Nairobi</p>
+                <p class="font-mono text-[7.5px] text-red-700 font-bold mt-0.5">24/7 Helpline: +254 722 203 188 / +254 20 2712383</p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Print Tip for Staff -->
+    <div class="no-print mt-6 text-center text-xs text-slate-400">
+        <p>Tip: Use <strong>Landscape</strong> orientation or <strong>Scale: 100%</strong> in your browser print dialogue.</p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

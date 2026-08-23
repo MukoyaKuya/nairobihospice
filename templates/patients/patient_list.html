@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Directory - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-3">
+    
+    <!-- Compact Header & Quick Action -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-lg font-black text-slate-900 tracking-tight">Patient Directory</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#002D62] border border-blue-200">
+                Master Registry
+            </span>
+        </div>
+        <div>
+            <a href="{% url 'patients:patient_register' %}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-sm transition space-x-1.5">
+                <i data-lucide="user-plus" class="w-3.5 h-3.5 text-red-300"></i>
+                <span>Register Patient</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Comprehensive Search & Filter Toolbar -->
+    <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200" x-data="{ showAdvanced: false }">
+        <form method="GET" 
+              hx-get="{% url 'patients:patient_list' %}" 
+              hx-target="#patient-table-container" 
+              hx-trigger="keyup changed delay:300ms from:input[type='text'], change from:select, change from:input[type='date']"
+              class="space-y-3">
+            
+            <!-- Row 1: Search, Gender, Care Status, Year & Advanced Toggle -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                
+                <!-- Search Query Input -->
+                <div class="sm:col-span-4 relative">
+                    <input type="text" 
+                           id="search-input"
+                           name="q" 
+                           value="{{ search_query }}"
+                           placeholder="Search Name, Hospice ID, Phone, Diagnosis..." 
+                           class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+                </div>
+
+                <!-- Gender / Sex Filter -->
+                <div class="sm:col-span-2">
+                    <select name="sex" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-semibold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        <option value="">All Genders</option>
+                        {% for val, label in sex_choices %}
+                        <option value="{{ val }}" {% if selected_sex == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Care Status Filter -->
+                <div class="sm:col-span-2">
+                    <select name="status" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-semibold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        <option value="">All Care Statuses</option>
+                        {% for val, label in status_choices %}
+                        <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Registration Year Filter -->
+                <div class="sm:col-span-2">
+                    <select name="year" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-semibold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        <option value="">All Reg. Years</option>
+                        {% for yr in years %}
+                        <option value="{{ yr }}" {% if selected_year == yr|stringformat:"i" %}selected{% endif %}>Year {{ yr }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Advanced Filters Toggle & Reset -->
+                <div class="sm:col-span-2 flex items-center space-x-1.5">
+                    <button type="button" 
+                            @click="showAdvanced = !showAdvanced"
+                            :class="showAdvanced ? 'bg-[#002D62] text-white border-[#002D62]' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'"
+                            class="flex-1 inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-bold border rounded-lg transition space-x-1">
+                        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                        <span>Filters</span>
+                    </button>
+
+                    <a href="{% url 'patients:patient_list' %}" 
+                       title="Reset all filters"
+                       class="px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:text-[#991B1B] bg-slate-50 hover:bg-red-50 border border-slate-300 rounded-lg transition flex items-center">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Row 2: Secondary / Advanced Filters (Collapsible / Toggleable) -->
+            <div x-show="showAdvanced || '{{ selected_date_from }}' || '{{ selected_date_to }}' || '{{ selected_age_group }}' || '{{ selected_county }}'"
+                 x-cloak
+                 x-transition
+                 class="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
+                
+                <!-- Registration Date From -->
+                <div class="sm:col-span-3">
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Reg. Date From</label>
+                    <input type="date" 
+                           name="date_from" 
+                           value="{{ selected_date_from }}"
+                           class="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                </div>
+
+                <!-- Registration Date To -->
+                <div class="sm:col-span-3">
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Reg. Date To</label>
+                    <input type="date" 
+                           name="date_to" 
+                           value="{{ selected_date_to }}"
+                           class="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                </div>
+
+                <!-- Age Bracket / Group -->
+                <div class="sm:col-span-3">
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Age Bracket</label>
+                    <select name="age_group" class="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-semibold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                        <option value="">All Age Brackets</option>
+                        <option value="pediatric" {% if selected_age_group == 'pediatric' %}selected{% endif %}>Pediatric (&lt; 18 yrs)</option>
+                        <option value="youth" {% if selected_age_group == 'youth' %}selected{% endif %}>Youth (18 - 35 yrs)</option>
+                        <option value="adult" {% if selected_age_group == 'adult' %}selected{% endif %}>Adult (36 - 59 yrs)</option>
+                        <option value="senior" {% if selected_age_group == 'senior' %}selected{% endif %}>Senior (60+ yrs)</option>
+                    </select>
+                </div>
+
+                <!-- County Filter -->
+                <div class="sm:col-span-3">
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">County / Region</label>
+                    <input type="text" 
+                           name="county" 
+                           value="{{ selected_county }}"
+                           placeholder="e.g. Nairobi, Kiambu, Kilifi..." 
+                           class="w-full px-2.5 py-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- Patient Table Container -->
+    <div id="patient-table-container" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        {% include 'patients/partials/patient_table_partial.html' %}
+    </div>
+
+</div>
+{% endblock %}

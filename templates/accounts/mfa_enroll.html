@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Set Up MFA - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+    <div>
+        <h1 class="text-xl font-black text-slate-900">Set up two-factor authentication</h1>
+        <p class="text-sm text-slate-600 mt-2">Use an authenticator app to scan the provisioning URI or enter the secret manually.</p>
+    </div>
+    <div class="rounded-xl bg-slate-50 border border-slate-200 p-4 text-xs space-y-2">
+        <p class="font-bold text-slate-700">Account: {{ user.email }}</p>
+        <p class="font-mono break-all text-slate-600">Secret: {{ secret }}</p>
+        <p class="font-mono break-all text-slate-500">{{ provisioning_uri }}</p>
+    </div>
+    <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
+        <p class="text-xs font-bold text-amber-900">Save these recovery codes in a secure location. Each code works once.</p>
+        <div class="grid grid-cols-2 gap-2 mt-3 font-mono text-xs text-amber-900">
+            {% for code in recovery_codes %}<span>{{ code }}</span>{% endfor %}
+        </div>
+    </div>
+    <form method="post" class="space-y-3">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <label class="block text-xs font-bold text-slate-700">Authenticator code</label>
+        {{ form.token }}
+        {% for error in form.token.errors %}<p class="text-xs text-red-700">{{ error }}</p>{% endfor %}
+        <button class="w-full rounded-xl bg-[#002D62] text-white px-4 py-2.5 text-sm font-bold">Verify and enable MFA</button>
+    </form>
+</div>
+{% endblock %}

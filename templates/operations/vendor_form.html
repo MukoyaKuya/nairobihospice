@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Supplier / Vendor - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-4">
+    
+    <!-- Navigation Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-xs text-slate-500">
+        <a href="{% url 'operations:dashboard' %}" class="hover:text-slate-900 transition">Operations</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <a href="{% url 'operations:vendor_list' %}" class="hover:text-slate-900 transition">Vendors</a>
+        <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400"></i>
+        <span class="font-bold text-slate-900">Register Supplier</span>
+    </nav>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-2xs p-5 sm:p-7 space-y-6">
+        <div class="flex items-center space-x-3 pb-4 border-b border-slate-100">
+            <div class="w-10 h-10 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                <i data-lucide="building-2" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-black text-slate-900 tracking-tight">Register New Supplier / Partner</h1>
+                <p class="text-xs text-slate-500">Add an approved distributor or service partner to the hospice supply chain.</p>
+            </div>
+        </div>
+
+        <form method="POST" class="space-y-4 text-xs">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-3 bg-red-50 text-red-800 rounded-lg border border-red-200 text-xs">
+                Please check the highlighted fields below.
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Company / Supplier Name *</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Vendor Code *</label>
+                    {{ form.code }}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Supply Category *</label>
+                    {{ form.category }}
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Status *</label>
+                    {{ form.status }}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Contact Person *</label>
+                    {{ form.contact_person }}
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Phone Number *</label>
+                    {{ form.phone_number }}
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Email Address</label>
+                    {{ form.email }}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">KRA PIN</label>
+                    {{ form.kra_pin }}
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Standard Payment Terms</label>
+                    {{ form.payment_terms }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Physical Address & Location</label>
+                {{ form.physical_address }}
+            </div>
+
+            <div>
+                <label class="block font-bold text-slate-700 mb-1">Procurement Notes & Agreements</label>
+                {{ form.notes }}
+            </div>
+
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                <a href="{% url 'operations:vendor_list' %}" class="px-4 py-2 font-bold text-slate-600 hover:text-slate-900 transition">Cancel</a>
+                <button type="submit" class="px-5 py-2.5 font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-2xs transition">
+                    Save Supplier
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

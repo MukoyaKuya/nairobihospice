@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_create %}Register New Patient{% else %}Edit Patient {{ form.instance.full_name }}{% endif %} - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% if is_create %}{% url 'patients:patient_list' %}{% else %}{% url 'patients:patient_detail' form.instance.pk %}{% endif %}" class="text-xs font-semibold text-[#002D62] hover:text-[#0B2545] flex items-center mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Patient Directory
+            </a>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">
+                {% if is_create %}Register New Patient{% else %}Edit Demographics: {{ form.instance.full_name }}{% endif %}
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Enter complete demographic, geographic location, next of kin, and clinical details.</p>
+        </div>
+    </div>
+
+    <form method="POST" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-8">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+            <p class="font-bold mb-1">Please correct the errors below:</p>
+            <ul class="list-disc pl-5 space-y-0.5">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Section 1: Patient Identity -->
+        <div class="space-y-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
+                <i data-lucide="user" class="w-4 h-4 text-[#002D62]"></i>
+                <span>1. Personal Identity & Demographics</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
+                    <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Middle Name</label>
+                    <input type="text" name="middle_name" value="{{ form.middle_name.value|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
+                    <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
+                    <input type="date" name="date_of_birth" value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Sex *</label>
+                    <select name="sex" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <option value="F" {% if form.sex.value == 'F' %}selected{% endif %}>Female</option>
+                        <option value="M" {% if form.sex.value == 'M' %}selected{% endif %}>Male</option>
+                        <option value="O" {% if form.sex.value == 'O' %}selected{% endif %}>Other</option>
+                        <option value="U" {% if form.sex.value == 'U' %}selected{% endif %}>Unknown</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Marital Status</label>
+                    <select name="marital_status" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <option value="SINGLE" {% if form.marital_status.value == 'SINGLE' %}selected{% endif %}>Single</option>
+                        <option value="MARRIED" {% if form.marital_status.value == 'MARRIED' or not form.marital_status.value %}selected{% endif %}>Married</option>
+                        <option value="WIDOWED" {% if form.marital_status.value == 'WIDOWED' %}selected{% endif %}>Widowed</option>
+                        <option value="DIVORCED" {% if form.marital_status.value == 'DIVORCED' %}selected{% endif %}>Divorced</option>
+                        <option value="SEPARATED" {% if form.marital_status.value == 'SEPARATED' %}selected{% endif %}>Separated</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">National ID / Identifier Type</label>
+                    <select name="identification_type" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <option value="NATIONAL_ID" {% if form.identification_type.value == 'NATIONAL_ID' %}selected{% endif %}>National ID (Kenya)</option>
+                        <option value="PASSPORT" {% if form.identification_type.value == 'PASSPORT' %}selected{% endif %}>Passport</option>
+                        <option value="BIRTH_CERT" {% if form.identification_type.value == 'BIRTH_CERT' %}selected{% endif %}>Birth Certificate</option>
+                        <option value="ALIEN_ID" {% if form.identification_type.value == 'ALIEN_ID' %}selected{% endif %}>Alien ID</option>
+                        <option value="NONE" {% if form.identification_type.value == 'NONE' %}selected{% endif %}>None / Not Available</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">ID Number</label>
+                    <input type="text" name="identification_number" value="{{ form.identification_number.value|default:'' }}" placeholder="e.g. 24891023" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Contact Details & Kenyan Geographies (County, Sub-County, Ward, Bus Stop) -->
+        <div class="space-y-4" x-data="kenyaLocationData()">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="map-pin" class="w-4 h-4 text-[#991B1B]"></i>
+                    <span>2. Contact Details & Home Location (For Home Care Visits)</span>
+                </div>
+                <span class="text-[10px] font-bold text-slate-400">Kenya Administrative Geographies</span>
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Phone Number *</label>
+                    <input type="text" name="phone_number" value="{{ form.phone_number.value|default:'' }}" placeholder="e.g. +254 712 345 678" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Alternative Phone Number</label>
+                    <input type="text" name="alternative_phone" value="{{ form.alternative_phone.value|default:'' }}" placeholder="e.g. +254 722 000 111" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Cascading County, Sub-County, Ward -->
+            <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    
+                    <!-- County Dropdown -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-800 mb-1">County *</label>
+                        <select name="county" x-model="selectedCounty" @change="onCountyChange()"
+                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                            <template x-for="c in countyList" :key="c">
+                                <option :value="c" x-text="c" :selected="c === selectedCounty"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Sub-County Dropdown -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-800 mb-1">Sub-County / Constituency *</label>
+                        <select name="sub_county" x-model="selectedSubCounty" @change="onSubCountyChange()"
+                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                            <option value="">-- Select Sub-County --</option>
+                            <template x-for="sc in subCountyList" :key="sc">
+                                <option :value="sc" x-text="sc" :selected="sc === selectedSubCounty"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Ward Dropdown -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-800 mb-1">Ward *</label>
+                        <select name="ward" x-model="selectedWard"
+                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                            <option value="">-- Select Ward --</option>
+                            <template x-for="w in wardList" :key="w">
+                                <option :value="w" x-text="w" :selected="w === selectedWard"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Closest Bus Stop / Stage & Estate / House Details -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    
+                    <!-- Closest Bus Stop / Matatu Stage -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                            <span>Closest Bus Stop / Matatu Stage *</span>
+                            <span class="text-[10px] text-red-600 font-semibold font-mono">For Nurse & Doctor Visits</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="landmark" value="{{ form.landmark.value|default:'' }}" 
+                                   placeholder="e.g. Olympic Stage / Makina Bus Stop / DC Stage / Kencom" 
+                                   class="w-full pl-8 pr-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="navigation" class="w-3.5 h-3.5 text-red-500"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estate / Village / Road / House Number -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-800 mb-1">Estate / Village / Road / House No.</label>
+                        <input type="text" name="address" value="{{ form.address.value|default:'' }}" 
+                               placeholder="e.g. Makina Village, House 42, Near Chief's Camp" 
+                               class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                    </div>
+
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Preferred Language</label>
+                <input type="text" name="preferred_language" value="{{ form.preferred_language.value|default:'English' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+            </div>
+        </div>
+
+        {% if is_create %}
+        <!-- Section 3: Next of Kin & Family Caregiver -->
+        <div class="space-y-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
+                <i data-lucide="users" class="w-4 h-4 text-[#002D62]"></i>
+                <span>3. Primary Next of Kin & Family Caregiver</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Next of Kin Name</label>
+                    <input type="text" name="nok_name" placeholder="Full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
+                    <input type="text" name="nok_relationship" placeholder="e.g. Spouse / Daughter / Brother" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Next of Kin Phone</label>
+                    <input type="text" name="nok_phone" placeholder="e.g. +254 700 123 456" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Caregiver Name</label>
+                    <input type="text" name="caregiver_name" placeholder="Caregiver full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
+                    <input type="text" name="caregiver_relationship" placeholder="e.g. Sister / Son / Home Care Aide" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Phone</label>
+                    <input type="text" name="caregiver_phone" placeholder="e.g. +254 711 222 333" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Section 4: Clinical Summary & Alerts -->
+        <div class="space-y-4">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
+                <i data-lucide="activity" class="w-4 h-4 text-[#991B1B]"></i>
+                <span>4. Palliative Clinical Profile & Alerts</span>
+            </h2>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Palliative Diagnosis</label>
+                <input type="text" name="primary_diagnosis" value="{{ form.primary_diagnosis.value|default:'' }}" placeholder="e.g. Carcinoma of Cervix Stage IV with pelvic pain" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Allergies (Medication & Food)</label>
+                    <textarea name="allergies" rows="2" placeholder="e.g. Tramadol (Severe nausea), Penicillin (Anaphylaxis)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">{{ form.allergies.value|default:'' }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Clinical Alerts / High Priority Flags</label>
+                    <textarea name="clinical_alerts" rows="2" placeholder="e.g. Fall risk, Spinal cord compression risk, High pain distress" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">{{ form.clinical_alerts.value|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Additional Administrative / Clinical Notes</label>
+                <textarea name="notes" rows="3" placeholder="Social context, financial constraints, advance directives..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">{{ form.notes.value|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
+            <a href="{% if is_create %}{% url 'patients:patient_list' %}{% else %}{% url 'patients:patient_detail' form.instance.pk %}{% endif %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800">
+                Cancel
+            </a>
+            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition cursor-pointer">
+                {% if is_create %}Register Patient & Generate Hospice ID{% else %}Save Changes{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function kenyaLocationData() {
+    return {
+        locations: JSON.parse('{{ kenya_locations_json|escapejs }}' || '{}'),
+        selectedCounty: '{{ form.county.value|default:"Nairobi" }}',
+        selectedSubCounty: '{{ form.sub_county.value|default:"" }}',
+        selectedWard: '{{ form.ward.value|default:"" }}',
+
+        get countyList() {
+            return Object.keys(this.locations).sort();
+        },
+
+        get subCountyList() {
+            if (!this.selectedCounty || !this.locations[this.selectedCounty]) return [];
+            return Object.keys(this.locations[this.selectedCounty]).sort();
+        },
+
+        get wardList() {
+            if (!this.selectedCounty || !this.selectedSubCounty) return [];
+            const sub = this.locations[this.selectedCounty];
+            if (!sub || !sub[this.selectedSubCounty]) return [];
+            return sub[this.selectedSubCounty];
+        },
+
+        onCountyChange() {
+            const subs = this.subCountyList;
+            this.selectedSubCounty = subs.length > 0 ? subs[0] : '';
+            this.onSubCountyChange();
+        },
+
+        onSubCountyChange() {
+            const wards = this.wardList;
+            this.selectedWard = wards.length > 0 ? wards[0] : '';
+        },
+
+        init() {
+            if (!this.selectedSubCounty && this.subCountyList.length > 0) {
+                this.selectedSubCounty = this.subCountyList[0];
+            }
+            if (!this.selectedWard && this.wardList.length > 0) {
+                this.selectedWard = this.wardList[0];
+            }
+        }
+    }
+}
+</script>
+{% endblock %}

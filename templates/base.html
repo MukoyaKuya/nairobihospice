@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nairobi Hospice PCMS{% endblock %} | Palliative Care Management System</title>
+    
+    <!-- Google Fonts: Sora -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+
+    <!-- Vendored, version-pinned frontend libraries (no third-party CDN at runtime) -->
+    <script src="{% static 'vendor/tailwind-play-3.4.16.js' %}"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                        heading: ['Matter', 'Sora', 'sans-serif'],
+                        title: ['Matter', 'Sora', 'sans-serif'],
+                        matter: ['Matter', 'Sora', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            800: '#1e3a8a',
+                            900: '#0b2545',
+                            navy: '#002D62',
+                            red: '#991B1B',
+                            darkred: '#7F1D1D',
+                            crimson: '#A51C30',
+                            black: '#0F172A',
+                        },
+                        hospice: {
+                            blue: '#002D62',
+                            red: '#991B1B',
+                            darkred: '#7F1D1D',
+                            black: '#0F172A',
+                            navy: '#0B2545',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Alpine.js -->
+    <script defer src="{% static 'vendor/alpine-3.14.8.min.js' %}"></script>
+
+    <!-- HTMX -->
+    <script src="{% static 'vendor/htmx-1.9.12.min.js' %}"></script>
+
+    <!-- Chart.js -->
+    <script src="{% static 'vendor/chartjs-4.4.9.umd.min.js' %}"></script>
+
+    <!-- Lucide Icons -->
+    <script src="{% static 'vendor/lucide-0.454.0.umd.min.js' %}"></script>
+    
+    <style>
+        @font-face {
+            font-family: 'Matter';
+            src: local('Matter'), local('Matter-Regular'), local('Matter Regular');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Matter';
+            src: local('Matter-Medium'), local('Matter Medium');
+            font-weight: 500;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Matter';
+            src: local('Matter-SemiBold'), local('Matter SemiBold'), local('Matter-Bold'), local('Matter Bold');
+            font-weight: 600 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Matter';
+            src: local('Matter-Heavy'), local('Matter Heavy'), local('Matter-Black'), local('Matter Black');
+            font-weight: 800 900;
+            font-style: normal;
+            font-display: swap;
+        }
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Sora', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-heading, .font-title, .font-matter {
+            font-family: 'Matter', 'Sora', sans-serif;
+        }
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline-block; }
+        .htmx-request.htmx-indicator { display: inline-block; }
+        
+        /* Custom scrollbar and indicator helpers */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="h-full flex flex-col antialiased text-slate-800 bg-slate-100" x-data="{ sidebarOpen: false }">
+
+    {% if user.is_authenticated %}
+    <div class="min-h-full flex flex-col">
+        <!-- Top Navigation Bar -->
+        {% include 'components/navbar.html' %}
+
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar Navigation -->
+            {% include 'components/sidebar.html' %}
+
+            <!-- Main Content Container -->
+            <main class="flex-1 overflow-y-auto no-scrollbar bg-slate-100 p-3 sm:p-4 lg:p-5">
+                <div class="w-full mx-auto">
+                    <!-- Flash Messages -->
+                    {% include 'components/messages.html' %}
+
+                    {% block content %}{% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+    {% else %}
+    <!-- Unauthenticated Layout -->
+    {% include 'components/messages.html' %}
+    {% block auth_content %}{% endblock %}
+    {% endif %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+        document.body.addEventListener('htmx:afterSwap', function() {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+        document.body.addEventListener('htmx:beforeSwap', function(evt) {
+            // Guard: If an HTMX response contains the full login page HTML or DOCTYPE, prevent swapping into a partial widget
+            if (evt.detail.xhr && evt.detail.xhr.responseText) {
+                const text = evt.detail.xhr.responseText;
+                if (text.includes('action="/accounts/login/"') || text.includes('id_password') || text.includes('<!DOCTYPE html>')) {
+                    if (evt.detail.target && evt.detail.target.tagName !== 'BODY') {
+                        evt.detail.shouldSwap = false;
+                        window.location.href = '/accounts/login/';
+                    }
+                }
+            }
+        });
+        document.body.addEventListener('htmx:responseError', function(evt) {
+            if (evt.detail.xhr.status === 401 || evt.detail.xhr.status === 403) {
+                window.location.href = '/accounts/login/';
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

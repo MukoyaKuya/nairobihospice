@@ -1,0 +1,125 @@
+<div class="overflow-x-auto">
+    <table class="w-full divide-y divide-slate-200 text-left text-xs">
+        <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+            <tr>
+                <th class="px-3 py-2.5 whitespace-nowrap">Hospice ID & Patient</th>
+                <th class="px-3 py-2.5 whitespace-nowrap">Age / Sex</th>
+                <th class="px-3 py-2.5">Primary Diagnosis</th>
+                <th class="px-3 py-2.5 whitespace-nowrap">Location</th>
+                <th class="px-3 py-2.5 whitespace-nowrap">Contact Phone</th>
+                <th class="px-3 py-2.5 whitespace-nowrap text-center">Care Status</th>
+                <th class="px-3 py-2.5 text-right whitespace-nowrap">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for patient in patients %}
+            <tr class="hover:bg-slate-50/90 transition duration-150 group">
+                <!-- Patient Name & ID -->
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-[#002D62] text-white font-bold text-[10px] flex items-center justify-center flex-shrink-0 overflow-hidden border border-slate-200 shadow-2xs">
+                            {% if patient.photo %}
+                            <img src="{% url 'patients:patient_photo' patient.pk %}" alt="{{ patient.full_name }}" class="w-full h-full object-cover">
+                            {% else %}
+                            <span>{{ patient.first_name|first }}{{ patient.last_name|first }}</span>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="{% url 'patients:patient_detail' patient.pk %}" class="font-bold text-slate-900 group-hover:text-[#002D62] transition block leading-tight">
+                                {{ patient.full_name }}
+                            </a>
+                            <span class="font-mono text-[10px] text-[#002D62] font-semibold block">{{ patient.hospice_number }}</span>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Age / Sex -->
+                <td class="px-3 py-2 whitespace-nowrap text-slate-600 text-[11px]">
+                    {% if patient.age and patient.sex and patient.sex != 'U' %}
+                        {{ patient.age }} yrs &bull; {{ patient.get_sex_display|slice:":1" }}
+                    {% elif patient.age %}
+                        {{ patient.age }} yrs
+                    {% elif patient.sex and patient.sex != 'U' %}
+                        {{ patient.get_sex_display|slice:":1" }}
+                    {% else %}
+                        <span class="text-slate-400 font-mono font-medium">--</span>
+                    {% endif %}
+                </td>
+
+                <!-- Primary Diagnosis -->
+                <td class="px-3 py-2 max-w-[220px] text-slate-800 font-medium" title="{% if not is_receptionist %}{{ patient.primary_diagnosis }}{% endif %}">
+                    <div class="truncate text-[11px]">
+                        {% if is_receptionist %}Palliative Care{% else %}{{ patient.primary_diagnosis|default:"Palliative Care" }}{% endif %}
+                    </div>
+                </td>
+
+                <!-- Location -->
+                <td class="px-3 py-2 whitespace-nowrap text-slate-600 text-[11px]">
+                    {{ patient.county }}{% if patient.sub_county %}, {{ patient.sub_county }}{% endif %}
+                </td>
+
+                <!-- Phone -->
+                <td class="px-3 py-2 whitespace-nowrap font-mono text-slate-700 text-[11px]">
+                    {{ patient.phone_number|default:"-" }}
+                </td>
+
+                <!-- Care Status -->
+                <td class="px-3 py-2 whitespace-nowrap text-center">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                        {% if patient.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                        {% elif patient.status == 'DECEASED' %}bg-slate-100 text-slate-700 border border-slate-300
+                        {% elif patient.status == 'DISCHARGED' %}bg-sky-50 text-sky-700 border border-sky-200
+                        {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
+                        <span class="w-1 h-1 rounded-full mr-1
+                            {% if patient.status == 'ACTIVE' %}bg-emerald-500
+                            {% elif patient.status == 'DECEASED' %}bg-slate-500
+                            {% elif patient.status == 'DISCHARGED' %}bg-sky-500
+                            {% else %}bg-amber-500{% endif %}">
+                        </span>
+                        {{ patient.get_status_display }}
+                    </span>
+                </td>
+
+                <!-- Actions -->
+                <td class="px-3 py-2 text-right whitespace-nowrap">
+                    <a href="{% url 'patients:patient_detail' patient.pk %}" 
+                       class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/70 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-md transition duration-150 space-x-1">
+                        <span>Open Chart</span>
+                        <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-slate-400">
+                    <i data-lucide="user-x" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
+                    No patient records match the specified criteria.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+    <div>
+        Showing <strong>{{ page_obj.start_index }}</strong> - <strong>{{ page_obj.end_index }}</strong> of <strong>{{ page_obj.paginator.count }}</strong> patients
+    </div>
+    <div class="space-x-1">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}" 
+           hx-get="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}"
+           hx-target="#patient-table-container"
+           class="px-2.5 py-1 bg-white border border-slate-300 rounded font-semibold hover:bg-slate-100 text-slate-700 text-xs transition cursor-pointer">Prev</a>
+        {% endif %}
+        <span class="px-2 py-1 text-slate-500 font-bold">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}" 
+           hx-get="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}"
+           hx-target="#patient-table-container"
+           class="px-2.5 py-1 bg-white border border-slate-300 rounded font-semibold hover:bg-slate-100 text-slate-700 text-xs transition cursor-pointer">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Referrals & Triage - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-3">
+    
+    <!-- Compact Header & Quick Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center space-x-3">
+            <h1 class="text-lg font-black text-slate-900 tracking-tight">Referrals & Triage</h1>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-[#991B1B] border border-red-200">
+                Triage Pipeline
+            </span>
+        </div>
+        <div>
+            <a href="{% url 'referrals:referral_create' %}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#991B1B] hover:bg-[#7F1D1D] text-white rounded-lg shadow-sm transition space-x-1.5">
+                <i data-lucide="inbox" class="w-3.5 h-3.5 text-white"></i>
+                <span>Log Incoming Referral</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Compact Search & Filter Controls -->
+    <div class="bg-white px-3 py-2.5 rounded-xl shadow-sm border border-slate-200">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+            <div class="sm:col-span-6 relative">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search Patient, Facility, or Ref No..." 
+                       class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+            </div>
+            <div class="sm:col-span-3">
+                <select name="status" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-bold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                    <option value="">All Statuses</option>
+                    {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="sm:col-span-3">
+                <select name="priority" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-bold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                    <option value="">All Priorities</option>
+                    {% for val, label in priority_choices %}
+                    <option value="{{ val }}" {% if selected_priority == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Referral List Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full divide-y divide-slate-200 text-left text-xs">
+                <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                    <tr>
+                        <th class="px-3 py-2.5 whitespace-nowrap">Referral ID & Patient</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap">Referring Facility</th>
+                        <th class="px-3 py-2.5">Primary Diagnosis</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap text-center">Priority</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap text-center">Status</th>
+                        <th class="px-3 py-2.5 whitespace-nowrap">Date</th>
+                        <th class="px-3 py-2.5 text-right whitespace-nowrap">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for ref in referrals %}
+                    <tr class="hover:bg-slate-50/90 transition duration-150 group">
+                        
+                        <!-- Referral Number & Patient Name -->
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded-lg bg-red-50 text-[#991B1B] font-bold text-[10px] flex items-center justify-center flex-shrink-0 border border-red-100">
+                                    {{ ref.patient_name|slice:":2"|upper }}
+                                </div>
+                                <div>
+                                    <a href="{% url 'referrals:referral_detail' ref.pk %}" class="font-bold text-slate-900 group-hover:text-[#002D62] transition block leading-tight">
+                                        {{ ref.patient_name }}
+                                    </a>
+                                    <span class="font-mono text-[10px] text-[#991B1B] font-semibold block">{{ ref.referral_number }}</span>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Referring Facility -->
+                        <td class="px-3 py-2 max-w-[200px] text-slate-700 font-medium truncate text-[11px]" title="{{ ref.referring_facility }}">
+                            {{ ref.referring_facility }}
+                        </td>
+
+                        <!-- Primary Diagnosis -->
+                        <td class="px-3 py-2 max-w-[220px] text-slate-800 font-medium truncate text-[11px]" {% if clinical_access %}title="{{ ref.primary_diagnosis }}"{% endif %}>
+                            {% if clinical_access %}{{ ref.primary_diagnosis }}{% else %}Clinical review required{% endif %}
+                        </td>
+
+                        <!-- Priority Badge -->
+                        <td class="px-3 py-2 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                                {% if ref.priority == 'EMERGENCY' %}bg-rose-50 text-rose-700 border border-rose-200
+                                {% elif ref.priority == 'URGENT' %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                {% if ref.priority == 'EMERGENCY' %}Emergency
+                                {% elif ref.priority == 'URGENT' %}Urgent
+                                {% else %}Routine{% endif %}
+                            </span>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="px-3 py-2 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                                {% if ref.status == 'CONVERTED' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif ref.status == 'ACCEPTED' %}bg-teal-50 text-teal-700 border border-teal-200
+                                {% elif ref.status == 'REJECTED' %}bg-rose-50 text-rose-700 border border-rose-200
+                                {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                                <span class="w-1 h-1 rounded-full mr-1
+                                    {% if ref.status == 'CONVERTED' %}bg-emerald-500
+                                    {% elif ref.status == 'ACCEPTED' %}bg-teal-500
+                                    {% elif ref.status == 'REJECTED' %}bg-rose-500
+                                    {% else %}bg-blue-500{% endif %}">
+                                </span>
+                                {{ ref.get_status_display }}
+                            </span>
+                        </td>
+
+                        <!-- Referral Date -->
+                        <td class="px-3 py-2 whitespace-nowrap text-slate-500 font-mono text-[10px]">
+                            {{ ref.referral_date|date:"d M Y" }}
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
+                            <a href="{% url 'referrals:referral_detail' ref.pk %}" 
+                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/70 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-md transition duration-150 space-x-1">
+                                <span>Triage</span>
+                                <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-slate-400">
+                            <i data-lucide="inbox" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
+                            No incoming referrals match the specified search or filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

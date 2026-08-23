@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Security & Clinical Audit Trail - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Security & Clinical Audit Trail</h1>
+            <p class="text-xs text-slate-500 mt-1">Immutable access, modification, export, and authentication activity logging.</p>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+                <input type="text" name="q" placeholder="Search by description or user..." class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+            </div>
+            <div>
+                <input type="text" name="resource_type" placeholder="Resource (e.g. Patient, Assessment)" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:outline-none">
+            </div>
+            <div class="flex items-center space-x-2">
+                <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition">
+                    Filter Logs
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Audit Event Log Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-left text-xs font-mono">
+                <thead class="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 font-sans">
+                    <tr>
+                        <th class="px-6 py-3.5">Timestamp</th>
+                        <th class="px-6 py-3.5">User</th>
+                        <th class="px-6 py-3.5">Action</th>
+                        <th class="px-6 py-3.5">Resource</th>
+                        <th class="px-6 py-3.5">Summary</th>
+                        <th class="px-6 py-3.5">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for event in events %}
+                    <tr class="hover:bg-slate-50/80 transition text-[11px]">
+                        <td class="px-6 py-3 text-slate-500 whitespace-nowrap">{{ event.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td class="px-6 py-3 text-slate-800 font-sans font-semibold">
+                            {{ event.user_email|default:"Anonymous" }}
+                            {% if event.user_role %}<span class="text-[10px] text-teal-700 block font-normal">{{ event.user_role }}</span>{% endif %}
+                        </td>
+                        <td class="px-6 py-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                                {% if event.action == 'CREATE' %}bg-emerald-100 text-emerald-800
+                                {% elif event.action == 'UPDATE' or event.action == 'AMEND' %}bg-sky-100 text-sky-800
+                                {% elif event.action == 'DELETE' %}bg-rose-100 text-rose-800
+                                {% elif event.action == 'EXPORT' %}bg-amber-100 text-amber-800
+                                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ event.get_action_display }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3 font-semibold text-slate-700">{{ event.resource_type }}</td>
+                        <td class="px-6 py-3 text-slate-800 font-sans max-w-md truncate">{{ event.summary }}</td>
+                        <td class="px-6 py-3 text-slate-400 text-[10px]">{{ event.ip_address|default:"127.0.0.1" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-400 font-sans">No audit events recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
