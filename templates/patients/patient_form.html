@@ -3,7 +3,7 @@
 {% block title %}{% if is_create %}Register New Patient{% else %}Edit Patient {{ form.instance.full_name }}{% endif %} - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ activeFormTab: 'general', showDeleteModal: false }">
     <div class="flex items-center justify-between">
         <div>
             <a href="{% if is_create %}{% url 'patients:patient_list' %}{% else %}{% url 'patients:patient_detail' form.instance.pk %}{% endif %}" class="text-xs font-semibold text-[#002D62] hover:text-[#0B2545] flex items-center mb-1">
@@ -12,11 +12,37 @@
             <h1 class="text-2xl font-black text-slate-900 tracking-tight">
                 {% if is_create %}Register New Patient{% else %}Edit Demographics: {{ form.instance.full_name }}{% endif %}
             </h1>
-            <p class="text-xs text-slate-500 mt-0.5">Enter complete demographic, geographic location, next of kin, and clinical details.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Enter complete demographic, geographic location, medical history, next of kin, and clinical details.</p>
         </div>
     </div>
 
-    <form method="POST" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-8">
+    <!-- Tabbed Navigation Bar Matching Access Structure -->
+    <div class="flex border-b border-slate-200 bg-white rounded-t-2xl px-6 pt-3 space-x-6 text-xs font-bold shadow-2xs">
+        <button type="button" @click="activeFormTab = 'general'"
+                :class="activeFormTab === 'general' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
+                class="pb-3 border-b-2 transition flex items-center space-x-2 cursor-pointer">
+            <i data-lucide="user" class="w-4 h-4"></i>
+            <span>1. General Patient Data</span>
+        </button>
+
+        <button type="button" @click="activeFormTab = 'medical'"
+                :class="activeFormTab === 'medical' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
+                class="pb-3 border-b-2 transition flex items-center space-x-2 cursor-pointer">
+            <i data-lucide="activity" class="w-4 h-4 text-[#991B1B]"></i>
+            <span>2. Medical Information & History</span>
+        </button>
+
+        {% if is_create %}
+        <button type="button" @click="activeFormTab = 'caregivers'"
+                :class="activeFormTab === 'caregivers' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
+                class="pb-3 border-b-2 transition flex items-center space-x-2 cursor-pointer">
+            <i data-lucide="users" class="w-4 h-4 text-cyan-700"></i>
+            <span>3. Next of Kin & Caregivers Circle</span>
+        </button>
+        {% endif %}
+    </div>
+
+    <form method="POST" class="bg-white rounded-b-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
         {% csrf_token %}
 
         {% if form.errors %}
@@ -32,245 +58,532 @@
         </div>
         {% endif %}
 
-        <!-- Section 1: Patient Identity -->
-        <div class="space-y-4">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
-                <i data-lucide="user" class="w-4 h-4 text-[#002D62]"></i>
-                <span>1. Personal Identity & Demographics</span>
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
-                    <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Middle Name</label>
-                    <input type="text" name="middle_name" value="{{ form.middle_name.value|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
-                    <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
-                    <input type="date" name="date_of_birth" value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Sex *</label>
-                    <select name="sex" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                        <option value="F" {% if form.sex.value == 'F' %}selected{% endif %}>Female</option>
-                        <option value="M" {% if form.sex.value == 'M' %}selected{% endif %}>Male</option>
-                        <option value="O" {% if form.sex.value == 'O' %}selected{% endif %}>Other</option>
-                        <option value="U" {% if form.sex.value == 'U' %}selected{% endif %}>Unknown</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Marital Status</label>
-                    <select name="marital_status" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                        <option value="SINGLE" {% if form.marital_status.value == 'SINGLE' %}selected{% endif %}>Single</option>
-                        <option value="MARRIED" {% if form.marital_status.value == 'MARRIED' or not form.marital_status.value %}selected{% endif %}>Married</option>
-                        <option value="WIDOWED" {% if form.marital_status.value == 'WIDOWED' %}selected{% endif %}>Widowed</option>
-                        <option value="DIVORCED" {% if form.marital_status.value == 'DIVORCED' %}selected{% endif %}>Divorced</option>
-                        <option value="SEPARATED" {% if form.marital_status.value == 'SEPARATED' %}selected{% endif %}>Separated</option>
-                    </select>
+        <!-- TAB 1: General Patient Data & Demographics -->
+        <div x-show="activeFormTab === 'general'" class="space-y-6">
+            
+            <!-- Patient Identifiers (Hospice & Hospital File Nos) -->
+            <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-3">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-[#002D62] flex items-center gap-1.5">
+                    <i data-lucide="id-card" class="w-4 h-4"></i> Hospital & Clinic File Numbers
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Hospital IP/OP Number</label>
+                        <input type="text" name="ip_op_number" value="{{ form.ip_op_number.value|default:'' }}" placeholder="e.g. 081/21 / 144/26" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none bg-white font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Daycare Number (if applicable)</label>
+                        <input type="text" name="daycare_number" value="{{ form.daycare_number.value|default:'' }}" placeholder="e.g. DC-04" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none bg-white font-mono">
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">National ID / Identifier Type</label>
-                    <select name="identification_type" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                        <option value="NATIONAL_ID" {% if form.identification_type.value == 'NATIONAL_ID' %}selected{% endif %}>National ID (Kenya)</option>
-                        <option value="PASSPORT" {% if form.identification_type.value == 'PASSPORT' %}selected{% endif %}>Passport</option>
-                        <option value="BIRTH_CERT" {% if form.identification_type.value == 'BIRTH_CERT' %}selected{% endif %}>Birth Certificate</option>
-                        <option value="ALIEN_ID" {% if form.identification_type.value == 'ALIEN_ID' %}selected{% endif %}>Alien ID</option>
-                        <option value="NONE" {% if form.identification_type.value == 'NONE' %}selected{% endif %}>None / Not Available</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">ID Number</label>
-                    <input type="text" name="identification_number" value="{{ form.identification_number.value|default:'' }}" placeholder="e.g. 24891023" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 2: Contact Details & Kenyan Geographies (County, Sub-County, Ward, Bus Stop) -->
-        <div class="space-y-4" x-data="kenyaLocationData()">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                    <i data-lucide="map-pin" class="w-4 h-4 text-[#991B1B]"></i>
-                    <span>2. Contact Details & Home Location (For Home Care Visits)</span>
-                </div>
-                <span class="text-[10px] font-bold text-slate-400">Kenya Administrative Geographies</span>
-            </h2>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Phone Number *</label>
-                    <input type="text" name="phone_number" value="{{ form.phone_number.value|default:'' }}" placeholder="e.g. +254 712 345 678" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Alternative Phone Number</label>
-                    <input type="text" name="alternative_phone" value="{{ form.alternative_phone.value|default:'' }}" placeholder="e.g. +254 722 000 111" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-            </div>
-
-            <!-- Cascading County, Sub-County, Ward -->
-            <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 space-y-4">
+            <!-- Names -->
+            <div class="space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">
+                    Patient Name & Personal Bio-Data
+                </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    
-                    <!-- County Dropdown -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-800 mb-1">County *</label>
-                        <select name="county" x-model="selectedCounty" @change="onCountyChange()"
-                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
-                            <template x-for="c in countyList" :key="c">
-                                <option :value="c" x-text="c" :selected="c === selectedCounty"></option>
-                            </template>
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">First Name *</label>
+                        <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
                     </div>
-
-                    <!-- Sub-County Dropdown -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-800 mb-1">Sub-County / Constituency *</label>
-                        <select name="sub_county" x-model="selectedSubCounty" @change="onSubCountyChange()"
-                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
-                            <option value="">-- Select Sub-County --</option>
-                            <template x-for="sc in subCountyList" :key="sc">
-                                <option :value="sc" x-text="sc" :selected="sc === selectedSubCounty"></option>
-                            </template>
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Middle Name / SurName</label>
+                        <input type="text" name="middle_name" value="{{ form.middle_name.value|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
                     </div>
-
-                    <!-- Ward Dropdown -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-800 mb-1">Ward *</label>
-                        <select name="ward" x-model="selectedWard"
-                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
-                            <option value="">-- Select Ward --</option>
-                            <template x-for="w in wardList" :key="w">
-                                <option :value="w" x-text="w" :selected="w === selectedWard"></option>
-                            </template>
-                        </select>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Last Name *</label>
+                        <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
                     </div>
-
                 </div>
 
-                <!-- Closest Bus Stop / Stage & Estate / House Details -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    
-                    <!-- Closest Bus Stop / Matatu Stage -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
-                            <span>Closest Bus Stop / Matatu Stage *</span>
-                            <span class="text-[10px] text-red-600 font-semibold font-mono">For Nurse & Doctor Visits</span>
-                        </label>
-                        <div class="relative">
-                            <input type="text" name="landmark" value="{{ form.landmark.value|default:'' }}" 
-                                   placeholder="e.g. Olympic Stage / Makina Bus Stop / DC Stage / Kencom" 
-                                   class="w-full pl-8 pr-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
-                            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
-                                <i data-lucide="navigation" class="w-3.5 h-3.5 text-red-500"></i>
-                            </div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Date of Birth</label>
+                        <input type="date" name="date_of_birth" value="{{ form.date_of_birth.value|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Sex *</label>
+                        <select name="sex" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                            <option value="F" {% if form.sex.value == 'F' %}selected{% endif %}>Female</option>
+                            <option value="M" {% if form.sex.value == 'M' %}selected{% endif %}>Male</option>
+                            <option value="O" {% if form.sex.value == 'O' %}selected{% endif %}>Other</option>
+                            <option value="U" {% if form.sex.value == 'U' %}selected{% endif %}>Unknown</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Marital Status</label>
+                        <select name="marital_status" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                            <option value="SINGLE" {% if form.marital_status.value == 'SINGLE' %}selected{% endif %}>Single</option>
+                            <option value="MARRIED" {% if form.marital_status.value == 'MARRIED' or not form.marital_status.value %}selected{% endif %}>Married</option>
+                            <option value="WIDOWED" {% if form.marital_status.value == 'WIDOWED' %}selected{% endif %}>Widowed</option>
+                            <option value="DIVORCED" {% if form.marital_status.value == 'DIVORCED' %}selected{% endif %}>Divorced</option>
+                            <option value="SEPARATED" {% if form.marital_status.value == 'SEPARATED' %}selected{% endif %}>Separated</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">National ID / Identifier Type</label>
+                        <select name="identification_type" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                            <option value="NATIONAL_ID" {% if form.identification_type.value == 'NATIONAL_ID' %}selected{% endif %}>National ID (Kenya)</option>
+                            <option value="PASSPORT" {% if form.identification_type.value == 'PASSPORT' %}selected{% endif %}>Passport</option>
+                            <option value="BIRTH_CERT" {% if form.identification_type.value == 'BIRTH_CERT' %}selected{% endif %}>Birth Certificate</option>
+                            <option value="ALIEN_ID" {% if form.identification_type.value == 'ALIEN_ID' %}selected{% endif %}>Alien ID</option>
+                            <option value="NONE" {% if form.identification_type.value == 'NONE' %}selected{% endif %}>None / Not Available</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">ID Number</label>
+                        <input type="text" name="identification_number" value="{{ form.identification_number.value|default:'' }}" placeholder="e.g. 24891023" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Details & Location -->
+            <div class="space-y-4" x-data="kenyaLocationData()">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">
+                    Contact Details & Home Care Location
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Phone Number *</label>
+                        <input type="text" name="phone_number" value="{{ form.phone_number.value|default:'' }}" placeholder="e.g. +254 712 345 678" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Alternative Phone Number</label>
+                        <input type="text" name="alternative_phone" value="{{ form.alternative_phone.value|default:'' }}" placeholder="e.g. +254 722 000 111" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                        <input type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="e.g. patient@gmail.com" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Cascading Kenyan Administrative Geographies -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">County *</label>
+                            <select name="county" x-model="selectedCounty" @change="onCountyChange()"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <template x-for="c in countyList" :key="c">
+                                    <option :value="c" x-text="c" :selected="c === selectedCounty"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Sub-County / Constituency *</label>
+                            <select name="sub_county" x-model="selectedSubCounty" @change="onSubCountyChange()"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <option value="">-- Select Sub-County --</option>
+                                <template x-for="sc in subCountyList" :key="sc">
+                                    <option :value="sc" x-text="sc" :selected="sc === selectedSubCounty"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Ward *</label>
+                            <select name="ward" x-model="selectedWard"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <option value="">-- Select Ward --</option>
+                                <template x-for="w in wardList" :key="w">
+                                    <option :value="w" x-text="w" :selected="w === selectedWard"></option>
+                                </template>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Estate / Village / Road / House Number -->
-                    <div>
-                        <label class="block text-xs font-bold text-slate-800 mb-1">Estate / Village / Road / House No.</label>
-                        <input type="text" name="address" value="{{ form.address.value|default:'' }}" 
-                               placeholder="e.g. Makina Village, House 42, Near Chief's Camp" 
-                               class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Closest Bus Stop / Matatu Stage *</label>
+                            <input type="text" name="landmark" value="{{ form.landmark.value|default:'' }}" 
+                                   placeholder="e.g. Olympic Stage / Makina Bus Stop / Kencom" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Estate / Village / Road / House No.</label>
+                            <input type="text" name="address" value="{{ form.address.value|default:'' }}" 
+                                   placeholder="e.g. Makina Village, House 42" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
                     </div>
+                </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Preferred Language</label>
+                        <input type="text" name="preferred_language" value="{{ form.preferred_language.value|default:'English' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Religion</label>
+                        <input type="text" name="religion" value="{{ form.religion.value|default:'' }}" placeholder="e.g. Christian / Muslim" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Occupation</label>
+                        <input type="text" name="occupation" value="{{ form.occupation.value|default:'' }}" placeholder="e.g. Retired Teacher" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Preferred Language</label>
-                <input type="text" name="preferred_language" value="{{ form.preferred_language.value|default:'English' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+            <div class="flex justify-end pt-4">
+                <button type="button" @click="activeFormTab = 'medical'" class="px-5 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-1.5 cursor-pointer">
+                    <span>Next: Medical History & Profile</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 2: Medical Information & Patient History (Matching Access Nairobi Hospice Patients Clinical Data) -->
+        <div x-show="activeFormTab === 'medical'" 
+             x-data="{ 
+                 patientStatus: '{{ form.status.value|default:"ACTIVE" }}',
+                 specialRemarks: '{{ form.special_remarks.value|default:"" }}',
+                 isDeceased() {
+                     return this.specialRemarks === 'Deceased' || this.patientStatus === 'DECEASED';
+                 }
+             }"
+             class="space-y-6">
+            
+            <!-- Header matching Access -->
+            <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200 flex items-center justify-between">
+                <h2 class="text-xs font-black text-[#002D62] uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="clipboard-plus" class="w-4 h-4 text-[#991B1B]"></i>
+                    <span>Nairobi Hospice Patients Clinical Data</span>
+                </h2>
+                <span class="text-[10px] font-mono text-slate-500">Access V6.0 Form Parity</span>
+            </div>
+
+            <!-- 2 Column Master Layout (Matching Screenshot) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                <!-- Left Column: Clinical Notes & Metadata (5 cols) -->
+                <div class="lg:col-span-5 space-y-3.5">
+                    <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <span class="text-[10px] font-bold uppercase text-slate-500 tracking-wider block border-b border-slate-200 pb-1.5">
+                            Clinical Notes & Status
+                        </span>
+
+                        <!-- Primary Diagnosis -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Primary Diagnosis *</label>
+                            <input type="text" name="primary_diagnosis" list="diagnoses_list" value="{{ form.primary_diagnosis.value|default:'' }}" 
+                                   placeholder="Search standard disease (e.g. Cervical cancer, Breast cancer...)" 
+                                   required
+                                   autocomplete="off"
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900 bg-white">
+                            <datalist id="diagnoses_list">
+                                {% for dx in hospice_diagnoses %}
+                                <option value="{{ dx }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+
+                        <!-- Patient Status (ACTIVE, INACTIVE, CLOSED, DISCHARGED, DECEASED) -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Patient Status *</label>
+                            <select name="status" x-model="patientStatus" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-bold text-slate-900">
+                                <option value="ACTIVE" {% if form.status.value == 'ACTIVE' or not form.status.value %}selected{% endif %}>ACTIVE</option>
+                                <option value="INACTIVE" {% if form.status.value == 'INACTIVE' %}selected{% endif %}>INACTIVE</option>
+                                <option value="CLOSED" {% if form.status.value == 'CLOSED' %}selected{% endif %}>CLOSED</option>
+                                <option value="DISCHARGED" {% if form.status.value == 'DISCHARGED' %}selected{% endif %}>DISCHARGED</option>
+                                <option value="DECEASED" {% if form.status.value == 'DECEASED' %}selected{% endif %}>DECEASED</option>
+                            </select>
+                        </div>
+
+                        <!-- Referred By -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Referred By</label>
+                            <input type="text" name="referred_by" value="{{ form.referred_by.value|default:'' }}" placeholder="e.g. CHV / KNH / Dr. Njuguna / Self" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
+
+                        <!-- HIV / RVD Status -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">HIV / RVD Status</label>
+                            <select name="hiv_status" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold">
+                                <option value="" {% if not form.hiv_status.value %}selected{% endif %}>-- Select HIV Status --</option>
+                                <option value="NEGATIVE" {% if form.hiv_status.value == 'NEGATIVE' or form.hiv_status.value == 'Negative' %}selected{% endif %}>Negative</option>
+                                <option value="POSITIVE" {% if form.hiv_status.value == 'POSITIVE' or form.hiv_status.value == 'Positive' %}selected{% endif %}>Positive</option>
+                                <option value="UNKNOWN" {% if form.hiv_status.value == 'UNKNOWN' or form.hiv_status.value == 'Unknown' %}selected{% endif %}>Unknown</option>
+                                <option value="EXPOSED" {% if form.hiv_status.value == 'EXPOSED' or form.hiv_status.value == 'Exposed' %}selected{% endif %}>Exposed</option>
+                            </select>
+                        </div>
+
+                        <!-- Special Remarks (Alive, Deceased, Unknown) -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Special Remarks</label>
+                            <select name="special_remarks" x-model="specialRemarks" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-red-50/50 focus:ring-2 focus:ring-[#002D62] focus:outline-none font-bold text-slate-900">
+                                <option value="">-- Select Closing / Vital Remark --</option>
+                                <option value="Alive" {% if form.special_remarks.value == 'Alive' %}selected{% endif %}>Alive</option>
+                                <option value="Deceased" {% if form.special_remarks.value == 'Deceased' %}selected{% endif %}>Deceased</option>
+                                <option value="Unknown" {% if form.special_remarks.value == 'Unknown' %}selected{% endif %}>Unknown</option>
+                            </select>
+                        </div>
+
+                        <!-- Dynamic Date of Death & Cause of Death Popup -->
+                        <div x-cloak x-show="isDeceased()" 
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 -translate-y-2"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             class="p-3.5 bg-red-100/80 border-2 border-red-300 rounded-xl space-y-3">
+                            
+                            <div class="flex items-center space-x-1.5 text-xs font-bold text-red-900">
+                                <i data-lucide="heart-off" class="w-4 h-4 text-red-700"></i>
+                                <span>Date of Death & Mortality Notes</span>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-red-950 mb-1">Date of Death *</label>
+                                <input type="date" name="date_of_death" value="{{ form.date_of_death.value|date:'Y-m-d'|default:'' }}" 
+                                       class="w-full px-3 py-2 text-xs border border-red-300 rounded-xl bg-white font-semibold text-slate-900 focus:ring-2 focus:ring-red-600 focus:outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-bold text-red-950 mb-1">Cause of Death Notes</label>
+                                <textarea name="cause_of_death" rows="2" placeholder="Underlying cause of death, palliative complications..." class="w-full px-3 py-2 text-xs border border-red-300 rounded-xl bg-white focus:ring-2 focus:ring-red-600 focus:outline-none text-xs">{{ form.cause_of_death.value|default:'' }}</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Closure Date & File Closed -->
+                        <div class="grid grid-cols-2 gap-3 pt-1">
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-600 mb-1">Closure Date</label>
+                                <input type="date" name="closure_date" value="{{ form.closure_date.value|date:'Y-m-d'|default:'' }}" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62]">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-semibold text-slate-600 mb-1">File Closed</label>
+                                <select name="file_closed" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62]">
+                                    <option value="">-- Select --</option>
+                                    <option value="Yes" {% if form.file_closed.value == 'Yes' %}selected{% endif %}>Yes</option>
+                                    <option value="No" {% if form.file_closed.value == 'No' %}selected{% endif %}>No</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Entry By -->
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Entry By</label>
+                            <input type="text" readonly disabled value="{% if form.instance.created_by %}{{ form.instance.created_by.display_name }}{% else %}{{ user.display_name }}{% endif %}" class="w-full px-2.5 py-1.5 text-xs bg-slate-200/70 border border-slate-300 rounded-xl text-slate-600 font-medium">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Past Medical History, Present Notes & Other Medical Notes (7 cols) -->
+                <div class="lg:col-span-7 space-y-4">
+                    
+                    <!-- Past Medical History -->
+                    <div class="bg-red-50/40 p-4 rounded-xl border border-red-200/80 space-y-1.5">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-[#991B1B]">
+                            Past Medical History
+                        </label>
+                        <textarea name="past_medical_history" rows="3" placeholder="Past illnesses, previous surgeries, previous oncology interventions (e.g. CVA, Chemo, Radiation)..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium text-slate-800">{{ form.past_medical_history.value|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Present Medical Notes -->
+                    <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200 space-y-1.5">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-700">
+                            Present Medical Notes
+                        </label>
+                        <textarea name="present_medical_notes" rows="3" placeholder="Current clinical status, assessments, home visit observations, and nursing care (e.g. ASSESSMENT, HOME VISIT, AND DRUGS)..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium text-slate-800">{{ form.present_medical_notes.value|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Other Medical Notes including allergies -->
+                    <div class="bg-slate-50/80 p-4 rounded-xl border border-slate-200 space-y-1.5">
+                        <label class="block text-xs font-bold uppercase tracking-wide text-slate-700">
+                            Other Medical Notes including allergies
+                        </label>
+                        <textarea name="other_medical_notes" rows="3" placeholder="Drug/food allergies, psychosocial flags, caregiver burden notes..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium text-slate-800">{{ form.other_medical_notes.value|default:'' }}</textarea>
+                    </div>
+
+                    <!-- Clinical Safety Flags & General Remarks -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Clinical Safety Flags</label>
+                            <textarea name="clinical_alerts" rows="2" placeholder="Fall risk, spinal cord compression risk..." class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62]">{{ form.clinical_alerts.value|default:'' }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">General Notes / Remarks</label>
+                            <textarea name="notes" rows="2" placeholder="Additional notes..." class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62]">{{ form.notes.value|default:'' }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                <button type="button" @click="activeFormTab = 'general'" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center space-x-1 cursor-pointer">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                    <span>Back to General Data</span>
+                </button>
+                {% if is_create %}
+                <button type="button" @click="activeFormTab = 'caregivers'" class="px-5 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-1.5 cursor-pointer">
+                    <span>Next: Next of Kin & Caregivers</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </button>
+                {% endif %}
             </div>
         </div>
 
         {% if is_create %}
-        <!-- Section 3: Next of Kin & Family Caregiver -->
-        <div class="space-y-4">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
-                <i data-lucide="users" class="w-4 h-4 text-[#002D62]"></i>
-                <span>3. Primary Next of Kin & Family Caregiver</span>
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Next of Kin Name</label>
-                    <input type="text" name="nok_name" placeholder="Full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+        <!-- TAB 3: Next of Kin & Caregivers Circle -->
+        <div x-show="activeFormTab === 'caregivers'" class="space-y-6">
+            
+            <!-- Next of Kin Section -->
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                    <i data-lucide="users" class="w-4 h-4 text-[#991B1B]"></i> Next of Kin Information
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Next of Kin Full Name</label>
+                        <input type="text" name="nok_name" placeholder="Full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
+                        <input type="text" name="nok_relationship" placeholder="e.g. Spouse / Daughter / Brother" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+                        <input type="text" name="nok_phone" placeholder="e.g. +254 700 123 456" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
-                    <input type="text" name="nok_relationship" placeholder="e.g. Spouse / Daughter / Brother" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Next of Kin Phone</label>
-                    <input type="text" name="nok_phone" placeholder="e.g. +254 700 123 456" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Residence / Address</label>
+                        <input type="text" name="nok_address" placeholder="e.g. Dandora / Kayole" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Age</label>
+                        <input type="number" name="nok_age" placeholder="e.g. 45" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                        <input type="text" name="nok_gender" placeholder="e.g. Male / Female" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Caregiver Name</label>
-                    <input type="text" name="caregiver_name" placeholder="Caregiver full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+            <!-- Caregivers Circle Section (Matching Access Form) -->
+            <div class="bg-cyan-50/40 p-5 rounded-xl border border-cyan-200 space-y-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-900 flex items-center gap-1.5">
+                    <i data-lucide="heart-handshake" class="w-4 h-4 text-cyan-700"></i> Nairobi Hospice Caregivers Circle Details
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Caregiver Name</label>
+                        <input type="text" name="caregiver_name" placeholder="Caregiver full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
+                        <input type="text" name="caregiver_relationship" placeholder="e.g. Sister / Son / Home Care Aide" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Phone</label>
+                        <input type="text" name="caregiver_phone" placeholder="e.g. +254 711 222 333" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
-                    <input type="text" name="caregiver_relationship" placeholder="e.g. Sister / Son / Home Care Aide" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Residence</label>
+                        <input type="text" name="caregiver_address" placeholder="Residence location" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Age</label>
+                        <input type="number" name="caregiver_age" placeholder="e.g. 38" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Gender</label>
+                        <input type="text" name="caregiver_gender" placeholder="e.g. Female / Male" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    </div>
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Phone</label>
-                    <input type="text" name="caregiver_phone" placeholder="e.g. +254 711 222 333" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Other Caregivers Additional Notes</label>
+                    <textarea name="caregiver_notes" rows="2" placeholder="Availability, physical capability, caregiver burden notes..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none"></textarea>
                 </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4">
+                <button type="button" @click="activeFormTab = 'medical'" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center space-x-1 cursor-pointer">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                    <span>Back to Medical History</span>
+                </button>
             </div>
         </div>
         {% endif %}
 
-        <!-- Section 4: Clinical Summary & Alerts -->
-        <div class="space-y-4">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#002D62] border-b border-slate-100 pb-2 flex items-center space-x-2">
-                <i data-lucide="activity" class="w-4 h-4 text-[#991B1B]"></i>
-                <span>4. Palliative Clinical Profile & Alerts</span>
-            </h2>
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Palliative Diagnosis</label>
-                <input type="text" name="primary_diagnosis" value="{{ form.primary_diagnosis.value|default:'' }}" placeholder="e.g. Carcinoma of Cervix Stage IV with pelvic pain" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+        <!-- Form Footer Actions -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-slate-100">
+            <div class="flex items-center space-x-2">
+                <a href="{% if is_create %}{% url 'patients:patient_list' %}{% else %}{% url 'patients:patient_detail' form.instance.pk %}{% endif %}" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800">
+                    Cancel
+                </a>
+                {% if not is_create %}
+                <button type="button" @click="showDeleteModal = true" class="px-3.5 py-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl transition flex items-center space-x-1.5 cursor-pointer">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-rose-600"></i>
+                    <span>Delete Patient</span>
+                </button>
+                {% endif %}
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Allergies (Medication & Food)</label>
-                    <textarea name="allergies" rows="2" placeholder="e.g. Tramadol (Severe nausea), Penicillin (Anaphylaxis)" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">{{ form.allergies.value|default:'' }}</textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Clinical Alerts / High Priority Flags</label>
-                    <textarea name="clinical_alerts" rows="2" placeholder="e.g. Fall risk, Spinal cord compression risk, High pain distress" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">{{ form.clinical_alerts.value|default:'' }}</textarea>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Additional Administrative / Clinical Notes</label>
-                <textarea name="notes" rows="3" placeholder="Social context, financial constraints, advance directives..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">{{ form.notes.value|default:'' }}</textarea>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
-            <a href="{% if is_create %}{% url 'patients:patient_list' %}{% else %}{% url 'patients:patient_detail' form.instance.pk %}{% endif %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800">
-                Cancel
-            </a>
-            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition cursor-pointer">
-                {% if is_create %}Register Patient & Generate Hospice ID{% else %}Save Changes{% endif %}
+            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5">
+                <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+                <span>{% if is_create %}Register Patient & Generate Hospice File{% else %}Save Patient Demographics{% endif %}</span>
             </button>
         </div>
     </form>
+
+    {% if not is_create %}
+    <!-- Request Deletion Modal -->
+    <div x-cloak x-show="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-rose-200 space-y-4" @click.outside="showDeleteModal = false">
+            <div class="flex items-start space-x-3 text-rose-700">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                    <i data-lucide="shield-alert" class="w-6 h-6 text-rose-600"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">Request Patient Record Deletion</h3>
+                    <p class="text-[11px] text-slate-500">Nairobi Hospice PCMS Governance & Data Management</p>
+                </div>
+            </div>
+
+            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                <p class="font-bold flex items-center">
+                    <i data-lucide="info" class="w-3.5 h-3.5 mr-1 text-amber-700"></i>
+                    Operations Approval Required
+                </p>
+                <p class="text-[11px] text-amber-800 leading-relaxed">
+                    Submitting this request will flag the dossier of <strong>{{ form.instance.full_name }}</strong> (<span class="font-mono">{{ form.instance.hospice_number }}</span>) for Operations Management review. Only verified administrators can approve and permanently purge patient files.
+                </p>
+            </div>
+
+            <form action="{% url 'patients:patient_request_delete' form.instance.pk %}" method="POST" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-1">Reason for Deletion Request *</label>
+                    <textarea name="reason" required rows="3" 
+                              placeholder="Please explain why this patient file should be deleted (e.g. Duplicate registration of file #..., accidental test entry, patient requested complete file erasure)..." 
+                              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none text-slate-900"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                    <button type="button" @click="showDeleteModal = false" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition cursor-pointer flex items-center space-x-1.5">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                        <span>Submit to Operations for Approval</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <script>

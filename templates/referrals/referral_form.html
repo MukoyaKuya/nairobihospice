@@ -186,9 +186,18 @@
                     </h2>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Diagnosis *</label>
-                        <input type="text" name="primary_diagnosis" value="{{ form.primary_diagnosis.value|default:'' }}" required placeholder="e.g. Ca Cervix Stage IV with bone metastases"
+                        <label class="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                            <span>Primary Diagnosis *</span>
+                            <span class="text-[10px] text-[#002D62] font-semibold">107 Standard Diagnoses Available</span>
+                        </label>
+                        <input type="text" name="primary_diagnosis" list="referral_diagnoses_list" value="{{ form.primary_diagnosis.value|default:'' }}" required placeholder="Type or select standard diagnosis (e.g. Cervical cancer, Breast cancer, Prostate cancer...)"
+                               autocomplete="off"
                                class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                        <datalist id="referral_diagnoses_list">
+                            {% for dx in hospice_diagnoses %}
+                            <option value="{{ dx }}"></option>
+                            {% endfor %}
+                        </datalist>
                     </div>
 
                     <div>

@@ -102,7 +102,9 @@ class User(AbstractUser):
 
     @property
     def is_manager(self):
-        return self.role in [RoleChoices.MANAGER, RoleChoices.ADMINISTRATOR] or self.is_staff or self.is_superuser
+        # Deliberately excludes is_staff: Django-admin access must not grant
+        # application-level management powers. Roles are the source of truth.
+        return self.role in [RoleChoices.MANAGER, RoleChoices.ADMINISTRATOR] or self.is_superuser
 
 
 class StaffProfile(models.Model):

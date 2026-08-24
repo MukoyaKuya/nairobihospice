@@ -52,10 +52,16 @@ class ReferralDetailView(LoginRequiredMixin, DetailView):
 
 class ReferralCreateView(LoginRequiredMixin, View):
     def get(self, request):
+        from apps.patients.constants import HOSPICE_DIAGNOSES
         form = ReferralForm()
-        return render(request, 'referrals/referral_form.html', {'form': form, 'is_create': True})
+        return render(request, 'referrals/referral_form.html', {
+            'form': form, 
+            'is_create': True,
+            'hospice_diagnoses': HOSPICE_DIAGNOSES,
+        })
 
     def post(self, request):
+        from apps.patients.constants import HOSPICE_DIAGNOSES
         form = ReferralForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data

@@ -198,6 +198,12 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+            'filters': ['request_id'],
+        },
+    },
+    'filters': {
+        'request_id': {
+            '()': 'apps.audit.log_filters.RequestIDLogFilter',
         },
     },
     'loggers': {

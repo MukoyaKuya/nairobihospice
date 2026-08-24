@@ -33,6 +33,10 @@ def register_patient(
     first_name: str,
     last_name: str,
     middle_name: str = '',
+    ip_op_number: str = '',
+    daycare_number: str = '',
+    hiv_status: str = '',
+    referred_by: str = '',
     date_of_birth: date = None,
     sex: str = 'F',
     identification_type: str = 'NATIONAL_ID',
@@ -57,9 +61,20 @@ def register_patient(
     nok_name: str = '',
     nok_relationship: str = '',
     nok_phone: str = '',
+    nok_address: str = '',
+    nok_age: int = None,
+    nok_gender: str = '',
     caregiver_name: str = '',
     caregiver_relationship: str = '',
     caregiver_phone: str = '',
+    caregiver_address: str = '',
+    caregiver_age: int = None,
+    caregiver_gender: str = '',
+    caregiver_notes: str = '',
+    chief_complaint: str = '',
+    past_medical_history: str = '',
+    family_history: str = '',
+    drug_history: str = '',
 ) -> Patient:
     """
     Registers a new patient, generates unique identifier, and records next of kin / caregiver.
@@ -68,6 +83,10 @@ def register_patient(
         'first_name': first_name,
         'middle_name': middle_name,
         'last_name': last_name,
+        'ip_op_number': ip_op_number,
+        'daycare_number': daycare_number,
+        'hiv_status': hiv_status,
+        'referred_by': referred_by,
         'date_of_birth': date_of_birth,
         'sex': sex,
         'identification_type': identification_type,
@@ -103,22 +122,50 @@ def register_patient(
             if attempt == 4:
                 raise
 
-    if nok_name and nok_phone:
+    if nok_name and (nok_phone or nok_address):
         NextOfKin.objects.create(
             patient=patient,
             name=nok_name,
             relationship=nok_relationship or 'Next of Kin',
             phone_number=nok_phone,
+            address=nok_address,
+            age=nok_age,
+            gender=nok_gender,
             is_primary=True,
         )
 
-    if caregiver_name and caregiver_phone:
+    if caregiver_name and (caregiver_phone or caregiver_address):
         Caregiver.objects.create(
             patient=patient,
             name=caregiver_name,
             relationship=caregiver_relationship or 'Primary Caregiver',
             phone_number=caregiver_phone,
+            address=caregiver_address,
+            age=caregiver_age,
+            gender=caregiver_gender,
+            notes=caregiver_notes,
             is_primary=True,
+        )
+
+    # If medical history was provided during registration, create initial Assessment record
+    med_hist_parts = []
+    if chief_complaint:
+        med_hist_parts.append(f"Chief Complaint: {chief_complaint}")
+    if past_medical_history:
+        med_hist_parts.append(f"Past Medical & Surgical History: {past_medical_history}")
+    if family_history:
+        med_hist_parts.append(f"Family History: {family_history}")
+    if drug_history:
+        med_hist_parts.append(f"Drug History: {drug_history}")
+
+    if med_hist_parts:
+        from apps.assessments.models import Assessment, AssessmentTypeChoices
+        Assessment.objects.create(
+            patient=patient,
+            assessment_type=AssessmentTypeChoices.INITIAL,
+            assessment_date=patient.registration_date or timezone.now().date(),
+            clinical_summary="\n".join(med_hist_parts),
+            assessor=created_by,
         )
 
     # Automatically initialize active Episode of Care

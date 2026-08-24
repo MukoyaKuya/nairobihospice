@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Clinical Advices & Care Guides - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Search Bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200">
+        <div>
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-xl bg-blue-50 text-[#002D62] flex items-center justify-center font-bold">
+                    <i data-lucide="book-open" class="w-4 h-4 text-[#002D62]"></i>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Clinical Advices & Patient Guides</h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Standardized procedural guidelines, post-treatment instructions, and patient self-care advice protocols.
+            </p>
+        </div>
+
+        <!-- Search Form -->
+        <form method="GET" class="flex items-center gap-2 max-w-sm w-full">
+            <div class="relative flex-1">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                <input type="text" name="q" value="{{ query|default:'' }}" 
+                       placeholder="Search procedure, advice..."
+                       class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+            </div>
+            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl shadow-xs transition">
+                Search
+            </button>
+            {% if query %}
+            <a href="{% url 'care:advice_list' %}" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Advice Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for advice in advices %}
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 space-y-3 flex flex-col justify-between hover:border-slate-300 transition"
+             x-data="{ copied: false }">
+            
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#002D62] text-[10px] font-black tracking-wider uppercase">
+                        {{ advice.procedure }}
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-medium">Protocol #{{ forloop.counter }}</span>
+                </div>
+
+                <h2 class="text-base font-bold text-slate-900 tracking-tight">
+                    {{ advice.heading|default:advice.procedure }}
+                </h2>
+
+                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 text-xs text-slate-700 leading-relaxed font-sans whitespace-pre-line max-h-64 overflow-y-auto"
+                     id="advice-text-{{ advice.id }}">
+{{ advice.advice_text }}
+                </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                <span class="text-[10px] text-slate-400">Category: {{ advice.category }}</span>
+                
+                <button type="button" 
+                        @click="navigator.clipboard.writeText(document.getElementById('advice-text-{{ advice.id }}').innerText); copied = true; setTimeout(() => copied = false, 2500);"
+                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                        :class="copied ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'">
+                    <i :data-lucide="copied ? 'check' : 'copy'" class="w-3.5 h-3.5"></i>
+                    <span x-text="copied ? 'Copied to Clipboard!' : 'Copy Advice'">Copy Advice</span>
+                </button>
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="col-span-full p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
+            <i data-lucide="book-open-check" class="w-10 h-10 mx-auto text-slate-300"></i>
+            <h3 class="text-sm font-bold text-slate-700">No Clinical Advices Found</h3>
+            <p class="text-xs text-slate-400">Try adjusting your search keywords.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

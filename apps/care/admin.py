@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import CarePlan, CarePlanNeed, CareTeamMember, EpisodeOfCare
+from .models import CarePlan, CarePlanNeed, CareTeamMember, ClinicalAdvice, EpisodeOfCare
 
 
 class CareTeamMemberInline(admin.TabularInline):
@@ -25,3 +25,10 @@ class CarePlanAdmin(admin.ModelAdmin):
     list_display = ('title', 'patient', 'status', 'review_date', 'created_at')
     list_filter = ('status', 'review_date')
     inlines = [CarePlanNeedInline]
+
+
+@admin.register(ClinicalAdvice)
+class ClinicalAdviceAdmin(admin.ModelAdmin):
+    list_display = ('procedure', 'heading', 'category', 'is_active', 'updated_at')
+    list_filter = ('category', 'is_active')
+    search_fields = ('procedure', 'heading', 'advice_text')

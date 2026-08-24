@@ -1,0 +1,3078 @@
+openapi: 3.0.3
+info:
+  title: Nairobi Hospice PCMS API
+  version: 1.0.0
+  description: Clinical and Operational API for Nairobi Hospice Palliative Care Management
+    System
+paths:
+  /api/v1/appointments/:
+    get:
+      operationId: v1_appointments_list
+      parameters:
+      - in: query
+        name: appointment_type
+        schema:
+          type: string
+          enum:
+          - CLINIC_VISIT
+          - COUNSELLING
+          - DAY_CARE
+          - HOME_VISIT
+          - MDT_MEETING
+          - TELEPHONE
+        description: |-
+          * `CLINIC_VISIT` - Hospice Clinic Consultation
+          * `HOME_VISIT` - Home Care Visit
+          * `TELEPHONE` - Telephone Review
+          * `MDT_MEETING` - Multidisciplinary Team Case Review
+          * `COUNSELLING` - Psychosocial / Bereavement Session
+          * `DAY_CARE` - Day Care Activity
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: patient
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: scheduled_date
+        schema:
+          type: string
+          format: date
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: staff_member
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - CANCELLED
+          - COMPLETED
+          - CONFIRMED
+          - MISSED
+          - RESCHEDULED
+          - SCHEDULED
+        description: |-
+          * `SCHEDULED` - Scheduled
+          * `CONFIRMED` - Confirmed
+          * `COMPLETED` - Completed
+          * `CANCELLED` - Cancelled
+          * `MISSED` - Missed / Did Not Attend (DNA)
+          * `RESCHEDULED` - Rescheduled
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAppointmentSummaryList'
+          description: ''
+    post:
+      operationId: v1_appointments_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentSummary'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppointmentSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppointmentSummary'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentSummary'
+          description: ''
+  /api/v1/appointments/{id}/:
+    get:
+      operationId: v1_appointments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Appointment.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentSummary'
+          description: ''
+    put:
+      operationId: v1_appointments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Appointment.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentSummary'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AppointmentSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AppointmentSummary'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentSummary'
+          description: ''
+    patch:
+      operationId: v1_appointments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Appointment.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAppointmentSummary'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAppointmentSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAppointmentSummary'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentSummary'
+          description: ''
+    delete:
+      operationId: v1_appointments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Appointment.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/assessments/:
+    get:
+      operationId: v1_assessments_list
+      parameters:
+      - in: query
+        name: assessment_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: assessment_type
+        schema:
+          type: string
+          enum:
+          - CAREGIVER
+          - FOLLOWUP
+          - FUNCTIONAL
+          - INITIAL
+          - NUTRITIONAL
+          - PAIN
+          - PSYCHOSOCIAL
+          - SPIRITUAL
+        description: |-
+          * `INITIAL` - Initial Holistic Palliative Assessment
+          * `PAIN` - Comprehensive Pain Assessment (0-10 & Mapping)
+          * `FUNCTIONAL` - Functional Assessment (PPS & ECOG)
+          * `PSYCHOSOCIAL` - Psychosocial & Family Assessment
+          * `SPIRITUAL` - Spiritual & Existential Assessment
+          * `NUTRITIONAL` - Nutritional & Intake Assessment
+          * `CAREGIVER` - Caregiver Burden & Needs Assessment
+          * `FOLLOWUP` - Routine Clinical Follow-up Assessment
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: patient
+        schema:
+          type: string
+          format: uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessmentList'
+          description: ''
+    post:
+      operationId: v1_assessments_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Assessment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Assessment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Assessment'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assessment'
+          description: ''
+  /api/v1/assessments/{id}/:
+    get:
+      operationId: v1_assessments_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Clinical Assessment.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assessment'
+          description: ''
+    put:
+      operationId: v1_assessments_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Clinical Assessment.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Assessment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Assessment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Assessment'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assessment'
+          description: ''
+    patch:
+      operationId: v1_assessments_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Clinical Assessment.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAssessment'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assessment'
+          description: ''
+    delete:
+      operationId: v1_assessments_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Clinical Assessment.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/care-plans/:
+    get:
+      operationId: v1_care_plans_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: patient
+        schema:
+          type: string
+          format: uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - CANCELLED
+          - COMPLETED
+          - DRAFT
+          - UNDER_REVIEW
+        description: |-
+          * `DRAFT` - Draft
+          * `ACTIVE` - Active Care Plan
+          * `UNDER_REVIEW` - Under Multidisciplinary Review
+          * `COMPLETED` - Completed
+          * `CANCELLED` - Discontinued / Cancelled
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCarePlanList'
+          description: ''
+    post:
+      operationId: v1_care_plans_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarePlan'
+          description: ''
+  /api/v1/care-plans/{id}/:
+    get:
+      operationId: v1_care_plans_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Care Plan.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarePlan'
+          description: ''
+    put:
+      operationId: v1_care_plans_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Care Plan.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CarePlan'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarePlan'
+          description: ''
+    patch:
+      operationId: v1_care_plans_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Care Plan.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCarePlan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCarePlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCarePlan'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarePlan'
+          description: ''
+    delete:
+      operationId: v1_care_plans_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Care Plan.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/encounters/:
+    get:
+      operationId: v1_encounters_list
+      parameters:
+      - in: query
+        name: encounter_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: encounter_type
+        schema:
+          type: string
+          enum:
+          - CLINIC_VISIT
+          - COMMUNITY_VISIT
+          - COUNSELLING
+          - DAY_CARE
+          - HOME_VISIT
+          - MDT_REVIEW
+          - OTHER
+          - TELEPHONE
+        description: |-
+          * `CLINIC_VISIT` - Hospice Clinic Consultation
+          * `HOME_VISIT` - Home Care Visit
+          * `TELEPHONE` - Telephone Follow-up / Teleconsultation
+          * `COMMUNITY_VISIT` - Community / Outreach Visit
+          * `COUNSELLING` - Psychosocial / Bereavement Session
+          * `MDT_REVIEW` - Multidisciplinary Team Case Review
+          * `DAY_CARE` - Hospice Day Care Activity
+          * `OTHER` - Other Encounter
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: patient
+        schema:
+          type: string
+          format: uuid
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedEncounterList'
+          description: ''
+    post:
+      operationId: v1_encounters_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+          description: ''
+  /api/v1/encounters/{id}/:
+    get:
+      operationId: v1_encounters_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Encounter.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+          description: ''
+    put:
+      operationId: v1_encounters_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Encounter.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Encounter'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+          description: ''
+    patch:
+      operationId: v1_encounters_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Encounter.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEncounter'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEncounter'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEncounter'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Encounter'
+          description: ''
+    delete:
+      operationId: v1_encounters_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Encounter.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/medications/:
+    get:
+      operationId: v1_medications_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: patient
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: route
+        schema:
+          type: string
+          enum:
+          - INHALED
+          - INTRAVENOUS
+          - ORAL
+          - RECTAL
+          - SUBCUTANEOUS
+          - SUBLINGUAL
+          - TOPICAL
+          - TRANSDERMAL
+        description: |-
+          * `ORAL` - Oral (PO)
+          * `SUBLINGUAL` - Sublingual (SL)
+          * `SUBCUTANEOUS` - Subcutaneous (SC)
+          * `INTRAVENOUS` - Intravenous (IV)
+          * `TRANSDERMAL` - Transdermal Patch
+          * `RECTAL` - Rectal (PR)
+          * `TOPICAL` - Topical
+          * `INHALED` - Inhalation / Nebulized
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - COMPLETED
+          - DISCONTINUED
+          - HELD
+        description: |-
+          * `ACTIVE` - Active Medication
+          * `HELD` - Temporarily Held / Paused
+          * `DISCONTINUED` - Discontinued / Ceased
+          * `COMPLETED` - Course Completed
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMedicationStatementList'
+          description: ''
+    post:
+      operationId: v1_medications_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationStatement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MedicationStatement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MedicationStatement'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicationStatement'
+          description: ''
+  /api/v1/medications/{id}/:
+    get:
+      operationId: v1_medications_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Medication Record.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicationStatement'
+          description: ''
+    put:
+      operationId: v1_medications_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Medication Record.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationStatement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MedicationStatement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MedicationStatement'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicationStatement'
+          description: ''
+    patch:
+      operationId: v1_medications_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Medication Record.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMedicationStatement'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMedicationStatement'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMedicationStatement'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicationStatement'
+          description: ''
+    delete:
+      operationId: v1_medications_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Medication Record.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/patients/:
+    get:
+      operationId: v1_patients_list
+      parameters:
+      - in: query
+        name: county
+        schema:
+          type: string
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: sex
+        schema:
+          type: string
+          enum:
+          - F
+          - M
+          - O
+          - U
+        description: |-
+          * `F` - Female
+          * `M` - Male
+          * `O` - Other
+          * `U` - Unknown
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - DECEASED
+          - DISCHARGED
+          - INACTIVE
+        description: |-
+          * `ACTIVE` - Active Care
+          * `INACTIVE` - Inactive / On Hold
+          * `DISCHARGED` - Discharged
+          * `DECEASED` - Deceased
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPatientSummaryList'
+          description: ''
+    post:
+      operationId: v1_patients_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientSummary'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatientSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatientSummary'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSummary'
+          description: ''
+  /api/v1/patients/{id}/:
+    get:
+      operationId: v1_patients_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Patient.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSummary'
+          description: ''
+    put:
+      operationId: v1_patients_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Patient.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatientSummary'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatientSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatientSummary'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSummary'
+          description: ''
+    patch:
+      operationId: v1_patients_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Patient.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPatientSummary'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPatientSummary'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPatientSummary'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PatientSummary'
+          description: ''
+    delete:
+      operationId: v1_patients_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Patient.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/referrals/:
+    get:
+      operationId: v1_referrals_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: priority
+        schema:
+          type: string
+          enum:
+          - EMERGENCY
+          - ROUTINE
+          - URGENT
+        description: |-
+          * `ROUTINE` - Routine (Review within 5 days)
+          * `URGENT` - Urgent (Review within 48 hours)
+          * `EMERGENCY` - Emergency / Severe Distress (Review within 24 hours)
+      - in: query
+        name: referral_source
+        schema:
+          type: string
+          enum:
+          - COMMUNITY_WORKER
+          - HEALTH_CENTRE
+          - HOSPITAL
+          - OTHER
+          - OTHER_HOSPICE
+          - RELIGIOUS_GROUP
+          - SELF_FAMILY
+        description: |-
+          * `HOSPITAL` - Public / Private Hospital
+          * `HEALTH_CENTRE` - Health Centre / Clinic
+          * `COMMUNITY_WORKER` - Community Health Promoter
+          * `SELF_FAMILY` - Self / Family Referral
+          * `OTHER_HOSPICE` - Other Hospice / Palliative Unit
+          * `RELIGIOUS_GROUP` - Faith-Based / Community Group
+          * `OTHER` - Other Source
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - ACCEPTED
+          - CLOSED
+          - CONVERTED
+          - RECEIVED
+          - REJECTED
+          - UNDER_REVIEW
+        description: |-
+          * `RECEIVED` - Received
+          * `UNDER_REVIEW` - Under Review
+          * `ACCEPTED` - Accepted
+          * `REJECTED` - Rejected
+          * `CONVERTED` - Converted to Patient
+          * `CLOSED` - Closed
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedReferralList'
+          description: ''
+    post:
+      operationId: v1_referrals_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Referral'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Referral'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Referral'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+          description: ''
+  /api/v1/referrals/{id}/:
+    get:
+      operationId: v1_referrals_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Referral.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+          description: ''
+    put:
+      operationId: v1_referrals_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Referral.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Referral'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Referral'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Referral'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+          description: ''
+    patch:
+      operationId: v1_referrals_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Referral.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedReferral'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedReferral'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedReferral'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Referral'
+          description: ''
+    delete:
+      operationId: v1_referrals_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Referral.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/symptoms/:
+    get:
+      operationId: v1_symptoms_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - in: query
+        name: patient
+        schema:
+          type: string
+          format: uuid
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSymptomRecordList'
+          description: ''
+    post:
+      operationId: v1_symptoms_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SymptomRecord'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SymptomRecord'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SymptomRecord'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymptomRecord'
+          description: ''
+  /api/v1/symptoms/{id}/:
+    get:
+      operationId: v1_symptoms_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Symptom Assessment Record.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymptomRecord'
+          description: ''
+    put:
+      operationId: v1_symptoms_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Symptom Assessment Record.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SymptomRecord'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SymptomRecord'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SymptomRecord'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymptomRecord'
+          description: ''
+    patch:
+      operationId: v1_symptoms_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Symptom Assessment Record.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSymptomRecord'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSymptomRecord'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSymptomRecord'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SymptomRecord'
+          description: ''
+    delete:
+      operationId: v1_symptoms_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Symptom Assessment Record.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    AppointmentSummary:
+      type: object
+      description: Reception-safe scheduling representation without clinical reasons
+        or outcomes.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+          readOnly: true
+        staff_member:
+          type: string
+          format: uuid
+        staff_name:
+          type: string
+          readOnly: true
+        appointment_type:
+          $ref: '#/components/schemas/AppointmentTypeEnum'
+        scheduled_date:
+          type: string
+          format: date
+        scheduled_time:
+          type: string
+          format: time
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        location:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/AppointmentSummaryStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - patient
+      - patient_name
+      - scheduled_date
+      - staff_member
+      - staff_name
+      - updated_at
+    AppointmentSummaryStatusEnum:
+      enum:
+      - SCHEDULED
+      - CONFIRMED
+      - COMPLETED
+      - CANCELLED
+      - MISSED
+      - RESCHEDULED
+      type: string
+      description: |-
+        * `SCHEDULED` - Scheduled
+        * `CONFIRMED` - Confirmed
+        * `COMPLETED` - Completed
+        * `CANCELLED` - Cancelled
+        * `MISSED` - Missed / Did Not Attend (DNA)
+        * `RESCHEDULED` - Rescheduled
+    AppointmentTypeEnum:
+      enum:
+      - CLINIC_VISIT
+      - HOME_VISIT
+      - TELEPHONE
+      - MDT_MEETING
+      - COUNSELLING
+      - DAY_CARE
+      type: string
+      description: |-
+        * `CLINIC_VISIT` - Hospice Clinic Consultation
+        * `HOME_VISIT` - Home Care Visit
+        * `TELEPHONE` - Telephone Review
+        * `MDT_MEETING` - Multidisciplinary Team Case Review
+        * `COUNSELLING` - Psychosocial / Bereavement Session
+        * `DAY_CARE` - Day Care Activity
+    Assessment:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentTypeEnum'
+        assessment_date:
+          type: string
+          format: date
+        pain_score:
+          type: integer
+          maximum: 10
+          minimum: 0
+          nullable: true
+          description: Numeric Rating Scale 0-10
+        pain_site:
+          type: string
+          readOnly: true
+          nullable: true
+        pain_character:
+          type: string
+          readOnly: true
+          nullable: true
+        pps_score:
+          type: integer
+          maximum: 100
+          minimum: 0
+          nullable: true
+          description: Palliative Performance Scale % (0-100)
+        ecog_score:
+          type: integer
+          maximum: 4
+          minimum: 0
+          nullable: true
+          description: ECOG Performance Status (0-4)
+        psychosocial_needs:
+          type: string
+          readOnly: true
+          nullable: true
+        spiritual_concerns:
+          type: string
+          readOnly: true
+          nullable: true
+        clinical_summary:
+          type: string
+          description: Clinician impressions, diagnosis synthesis, management plan
+        assessor:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        assessor_name:
+          type: string
+          readOnly: true
+        next_review_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - assessor
+      - assessor_name
+      - clinical_summary
+      - created_at
+      - id
+      - pain_character
+      - pain_site
+      - patient
+      - psychosocial_needs
+      - spiritual_concerns
+      - updated_at
+    AssessmentTypeEnum:
+      enum:
+      - INITIAL
+      - PAIN
+      - FUNCTIONAL
+      - PSYCHOSOCIAL
+      - SPIRITUAL
+      - NUTRITIONAL
+      - CAREGIVER
+      - FOLLOWUP
+      type: string
+      description: |-
+        * `INITIAL` - Initial Holistic Palliative Assessment
+        * `PAIN` - Comprehensive Pain Assessment (0-10 & Mapping)
+        * `FUNCTIONAL` - Functional Assessment (PPS & ECOG)
+        * `PSYCHOSOCIAL` - Psychosocial & Family Assessment
+        * `SPIRITUAL` - Spiritual & Existential Assessment
+        * `NUTRITIONAL` - Nutritional & Intake Assessment
+        * `CAREGIVER` - Caregiver Burden & Needs Assessment
+        * `FOLLOWUP` - Routine Clinical Follow-up Assessment
+    CarePlan:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        episode:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 200
+        primary_diagnosis:
+          type: string
+          maxLength: 255
+        overall_goals:
+          type: string
+          description: Patient-centred priorities and overarching goals of care
+        resuscitation_preference:
+          type: string
+          description: Advance care directive preference
+          maxLength: 100
+        status:
+          $ref: '#/components/schemas/CarePlanStatusEnum'
+        review_date:
+          type: string
+          format: date
+          nullable: true
+          description: Next multidisciplinary review date
+        needs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarePlanNeed'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - needs
+      - overall_goals
+      - patient
+      - updated_at
+    CarePlanNeed:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        care_plan:
+          type: string
+          format: uuid
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        problem_description:
+          type: string
+          description: Identified issue or symptom
+        goal:
+          type: string
+          description: Desired measurable or subjective outcome
+        interventions:
+          type: string
+          description: Action steps and clinical interventions
+        responsible_discipline:
+          type: string
+          maxLength: 100
+        target_date:
+          type: string
+          format: date
+          nullable: true
+        is_resolved:
+          type: boolean
+        outcome_notes:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - care_plan
+      - created_at
+      - goal
+      - id
+      - interventions
+      - problem_description
+    CarePlanStatusEnum:
+      enum:
+      - DRAFT
+      - ACTIVE
+      - UNDER_REVIEW
+      - COMPLETED
+      - CANCELLED
+      type: string
+      description: |-
+        * `DRAFT` - Draft
+        * `ACTIVE` - Active Care Plan
+        * `UNDER_REVIEW` - Under Multidisciplinary Review
+        * `COMPLETED` - Completed
+        * `CANCELLED` - Discontinued / Cancelled
+    CategoryEnum:
+      enum:
+      - PHYSICAL
+      - PSYCHOSOCIAL
+      - SPIRITUAL
+      - PRACTICAL
+      - ETHICAL
+      type: string
+      description: |-
+        * `PHYSICAL` - Physical / Symptom Burden
+        * `PSYCHOSOCIAL` - Psychosocial & Family
+        * `SPIRITUAL` - Spiritual & Existential
+        * `PRACTICAL` - Practical & Financial
+        * `ETHICAL` - Advance Care Planning & Ethical
+    Encounter:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        episode:
+          type: string
+          format: uuid
+          nullable: true
+        encounter_type:
+          $ref: '#/components/schemas/EncounterTypeEnum'
+        encounter_date:
+          type: string
+          format: date
+        location:
+          type: string
+          maxLength: 255
+        reason:
+          type: string
+          description: Reason for encounter, e.g. Severe pain exacerbation, routine
+            home check
+          maxLength: 255
+        clinical_notes:
+          type: string
+          description: Clinical summary / Progress notes (SOAP / Narrative)
+        interventions_performed:
+          type: string
+          description: Procedures, med administration, wound dressing, education,
+            counseling
+        next_followup_date:
+          type: string
+          format: date
+          nullable: true
+        next_followup_plan:
+          type: string
+        recorded_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        recorded_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - clinical_notes
+      - created_at
+      - id
+      - patient
+      - reason
+      - recorded_by
+      - recorded_by_name
+      - updated_at
+    EncounterTypeEnum:
+      enum:
+      - CLINIC_VISIT
+      - HOME_VISIT
+      - TELEPHONE
+      - COMMUNITY_VISIT
+      - COUNSELLING
+      - MDT_REVIEW
+      - DAY_CARE
+      - OTHER
+      type: string
+      description: |-
+        * `CLINIC_VISIT` - Hospice Clinic Consultation
+        * `HOME_VISIT` - Home Care Visit
+        * `TELEPHONE` - Telephone Follow-up / Teleconsultation
+        * `COMMUNITY_VISIT` - Community / Outreach Visit
+        * `COUNSELLING` - Psychosocial / Bereavement Session
+        * `MDT_REVIEW` - Multidisciplinary Team Case Review
+        * `DAY_CARE` - Hospice Day Care Activity
+        * `OTHER` - Other Encounter
+    MaritalStatusEnum:
+      enum:
+      - SINGLE
+      - MARRIED
+      - WIDOWED
+      - DIVORCED
+      - SEPARATED
+      - OTHER
+      type: string
+      description: |-
+        * `SINGLE` - Single
+        * `MARRIED` - Married
+        * `WIDOWED` - Widowed
+        * `DIVORCED` - Divorced
+        * `SEPARATED` - Separated
+        * `OTHER` - Other
+    MedicationStatement:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        medication_name:
+          type: string
+          description: Drug name and formulation, e.g. Oral Morphine Solution 5mg/5ml,
+            Paracetamol, Lactulose
+          maxLength: 200
+        dosage:
+          type: string
+          description: e.g. 10 mg (10 ml)
+          maxLength: 100
+        route:
+          $ref: '#/components/schemas/RouteEnum'
+        frequency:
+          type: string
+          description: e.g. Every 4 hours (q4h) + Breakthrough dose PRN
+          maxLength: 100
+        indication:
+          type: string
+          description: e.g. Severe somatic and visceral cancer pain
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          $ref: '#/components/schemas/MedicationStatementStatusEnum'
+        prescriber:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        prescriber_name:
+          type: string
+          readOnly: true
+        instructions_for_caregiver:
+          type: string
+          description: Caregiver instructions in English/Swahili
+        notes:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - dosage
+      - frequency
+      - id
+      - medication_name
+      - notes
+      - patient
+      - prescriber
+      - prescriber_name
+      - updated_at
+    MedicationStatementStatusEnum:
+      enum:
+      - ACTIVE
+      - HELD
+      - DISCONTINUED
+      - COMPLETED
+      type: string
+      description: |-
+        * `ACTIVE` - Active Medication
+        * `HELD` - Temporarily Held / Paused
+        * `DISCONTINUED` - Discontinued / Ceased
+        * `COMPLETED` - Course Completed
+    PaginatedAppointmentSummaryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentSummary'
+    PaginatedAssessmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assessment'
+    PaginatedCarePlanList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarePlan'
+    PaginatedEncounterList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Encounter'
+    PaginatedMedicationStatementList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MedicationStatement'
+    PaginatedPatientSummaryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientSummary'
+    PaginatedReferralList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Referral'
+    PaginatedSymptomRecordList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SymptomRecord'
+    PatchedAppointmentSummary:
+      type: object
+      description: Reception-safe scheduling representation without clinical reasons
+        or outcomes.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        patient_name:
+          type: string
+          readOnly: true
+        staff_member:
+          type: string
+          format: uuid
+        staff_name:
+          type: string
+          readOnly: true
+        appointment_type:
+          $ref: '#/components/schemas/AppointmentTypeEnum'
+        scheduled_date:
+          type: string
+          format: date
+        scheduled_time:
+          type: string
+          format: time
+        duration_minutes:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        location:
+          type: string
+          maxLength: 255
+        status:
+          $ref: '#/components/schemas/AppointmentSummaryStatusEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedAssessment:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentTypeEnum'
+        assessment_date:
+          type: string
+          format: date
+        pain_score:
+          type: integer
+          maximum: 10
+          minimum: 0
+          nullable: true
+          description: Numeric Rating Scale 0-10
+        pain_site:
+          type: string
+          readOnly: true
+          nullable: true
+        pain_character:
+          type: string
+          readOnly: true
+          nullable: true
+        pps_score:
+          type: integer
+          maximum: 100
+          minimum: 0
+          nullable: true
+          description: Palliative Performance Scale % (0-100)
+        ecog_score:
+          type: integer
+          maximum: 4
+          minimum: 0
+          nullable: true
+          description: ECOG Performance Status (0-4)
+        psychosocial_needs:
+          type: string
+          readOnly: true
+          nullable: true
+        spiritual_concerns:
+          type: string
+          readOnly: true
+          nullable: true
+        clinical_summary:
+          type: string
+          description: Clinician impressions, diagnosis synthesis, management plan
+        assessor:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        assessor_name:
+          type: string
+          readOnly: true
+        next_review_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedCarePlan:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        episode:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 200
+        primary_diagnosis:
+          type: string
+          maxLength: 255
+        overall_goals:
+          type: string
+          description: Patient-centred priorities and overarching goals of care
+        resuscitation_preference:
+          type: string
+          description: Advance care directive preference
+          maxLength: 100
+        status:
+          $ref: '#/components/schemas/CarePlanStatusEnum'
+        review_date:
+          type: string
+          format: date
+          nullable: true
+          description: Next multidisciplinary review date
+        needs:
+          type: array
+          items:
+            $ref: '#/components/schemas/CarePlanNeed'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedEncounter:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        episode:
+          type: string
+          format: uuid
+          nullable: true
+        encounter_type:
+          $ref: '#/components/schemas/EncounterTypeEnum'
+        encounter_date:
+          type: string
+          format: date
+        location:
+          type: string
+          maxLength: 255
+        reason:
+          type: string
+          description: Reason for encounter, e.g. Severe pain exacerbation, routine
+            home check
+          maxLength: 255
+        clinical_notes:
+          type: string
+          description: Clinical summary / Progress notes (SOAP / Narrative)
+        interventions_performed:
+          type: string
+          description: Procedures, med administration, wound dressing, education,
+            counseling
+        next_followup_date:
+          type: string
+          format: date
+          nullable: true
+        next_followup_plan:
+          type: string
+        recorded_by:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        recorded_by_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedMedicationStatement:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        medication_name:
+          type: string
+          description: Drug name and formulation, e.g. Oral Morphine Solution 5mg/5ml,
+            Paracetamol, Lactulose
+          maxLength: 200
+        dosage:
+          type: string
+          description: e.g. 10 mg (10 ml)
+          maxLength: 100
+        route:
+          $ref: '#/components/schemas/RouteEnum'
+        frequency:
+          type: string
+          description: e.g. Every 4 hours (q4h) + Breakthrough dose PRN
+          maxLength: 100
+        indication:
+          type: string
+          description: e.g. Severe somatic and visceral cancer pain
+          maxLength: 200
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          $ref: '#/components/schemas/MedicationStatementStatusEnum'
+        prescriber:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        prescriber_name:
+          type: string
+          readOnly: true
+        instructions_for_caregiver:
+          type: string
+          description: Caregiver instructions in English/Swahili
+        notes:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPatientSummary:
+      type: object
+      description: Reception-safe patient representation without clinical narrative
+        fields.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        hospice_number:
+          type: string
+          readOnly: true
+          description: Unique Nairobi Hospice Identifier, e.g. NH-2026-0001
+        first_name:
+          type: string
+          maxLength: 100
+        middle_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        age:
+          type: integer
+          readOnly: true
+        sex:
+          $ref: '#/components/schemas/SexEnum'
+        phone_number:
+          type: string
+          maxLength: 30
+        alternative_phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+          description: Estate / Village / Road / House Number
+          maxLength: 255
+        county:
+          type: string
+          maxLength: 100
+        sub_county:
+          type: string
+          maxLength: 100
+        landmark:
+          type: string
+          description: Closest Bus Stop / Matatu Stage / Landmark for home visits
+          maxLength: 255
+        preferred_language:
+          type: string
+          maxLength: 50
+        marital_status:
+          $ref: '#/components/schemas/MaritalStatusEnum'
+        status:
+          $ref: '#/components/schemas/PatientSummaryStatusEnum'
+        registration_date:
+          type: string
+          format: date
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedReferral:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        referral_number:
+          type: string
+          readOnly: true
+        patient_name:
+          type: string
+          maxLength: 200
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        sex:
+          $ref: '#/components/schemas/SexEnum'
+        phone_number:
+          type: string
+          maxLength: 30
+        alternative_phone:
+          type: string
+          maxLength: 30
+        address:
+          type: string
+          maxLength: 255
+        county:
+          type: string
+          maxLength: 100
+        sub_county:
+          type: string
+          maxLength: 100
+        landmark:
+          type: string
+          maxLength: 255
+        referral_source:
+          $ref: '#/components/schemas/ReferralSourceEnum'
+        referring_facility:
+          type: string
+          description: e.g. Kenyatta National Hospital, Texas Cancer Centre
+          maxLength: 200
+        referring_clinician_name:
+          type: string
+          maxLength: 150
+        referring_clinician_phone:
+          type: string
+          maxLength: 30
+        referring_clinician_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        referral_date:
+          type: string
+          format: date
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        status:
+          $ref: '#/components/schemas/ReferralStatusEnum'
+        primary_diagnosis:
+          type: string
+          description: e.g. Ca Breast Stage IV with bone metastases
+          maxLength: 255
+        reason_for_referral:
+          type: string
+          description: Pain management, severe dyspnea, family counseling, end-of-life
+            care
+        clinical_summary:
+          type: string
+          description: History of current illness, treatments received, ECOG performance
+        current_medications:
+          type: string
+        assigned_reviewer:
+          type: string
+          format: uuid
+          nullable: true
+        review_notes:
+          type: string
+        converted_patient:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedSymptomRecord:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        recorded_at:
+          type: string
+          format: date-time
+        total_distress_score:
+          type: integer
+          readOnly: true
+          description: Cumulative ESAS distress score sum (0-100)
+        clinical_notes:
+          type: string
+        recorded_by:
+          type: string
+          format: uuid
+          nullable: true
+        recorded_by_name:
+          type: string
+          readOnly: true
+        scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/SymptomScore'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatientSummary:
+      type: object
+      description: Reception-safe patient representation without clinical narrative
+        fields.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        hospice_number:
+          type: string
+          readOnly: true
+          description: Unique Nairobi Hospice Identifier, e.g. NH-2026-0001
+        first_name:
+          type: string
+          maxLength: 100
+        middle_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        age:
+          type: integer
+          readOnly: true
+        sex:
+          $ref: '#/components/schemas/SexEnum'
+        phone_number:
+          type: string
+          maxLength: 30
+        alternative_phone:
+          type: string
+          maxLength: 30
+        email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        address:
+          type: string
+          description: Estate / Village / Road / House Number
+          maxLength: 255
+        county:
+          type: string
+          maxLength: 100
+        sub_county:
+          type: string
+          maxLength: 100
+        landmark:
+          type: string
+          description: Closest Bus Stop / Matatu Stage / Landmark for home visits
+          maxLength: 255
+        preferred_language:
+          type: string
+          maxLength: 50
+        marital_status:
+          $ref: '#/components/schemas/MaritalStatusEnum'
+        status:
+          $ref: '#/components/schemas/PatientSummaryStatusEnum'
+        registration_date:
+          type: string
+          format: date
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - age
+      - created_at
+      - first_name
+      - full_name
+      - hospice_number
+      - id
+      - last_name
+    PatientSummaryStatusEnum:
+      enum:
+      - ACTIVE
+      - INACTIVE
+      - DISCHARGED
+      - DECEASED
+      type: string
+      description: |-
+        * `ACTIVE` - Active Care
+        * `INACTIVE` - Inactive / On Hold
+        * `DISCHARGED` - Discharged
+        * `DECEASED` - Deceased
+    PriorityEnum:
+      enum:
+      - ROUTINE
+      - URGENT
+      - EMERGENCY
+      type: string
+      description: |-
+        * `ROUTINE` - Routine (Review within 5 days)
+        * `URGENT` - Urgent (Review within 48 hours)
+        * `EMERGENCY` - Emergency / Severe Distress (Review within 24 hours)
+    Referral:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        referral_number:
+          type: string
+          readOnly: true
+        patient_name:
+          type: string
+          maxLength: 200
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        sex:
+          $ref: '#/components/schemas/SexEnum'
+        phone_number:
+          type: string
+          maxLength: 30
+        alternative_phone:
+          type: string
+          maxLength: 30
+        address:
+          type: string
+          maxLength: 255
+        county:
+          type: string
+          maxLength: 100
+        sub_county:
+          type: string
+          maxLength: 100
+        landmark:
+          type: string
+          maxLength: 255
+        referral_source:
+          $ref: '#/components/schemas/ReferralSourceEnum'
+        referring_facility:
+          type: string
+          description: e.g. Kenyatta National Hospital, Texas Cancer Centre
+          maxLength: 200
+        referring_clinician_name:
+          type: string
+          maxLength: 150
+        referring_clinician_phone:
+          type: string
+          maxLength: 30
+        referring_clinician_email:
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        referral_date:
+          type: string
+          format: date
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        status:
+          $ref: '#/components/schemas/ReferralStatusEnum'
+        primary_diagnosis:
+          type: string
+          description: e.g. Ca Breast Stage IV with bone metastases
+          maxLength: 255
+        reason_for_referral:
+          type: string
+          description: Pain management, severe dyspnea, family counseling, end-of-life
+            care
+        clinical_summary:
+          type: string
+          description: History of current illness, treatments received, ECOG performance
+        current_medications:
+          type: string
+        assigned_reviewer:
+          type: string
+          format: uuid
+          nullable: true
+        review_notes:
+          type: string
+        converted_patient:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - patient_name
+      - primary_diagnosis
+      - reason_for_referral
+      - referral_number
+      - referring_facility
+      - updated_at
+    ReferralSourceEnum:
+      enum:
+      - HOSPITAL
+      - HEALTH_CENTRE
+      - COMMUNITY_WORKER
+      - SELF_FAMILY
+      - OTHER_HOSPICE
+      - RELIGIOUS_GROUP
+      - OTHER
+      type: string
+      description: |-
+        * `HOSPITAL` - Public / Private Hospital
+        * `HEALTH_CENTRE` - Health Centre / Clinic
+        * `COMMUNITY_WORKER` - Community Health Promoter
+        * `SELF_FAMILY` - Self / Family Referral
+        * `OTHER_HOSPICE` - Other Hospice / Palliative Unit
+        * `RELIGIOUS_GROUP` - Faith-Based / Community Group
+        * `OTHER` - Other Source
+    ReferralStatusEnum:
+      enum:
+      - RECEIVED
+      - UNDER_REVIEW
+      - ACCEPTED
+      - REJECTED
+      - CONVERTED
+      - CLOSED
+      type: string
+      description: |-
+        * `RECEIVED` - Received
+        * `UNDER_REVIEW` - Under Review
+        * `ACCEPTED` - Accepted
+        * `REJECTED` - Rejected
+        * `CONVERTED` - Converted to Patient
+        * `CLOSED` - Closed
+    RouteEnum:
+      enum:
+      - ORAL
+      - SUBLINGUAL
+      - SUBCUTANEOUS
+      - INTRAVENOUS
+      - TRANSDERMAL
+      - RECTAL
+      - TOPICAL
+      - INHALED
+      type: string
+      description: |-
+        * `ORAL` - Oral (PO)
+        * `SUBLINGUAL` - Sublingual (SL)
+        * `SUBCUTANEOUS` - Subcutaneous (SC)
+        * `INTRAVENOUS` - Intravenous (IV)
+        * `TRANSDERMAL` - Transdermal Patch
+        * `RECTAL` - Rectal (PR)
+        * `TOPICAL` - Topical
+        * `INHALED` - Inhalation / Nebulized
+    SexEnum:
+      enum:
+      - F
+      - M
+      - O
+      - U
+      type: string
+      description: |-
+        * `F` - Female
+        * `M` - Male
+        * `O` - Other
+        * `U` - Unknown
+    SymptomRecord:
+      type: object
+      description: Prevent API writes from moving a record across patient access boundaries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        patient:
+          type: string
+          format: uuid
+        recorded_at:
+          type: string
+          format: date-time
+        total_distress_score:
+          type: integer
+          readOnly: true
+          description: Cumulative ESAS distress score sum (0-100)
+        clinical_notes:
+          type: string
+        recorded_by:
+          type: string
+          format: uuid
+          nullable: true
+        recorded_by_name:
+          type: string
+          readOnly: true
+        scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/SymptomScore'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - patient
+      - recorded_by_name
+      - scores
+      - total_distress_score
+    SymptomScore:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        symptom_type:
+          $ref: '#/components/schemas/SymptomTypeEnum'
+        score:
+          type: integer
+          maximum: 10
+          minimum: 0
+          description: 0 (None) to 10 (Worst Possible)
+        notes:
+          type: string
+          maxLength: 255
+      required:
+      - id
+      - score
+      - symptom_type
+    SymptomTypeEnum:
+      enum:
+      - PAIN
+      - TIREDNESS
+      - DROWSINESS
+      - NAUSEA
+      - LACK_OF_APPETITE
+      - SHORTNESS_OF_BREATH
+      - DEPRESSION
+      - ANXIETY
+      - WELLBEING
+      - CONSTIPATION
+      - INSOMNIA
+      - OTHER
+      type: string
+      description: |-
+        * `PAIN` - Pain
+        * `TIREDNESS` - Tiredness / Fatigue
+        * `DROWSINESS` - Drowsiness
+        * `NAUSEA` - Nausea
+        * `LACK_OF_APPETITE` - Lack of Appetite
+        * `SHORTNESS_OF_BREATH` - Shortness of Breath / Dyspnea
+        * `DEPRESSION` - Depression / Sadness
+        * `ANXIETY` - Anxiety / Nervousness
+        * `WELLBEING` - Overall Wellbeing
+        * `CONSTIPATION` - Constipation
+        * `INSOMNIA` - Insomnia / Sleep Difficulty
+        * `OTHER` - Other Symptom
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

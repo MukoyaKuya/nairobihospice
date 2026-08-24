@@ -12,27 +12,49 @@ class PatientRegistrationForm(forms.ModelForm):
     nok_name = forms.CharField(label="Next of Kin Full Name", required=False)
     nok_relationship = forms.CharField(label="Relationship to Patient", required=False, initial="Spouse")
     nok_phone = forms.CharField(label="Next of Kin Phone", required=False)
+    nok_address = forms.CharField(label="Next of Kin Residence", required=False)
+    nok_age = forms.IntegerField(label="Next of Kin Age", required=False)
+    nok_gender = forms.CharField(label="Next of Kin Gender", required=False)
 
     # Caregiver fields
     caregiver_name = forms.CharField(label="Primary Caregiver Name", required=False)
     caregiver_relationship = forms.CharField(label="Caregiver Relationship", required=False, initial="Family Caregiver")
     caregiver_phone = forms.CharField(label="Caregiver Phone", required=False)
+    caregiver_address = forms.CharField(label="Caregiver Residence", required=False)
+    caregiver_age = forms.IntegerField(label="Caregiver Age", required=False)
+    caregiver_gender = forms.CharField(label="Caregiver Gender", required=False)
+    caregiver_notes = forms.CharField(label="Caregiver Notes", required=False, widget=forms.Textarea(attrs={'rows': 2}))
+
+    # Detailed Medical History Fields
+    chief_complaint = forms.CharField(label="Chief Complaint / Presenting Symptoms", required=False, widget=forms.Textarea(attrs={'rows': 2}))
+    past_medical_history = forms.CharField(label="Past Medical & Surgical History", required=False, widget=forms.Textarea(attrs={'rows': 2}))
+    family_history = forms.CharField(label="Family Medical History", required=False, widget=forms.Textarea(attrs={'rows': 2}))
+    drug_history = forms.CharField(label="Past & Current Drug History", required=False, widget=forms.Textarea(attrs={'rows': 2}))
 
     class Meta:
         model = Patient
         fields = [
             'first_name', 'middle_name', 'last_name',
+            'ip_op_number', 'daycare_number', 'hiv_status', 'referred_by',
             'date_of_birth', 'is_approximate_dob', 'sex',
             'identification_type', 'identification_number',
             'phone_number', 'alternative_phone', 'email',
             'address', 'county', 'sub_county', 'ward', 'landmark',
             'preferred_language', 'marital_status', 'religion', 'occupation',
-            'primary_diagnosis', 'allergies', 'blood_group', 'clinical_alerts', 'notes'
+            'primary_diagnosis', 'allergies', 'blood_group', 'clinical_alerts',
+            'status', 'special_remarks', 'date_of_death', 'cause_of_death',
+            'closure_date', 'file_closed', 'past_medical_history', 'present_medical_notes', 'other_medical_notes', 'notes'
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
+            'date_of_death': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
+            'closure_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-input'}),
             'allergies': forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g., Penicillin (rash), Tramadol (severe nausea)'}),
             'clinical_alerts': forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g., High fall risk, Difficulty swallowing, DNR discussion requested'}),
+            'past_medical_history': forms.Textarea(attrs={'rows': 2}),
+            'present_medical_notes': forms.Textarea(attrs={'rows': 2}),
+            'other_medical_notes': forms.Textarea(attrs={'rows': 2}),
+            'cause_of_death': forms.Textarea(attrs={'rows': 2}),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
 
@@ -42,17 +64,26 @@ class PatientUpdateForm(forms.ModelForm):
         model = Patient
         fields = [
             'first_name', 'middle_name', 'last_name',
+            'ip_op_number', 'daycare_number', 'hiv_status', 'referred_by',
             'date_of_birth', 'is_approximate_dob', 'sex',
             'identification_type', 'identification_number',
             'phone_number', 'alternative_phone', 'email',
             'address', 'county', 'sub_county', 'ward', 'landmark',
             'preferred_language', 'marital_status', 'religion', 'occupation',
-            'primary_diagnosis', 'allergies', 'blood_group', 'clinical_alerts', 'status', 'notes'
+            'primary_diagnosis', 'allergies', 'blood_group', 'clinical_alerts',
+            'status', 'special_remarks', 'date_of_death', 'cause_of_death',
+            'closure_date', 'file_closed', 'past_medical_history', 'present_medical_notes', 'other_medical_notes', 'notes'
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'date_of_death': forms.DateInput(attrs={'type': 'date'}),
+            'closure_date': forms.DateInput(attrs={'type': 'date'}),
             'allergies': forms.Textarea(attrs={'rows': 2}),
             'clinical_alerts': forms.Textarea(attrs={'rows': 2}),
+            'past_medical_history': forms.Textarea(attrs={'rows': 2}),
+            'present_medical_notes': forms.Textarea(attrs={'rows': 2}),
+            'other_medical_notes': forms.Textarea(attrs={'rows': 2}),
+            'cause_of_death': forms.Textarea(attrs={'rows': 2}),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
 

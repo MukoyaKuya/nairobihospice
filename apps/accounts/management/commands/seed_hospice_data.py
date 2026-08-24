@@ -2,7 +2,7 @@ import random
 import secrets
 from datetime import date, time, timedelta
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from apps.accounts.models import RoleChoices, StaffProfile, User
@@ -35,7 +35,22 @@ from apps.symptoms.models import SymptomAssessmentRecord, SymptomScore, SymptomT
 class Command(BaseCommand):
     help = 'Seeds realistic Kenyan palliative care demo data for Nairobi Hospice PCMS'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--allow-outside-debug',
+            action='store_true',
+            help='Permit seeding in non-DEBUG environments (demo/staging only; never production).',
+        )
+
     def handle(self, *args, **options):
+        from django.conf import settings
+
+        if not settings.DEBUG and not options['allow_outside_debug']:
+            raise CommandError(
+                'Refusing to seed demo data: DEBUG is False. Demo seeding is for '
+                'development only. Pass --allow-outside-debug for an explicit '
+                'demo/staging environment — never production.'
+            )
         self.stdout.write(self.style.NOTICE("Seeding Nairobi Hospice PCMS data..."))
 
         # 1. Staff & Users
@@ -67,10 +82,14 @@ class Command(BaseCommand):
                     'is_superuser': role == RoleChoices.ADMINISTRATOR,
                 }
             )
-            pwd = secrets.token_urlsafe(18)
-            generated_passwords[email] = pwd
-            u.set_password(pwd)
-            u.save()
+            if created:
+                # Only set a password for freshly created users. Re-running the
+                # seed against an existing database must never silently rotate
+                # real staff credentials (or print them).
+                pwd = secrets.token_urlsafe(18)
+                generated_passwords[email] = pwd
+                u.set_password(pwd)
+                u.save()
             users[email] = u
 
             prof, _ = StaffProfile.objects.get_or_create(

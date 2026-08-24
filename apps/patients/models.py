@@ -35,10 +35,17 @@ class MaritalStatusChoices(models.TextChoices):
 
 
 class PatientStatusChoices(models.TextChoices):
-    ACTIVE = 'ACTIVE', _('Active Care')
-    INACTIVE = 'INACTIVE', _('Inactive / On Hold')
+    ACTIVE = 'ACTIVE', _('Active')
+    INACTIVE = 'INACTIVE', _('Inactive')
+    CLOSED = 'CLOSED', _('Closed')
     DISCHARGED = 'DISCHARGED', _('Discharged')
     DECEASED = 'DECEASED', _('Deceased')
+
+
+class SpecialRemarksChoices(models.TextChoices):
+    ALIVE = 'Alive', _('Alive')
+    DECEASED = 'Deceased', _('Deceased')
+    UNKNOWN = 'Unknown', _('Unknown')
 
 
 class Patient(models.Model):
@@ -66,6 +73,22 @@ class Patient(models.Model):
     date_of_birth = models.DateField(null=True, blank=True)
     is_approximate_dob = models.BooleanField(default=False)
     sex = models.CharField(max_length=2, choices=SexChoices.choices, default=SexChoices.FEMALE)
+
+    ip_op_number = models.CharField(
+        max_length=50,
+        blank=True,
+        db_index=True,
+        verbose_name=_('IP/OP Number'),
+        help_text=_('Hospital Inpatient / Outpatient File Number (e.g. 081/21)')
+    )
+    daycare_number = models.CharField(
+        max_length=50,
+        blank=True,
+        db_index=True,
+        verbose_name=_('Daycare Number')
+    )
+    hiv_status = models.CharField(max_length=50, blank=True, verbose_name=_('HIV / RVD Status'))
+    referred_by = models.CharField(max_length=150, blank=True, verbose_name=_('Referred By'))
 
     identification_type = models.CharField(
         max_length=30,
@@ -105,9 +128,23 @@ class Patient(models.Model):
     )
     registration_date = models.DateField(default=timezone.now)
 
-    date_of_death = models.DateField(null=True, blank=True)
+    special_remarks = models.CharField(
+        max_length=50,
+        choices=SpecialRemarksChoices.choices,
+        blank=True,
+        verbose_name=_('Special Remarks'),
+        help_text=_('Alive, Deceased, Unknown')
+    )
+    date_of_death = models.DateField(null=True, blank=True, verbose_name=_('Date of Death'))
     place_of_death = models.CharField(max_length=150, blank=True, help_text=_('Home, Hospital, Hospice Ward, etc.'))
-    cause_of_death = models.TextField(blank=True)
+    cause_of_death = models.TextField(blank=True, verbose_name=_('Cause of Death Notes'))
+
+    closure_date = models.DateField(null=True, blank=True, verbose_name=_('Closure Date'))
+    file_closed = models.CharField(max_length=50, blank=True, verbose_name=_('File Closed'))
+
+    past_medical_history = models.TextField(blank=True, verbose_name=_('Past Medical History'))
+    present_medical_notes = models.TextField(blank=True, verbose_name=_('Present Medical Notes'))
+    other_medical_notes = models.TextField(blank=True, verbose_name=_('Other Medical Notes including allergies'))
 
     discharge_date = models.DateField(null=True, blank=True)
     discharge_reason = models.TextField(blank=True)
@@ -131,7 +168,8 @@ class Patient(models.Model):
         ordering = ['-registration_date', 'last_name', 'first_name']
 
     def __str__(self):
-        return f"{self.full_name} ({self.hospice_number})"
+        op_tag = f" [{self.ip_op_number}]" if self.ip_op_number else ""
+        return f"{self.full_name} ({self.hospice_number}{op_tag})"
 
     @property
     def full_name(self):
@@ -162,6 +200,8 @@ class NextOfKin(models.Model):
     alternative_phone = models.CharField(max_length=30, blank=True)
     email = models.EmailField(blank=True)
     address = models.CharField(max_length=255, blank=True)
+    age = models.IntegerField(null=True, blank=True, verbose_name=_('Age'))
+    gender = models.CharField(max_length=20, blank=True, verbose_name=_('Gender'))
     is_primary = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -176,11 +216,14 @@ class NextOfKin(models.Model):
 class Caregiver(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='caregivers')
+    caregiver_number = models.CharField(max_length=50, blank=True, verbose_name=_('Caregiver Number'))
     name = models.CharField(max_length=150)
     relationship = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=30)
     email = models.EmailField(blank=True)
     address = models.CharField(max_length=255, blank=True)
+    age = models.IntegerField(null=True, blank=True, verbose_name=_('Age'))
+    gender = models.CharField(max_length=20, blank=True, verbose_name=_('Gender'))
     availability = models.CharField(max_length=100, blank=True, help_text=_('e.g., Full-time, Nights, Weekends'))
     is_primary = models.BooleanField(default=True)
     notes = models.TextField(blank=True)

@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.db import models
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView, View
 
@@ -9,7 +10,7 @@ from apps.patients.access import authorized_patient_queryset, get_authorized_pat
 from apps.patients.models import Patient
 
 from .forms import CarePlanForm, CarePlanNeedForm, CareTeamMemberForm
-from .models import CarePlan, CarePlanStatusChoices
+from .models import CarePlan, CarePlanStatusChoices, ClinicalAdvice
 from .services import assign_care_team_member, create_care_plan, start_episode_of_care
 
 
@@ -184,4 +185,25 @@ class CareTeamAssignView(ClinicalStaffRequiredMixin, View):
             'episode': episode,
             'form': form,
             'team_members': team_members,
+        })
+
+
+class ClinicalAdviceListView(LoginRequiredMixin, View):
+    """
+    Knowledge repository of clinical procedural guides, post-operative care,
+    and patient self-management advice.
+    """
+    def get(self, request):
+        query = request.GET.get('q', '').strip()
+        advices = ClinicalAdvice.objects.filter(is_active=True)
+        if query:
+            advices = advices.filter(
+                models.Q(procedure__icontains=query) |
+                models.Q(heading__icontains=query) |
+                models.Q(advice_text__icontains=query)
+            )
+        return render(request, 'care/advice_list.html', {
+            'advices': advices,
+            'query': query,
+            'total_advices': advices.count(),
         })

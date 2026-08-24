@@ -145,7 +145,62 @@
     {% block auth_content %}{% endblock %}
     {% endif %}
 
+    <!-- Global Access Denied Modal -->
+    <div x-cloak x-data="{ 
+            open: false, 
+            title: 'Access Restricted', 
+            message: 'You do not have the required permissions to perform this action.' 
+         }" 
+         x-on:open-access-denied-modal.window="open = true; title = $event.detail.title || title; message = $event.detail.message || message;"
+         x-show="open" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity">
+        
+        <div @click.away="open = false" 
+             class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-100 text-center space-y-4 relative overflow-hidden animate-in fade-in zoom-in duration-200">
+            
+            <!-- Red Accent Top Strip -->
+            <div class="absolute top-0 inset-x-0 h-1.5 bg-[#991B1B]"></div>
+
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-red-50 text-[#991B1B] border border-red-200 flex items-center justify-center shadow-xs">
+                <i data-lucide="shield-alert" class="w-6 h-6 text-[#991B1B]"></i>
+            </div>
+
+            <div class="space-y-1.5">
+                <span class="inline-block px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-[#991B1B] text-[10px] font-black tracking-widest uppercase">
+                    Security & Role Policy
+                </span>
+                <h3 class="text-lg font-black text-slate-900 tracking-tight" x-text="title">Access Restricted</h3>
+                <p class="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto" x-text="message">
+                    You do not have the required role permissions to perform this action.
+                </p>
+            </div>
+
+            <div class="pt-2">
+                <button type="button" @click="open = false" 
+                        class="w-full py-2.5 px-4 bg-[#002D62] hover:bg-[#0B2545] text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer">
+                    Understood & Close
+                </button>
+            </div>
+
+            <div class="text-[10px] text-slate-400">
+                Contact: <strong class="text-slate-600 font-mono">admin@nairobihospice.or.ke</strong> for role adjustments.
+            </div>
+        </div>
+    </div>
+
     <script>
+        window.showAccessDenied = function(message, title) {
+            window.dispatchEvent(new CustomEvent('open-access-denied-modal', {
+                detail: {
+                    title: title || 'Access Restricted',
+                    message: message || 'You do not have the required clinical or administrative permissions to perform this action.'
+                }
+            }));
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) {
                 lucide.createIcons();
@@ -169,7 +224,9 @@
             }
         });
         document.body.addEventListener('htmx:responseError', function(evt) {
-            if (evt.detail.xhr.status === 401 || evt.detail.xhr.status === 403) {
+            if (evt.detail.xhr.status === 403) {
+                window.showAccessDenied('You do not have the required permissions to perform this action.');
+            } else if (evt.detail.xhr.status === 401) {
                 window.location.href = '/accounts/login/';
             }
         });

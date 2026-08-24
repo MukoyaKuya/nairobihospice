@@ -18,6 +18,7 @@ from .access import (
     get_authorized_patient_or_404,
     get_operational_patient_or_404,
 )
+from .constants import HOSPICE_DIAGNOSES
 from .forms import PatientRegistrationForm, PatientUpdateForm
 from .locations import KENYA_LOCATIONS
 from .models import Patient, PatientStatusChoices
@@ -113,27 +114,26 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         patient = self.object
         context['clinical_access'] = not self.request.user.is_receptionist
 
-        if self.request.user.is_receptionist:
-            context.update({
-                'active_episode': None,
-                'care_team': [],
-                'active_care_plan': None,
-                'care_plan': None,
-                'encounters': [],
-                'recent_encounters': [],
-                'assessments': [],
-                'recent_assessments': [],
-                'medications': [],
-                'active_medications': [],
-                'recent_symptoms': [],
-                'symptom_trends_json': chart_json({'dates': [], 'distress_scores': [], 'pain_scores': []}),
-                'documents': [],
-                'communications': [],
-            })
-            context['upcoming_appointments'] = patient.appointments.filter(
-                status__in=['SCHEDULED', 'CONFIRMED']
-            ).select_related('staff_member').order_by('scheduled_date', 'scheduled_time')[:5]
-            return context
+        # Structured Assessments (Available for full Access-parity clinical dossier)
+        assessments = list(patient.assessments.select_related('assessor').order_by('-assessment_date', '-created_at')[:100])
+        context['assessments'] = assessments
+        context['recent_assessments'] = assessments[:10]
+
+        # Encounters (Full list & recent)
+        encounters = list(patient.encounters.select_related('recorded_by').order_by('-encounter_date', '-created_at')[:100])
+        context['encounters'] = encounters
+        context['recent_encounters'] = encounters[:10]
+
+        # Medications
+        medications = list(patient.medications.select_related('prescriber').order_by('-status', '-start_date')[:100])
+        context['medications'] = medications
+        context['active_medications'] = [m for m in medications if m.status == 'ACTIVE']
+
+        # Care Plans
+        active_care_plan = patient.care_plans.filter(status='ACTIVE').first()
+        context['active_care_plan'] = active_care_plan
+        context['care_plan'] = active_care_plan
+        context['care_plans'] = list(patient.care_plans.order_by('-created_at')[:50])
 
         # Episodes and Care Team
         active_episode = patient.episodes.filter(status='ACTIVE').order_by('-start_date').first()
@@ -144,6 +144,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         active_care_plan = patient.care_plans.filter(status='ACTIVE').first()
         context['active_care_plan'] = active_care_plan
         context['care_plan'] = active_care_plan
+        context['care_plans'] = list(patient.care_plans.order_by('-created_at')[:50])
 
         # Encounters (Full list & recent)
         encounters = list(patient.encounters.select_related('recorded_by').order_by('-encounter_date', '-created_at')[:100])
@@ -201,6 +202,7 @@ class PatientCreateView(LoginRequiredMixin, View):
             'form': form,
             'is_create': True,
             'kenya_locations_json': json.dumps(KENYA_LOCATIONS),
+            'hospice_diagnoses': HOSPICE_DIAGNOSES,
         })
 
     def post(self, request):
@@ -211,6 +213,10 @@ class PatientCreateView(LoginRequiredMixin, View):
                 first_name=cd['first_name'],
                 last_name=cd['last_name'],
                 middle_name=cd.get('middle_name', ''),
+                ip_op_number=cd.get('ip_op_number', ''),
+                daycare_number=cd.get('daycare_number', ''),
+                hiv_status=cd.get('hiv_status', ''),
+                referred_by=cd.get('referred_by', ''),
                 date_of_birth=cd.get('date_of_birth'),
                 sex=cd.get('sex', 'F'),
                 identification_type=cd.get('identification_type', 'NATIONAL_ID'),
@@ -235,9 +241,20 @@ class PatientCreateView(LoginRequiredMixin, View):
                 nok_name=cd.get('nok_name', ''),
                 nok_relationship=cd.get('nok_relationship', ''),
                 nok_phone=cd.get('nok_phone', ''),
+                nok_address=cd.get('nok_address', ''),
+                nok_age=cd.get('nok_age'),
+                nok_gender=cd.get('nok_gender', ''),
                 caregiver_name=cd.get('caregiver_name', ''),
                 caregiver_relationship=cd.get('caregiver_relationship', ''),
                 caregiver_phone=cd.get('caregiver_phone', ''),
+                caregiver_address=cd.get('caregiver_address', ''),
+                caregiver_age=cd.get('caregiver_age'),
+                caregiver_gender=cd.get('caregiver_gender', ''),
+                caregiver_notes=cd.get('caregiver_notes', ''),
+                chief_complaint=cd.get('chief_complaint', ''),
+                past_medical_history=cd.get('past_medical_history', ''),
+                family_history=cd.get('family_history', ''),
+                drug_history=cd.get('drug_history', ''),
             )
             messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.")
             return redirect('patients:patient_detail', pk=patient.pk)
@@ -245,6 +262,7 @@ class PatientCreateView(LoginRequiredMixin, View):
             'form': form,
             'is_create': True,
             'kenya_locations_json': json.dumps(KENYA_LOCATIONS),
+            'hospice_diagnoses': HOSPICE_DIAGNOSES,
         })
 
 
@@ -254,14 +272,15 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'patients/patient_form.html'
 
     def get_object(self, queryset=None):
-        if not (self.request.user.is_clinical or can_manage_all_patients(self.request.user)):
+        if not (self.request.user.is_receptionist or self.request.user.is_clinical or can_manage_all_patients(self.request.user)):
             from django.core.exceptions import PermissionDenied
-            raise PermissionDenied('Only clinical and management staff may edit patient records.')
-        return get_authorized_patient_or_404(self.request.user, self.kwargs['pk'])
+            raise PermissionDenied('Only receptionists, clinical and management staff may edit patient records.')
+        return get_operational_patient_or_404(self.request.user, self.kwargs['pk'])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['kenya_locations_json'] = json.dumps(KENYA_LOCATIONS)
+        context['hospice_diagnoses'] = HOSPICE_DIAGNOSES
         return context
 
     def form_valid(self, form):
@@ -345,3 +364,57 @@ class PatientPhotoView(LoginRequiredMixin, View):
         response = FileResponse(patient.photo.open('rb'), content_type=content_type)
         response['Cache-Control'] = 'private, no-store'
         return response
+
+
+class PatientRequestDeleteView(LoginRequiredMixin, View):
+    """
+    Handle deletion requests for patients.
+    Staff submit a reason, creating a PatientDeletionRequest for Operations Management approval.
+    """
+    def post(self, request, pk):
+        patient = get_operational_patient_or_404(request.user, pk)
+        reason = request.POST.get('reason', '').strip()
+        
+        if not reason:
+            messages.error(request, "Please provide a reason for the deletion request.")
+            return redirect('patients:patient_update', pk=patient.pk)
+
+        from apps.operations.models import PatientDeletionRequest, DeletionRequestStatusChoices
+        
+        # Check if there is already a pending deletion request
+        existing = PatientDeletionRequest.objects.filter(
+            patient=patient,
+            status=DeletionRequestStatusChoices.PENDING
+        ).first()
+
+        if existing:
+            messages.warning(
+                request,
+                f"A deletion request for {patient.full_name} is already pending Operations Management review."
+            )
+            return redirect('patients:patient_detail', pk=patient.pk)
+
+        deletion_req = PatientDeletionRequest.objects.create(
+            patient=patient,
+            patient_id_copy=patient.pk,
+            patient_name=patient.full_name,
+            hospice_number=patient.hospice_number,
+            ip_op_number=patient.ip_op_number,
+            requested_by=request.user,
+            reason=reason,
+            status=DeletionRequestStatusChoices.PENDING,
+        )
+
+        log_audit_event(
+            action=AuditAction.UPDATE,
+            resource_type='PatientDeletionRequest',
+            resource_id=str(deletion_req.id),
+            summary=f"Submitted deletion request for patient {patient.full_name} ({patient.hospice_number}). Reason: {reason}",
+            user=request.user,
+        )
+
+        messages.success(
+            request,
+            f"Deletion request for {patient.full_name} ({patient.hospice_number}) has been submitted to Operations Management for approval."
+        )
+        return redirect('patients:patient_detail', pk=patient.pk)

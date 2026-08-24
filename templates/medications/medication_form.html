@@ -18,13 +18,76 @@
         <div class="space-y-4">
             <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Medication Name & Formulation *</label>
-                {{ form.medication_name }}
+                <input type="text" name="medication_name" list="drugs-catalog-list" required 
+                       value="{{ form.medication_name.value|default:'' }}"
+                       placeholder="Select from hospice drug catalog or type custom medication..."
+                       class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                <datalist id="drugs-catalog-list">
+                    <option value="OINTMENT-KENALOG IN ORABASE">Oral Mucosal / Wound Ointment</option>
+                    <option value="ORAL SUSPENSION-CANDEX">Antifungal Oral Suspension</option>
+                    <option value="ORAL SUSPENSION-NYSTAT">Nystatin Oral Suspension</option>
+                    <option value="TAB-CORALCAL D">Calcium & Vitamin D</option>
+                    <option value="TAB-RIVOTRIL 0.5">Clonazepam 0.5mg</option>
+                    <option value="CAP-MOXACIL 250/500">Amoxicillin</option>
+                    <option value="TAB-MOXACLAV 375/625">Amoxicillin / Clavulanate</option>
+                    <option value="TAB-FUROTIL 125/250/500">Cefuroxime Axetil</option>
+                    <option value="TAB-FUROTIL PLUS 125/250/500">Cefuroxime Plus</option>
+                    <option value="TAB-AMODIS/FILMET 400">Metronidazole 400mg</option>
+                    <option value="TAB-ROBIC 500">Antibacterial 500mg</option>
+                    <option value="SYP-FUROTIL">Cefuroxime Syrup</option>
+                    <option value="SYP-MOXACIL">Amoxicillin Syrup</option>
+                    <option value="SYP AMODIS/FILMET">Metronidazole Suspension</option>
+                    <option value="OINTMENT-TRIALON">Triamcinolone Ointment</option>
+                    <option value="TAB-VOLATLIN FORTE/CLOFENAC 50">Diclofenac Sodium 50mg</option>
+                    <option value="TAB-PURIFEN/XFLAM 200/300/400">Ibuprofen / Anti-inflammatory</option>
+                    <option value="TAB-FLAMEX 400">Anti-inflammatory 400mg</option>
+                    <option value="TAB-TORY 90/120">Etoricoxib 90/120mg</option>
+                    <option value="TAB-ROLAC/TORAMAX 10">Ketorolac 10mg</option>
+                    <option value="TAB-NAPA 500">Paracetamol 500mg</option>
+                    <option value="TOOTHPASTE-MEDIPLUS">Oral Care Compound</option>
+                    <option value="CAP-SERGEL 20/40">Esomeprazole 20/40mg</option>
+                    <option value="CAP-SECLO 20/40">Omeprazole 20/40mg</option>
+                    <option value="CAP-PANTONIX 20/40">Pantoprazole 20/40mg</option>
+                    <option value="CAP-DELANIX 30/60">Dexlansoprazole 30/60mg</option>
+                    <option value="CAP-FINIX 10">Rabeprazole 10mg</option>
+                    <option value="SYP-ENTACYD/GAVIFLUX">Antacid Oral Liquid</option>
+                    <option value="TAB-SANDOCAL D">Calcium Supplement</option>
+                    <option value="CAP-D RISE 40000IU">Vitamin D3 40,000 IU</option>
+                    <option value="TAB-TURBOCEF 250">Cefuroxime 250mg</option>
+                    <option value="TAB-RESERVIX SR 100">Aceclofenac SR 100mg</option>
+                    <option value="TAB-MARVAN SR 100">Sustained Release Analgesic</option>
+                    <option value="TAB-XFLAM 400">Anti-inflammatory 400mg</option>
+                    <option value="Oral Morphine Solution 5mg/5ml">Palliative Opioid Analgesic</option>
+                    <option value="Morphine 10Mg Capsules">Controlled Palliative Opioid</option>
+                    <option value="Ciprolab / Ciprofloxacin 500mg">Broad Spectrum Antibiotic</option>
+                    <option value="Senna 7.5 mgs">Bowel Management / Laxative</option>
+                    <option value="Fluconazole 200mg">Antifungal</option>
+                    <option value="Prednisolone 5mg">Corticosteroid</option>
+                </datalist>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Dosage *</label>
-                    {{ form.dosage }}
+                    <input type="text" name="dosage" list="dosage-list" required
+                           value="{{ form.dosage.value|default:'' }}"
+                           placeholder="e.g. 1+1+1, 10mg, 1 tab..."
+                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                    <datalist id="dosage-list">
+                        <option value="1+1+1">Three times daily (TDS / TID)</option>
+                        <option value="1+0+1">Twice daily (BD / BID)</option>
+                        <option value="0+0+1">At bedtime (ON / QHS)</option>
+                        <option value="1+0+0">Morning dose (OM / QAM)</option>
+                        <option value="0+1+0">Afternoon dose (Noon)</option>
+                        <option value="1/2+1/2+1/2">Half tablet 3 times daily</option>
+                        <option value="1/2+0+1/2">Half tablet twice daily</option>
+                        <option value="0+0+1/2">Half tablet at night</option>
+                        <option value="Once a week">Weekly administration</option>
+                        <option value="Apply once daily">Topical once daily</option>
+                        <option value="Apply twice daily">Topical twice daily</option>
+                        <option value="Apply three times daily">Topical 3 times daily</option>
+                        <option value="If Pain (PRN)">As needed for breakthrough pain</option>
+                    </datalist>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Route *</label>
@@ -43,7 +106,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
-                    <input type="date" name="start_date" value="{{ form.start_date.value|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <input type="date" name="start_date" value="{{ form.start_date.value|date:'Y-m-d'|default:'' }}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:outline-none">
                 </div>
             </div>
 
@@ -55,7 +118,7 @@
 
         <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
             <a href="{% url 'patients:patient_detail' patient.pk %}" class="px-5 py-2.5 text-xs font-bold text-slate-600">Cancel</a>
-            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-md transition">
+            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition">
                 Save Medication Record
             </button>
         </div>

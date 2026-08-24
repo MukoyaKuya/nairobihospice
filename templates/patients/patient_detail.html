@@ -4,54 +4,52 @@
 {% block title %}{{ patient.full_name }} ({{ patient.hospice_number }}) - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <!-- Breadcrumb & Back Link -->
+<div class="space-y-4">
+    <!-- Breadcrumb & Top Bar -->
     <div class="flex items-center justify-between">
         <a href="{% url 'patients:patient_list' %}" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:underline">
-            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Back to Patient Directory
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Patient Directory
         </a>
-        <div class="flex items-center space-x-2">
-            <span class="text-xs text-slate-400">Hospice File:</span>
-            <span class="font-mono text-xs font-bold px-3 py-1 rounded-full bg-slate-900 text-white">{{ patient.hospice_number }}</span>
-            {% if is_receptionist or is_manager or is_administrator %}
-            <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
-               class="inline-flex items-center px-3 py-1 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-sm transition space-x-1.5">
-                <i data-lucide="printer" class="w-3.5 h-3.5 text-red-300"></i>
-                <span>Print ID Card</span>
-            </a>
+        <div class="flex items-center space-x-2 text-xs">
+            <span class="text-slate-400 font-medium">Hospice File:</span>
+            <span class="font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#002D62] text-white text-[11px]">{{ patient.hospice_number }}</span>
+            {% if patient.ip_op_number %}
+            <span class="font-mono font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[11px]">OP: {{ patient.ip_op_number }}</span>
+            {% endif %}
+            {% if patient.daycare_number %}
+            <span class="font-mono font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-900 border border-blue-200 text-[11px]">DC: {{ patient.daycare_number }}</span>
             {% endif %}
         </div>
     </div>
 
-    <!-- Patient Clinical Summary -->
-    <section class="bg-white border border-slate-200 shadow-sm">
-        <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_19rem]">
-            <div class="p-6 md:p-7">
-                <div class="flex items-start gap-4">
-                    <!-- Patient Photo / Avatar -->
-                    <div class="relative">
+    <!-- Compact Patient Identity & Master Clinical Summary Card -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 sm:p-5">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                
+                <!-- Left: Avatar, Name & Key Tags -->
+                <div class="flex items-start sm:items-center space-x-3.5 min-w-0">
+                    <!-- Photo / Initials Avatar -->
+                    <div class="relative shrink-0">
                         {% if is_receptionist or is_manager or is_administrator %}
                         <form method="POST" action="{% url 'patients:patient_photo_upload' patient.pk %}" enctype="multipart/form-data" id="patientPhotoForm" class="hidden">
                             {% csrf_token %}
                             <input type="file" name="photo" id="patientPhotoFileInput" accept="image/*" onchange="document.getElementById('patientPhotoForm').submit();">
                         </form>
                         <button type="button" onclick="document.getElementById('patientPhotoFileInput').click();" 
-                                title="Click to upload/change patient identification photo (Receptionist only)"
-                                class="w-16 h-16 shrink-0 bg-[#002D62] text-white flex items-center justify-center font-black text-xl border-l-4 border-[#991B1B] overflow-hidden relative cursor-pointer group shadow-sm">
+                                title="Click to upload/change photo"
+                                class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#002D62] text-white flex items-center justify-center font-black text-base overflow-hidden relative cursor-pointer group shadow-xs">
                             {% if patient.photo %}
                             <img src="{% url 'patients:patient_photo' patient.pk %}" alt="{{ patient.full_name }}" class="w-full h-full object-cover">
                             {% else %}
                             <span>{{ patient.first_name|first }}{{ patient.last_name|first }}</span>
                             {% endif %}
-                            
-                            <!-- Hover Camera Overlay -->
-                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-150 flex flex-col items-center justify-center text-white p-1">
-                                <i data-lucide="camera" class="w-4 h-4 text-white mb-0.5"></i>
-                                <span class="text-[8px] font-bold uppercase tracking-wider text-center leading-tight">Change</span>
+                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center text-white">
+                                <i data-lucide="camera" class="w-3.5 h-3.5"></i>
                             </div>
                         </button>
                         {% else %}
-                        <div class="w-16 h-16 shrink-0 bg-[#002D62] text-white flex items-center justify-center font-black text-xl border-l-4 border-[#991B1B] overflow-hidden shadow-sm">
+                        <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#002D62] text-white flex items-center justify-center font-black text-base overflow-hidden shadow-xs">
                             {% if patient.photo %}
                             <img src="{% url 'patients:patient_photo' patient.pk %}" alt="{{ patient.full_name }}" class="w-full h-full object-cover">
                             {% else %}
@@ -60,183 +58,429 @@
                         </div>
                         {% endif %}
                     </div>
-                    <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-                            <h1 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{{ patient.full_name }}</h1>
-                            <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wide border
-                            {% if patient.status == 'ACTIVE' %}bg-emerald-100 text-emerald-800
-                            {% elif patient.status == 'DISCHARGED' %}bg-slate-100 text-slate-700
-                            {% else %}bg-slate-800 text-white{% endif %}">
-                            {{ patient.get_status_display }}
+
+                    <!-- Name & Subtitle -->
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <h1 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight truncate">{{ patient.full_name }}</h1>
+                            
+                            <!-- Single Unified Status Badge -->
+                            <span class="px-2.5 py-0.5 text-[9.5px] font-extrabold uppercase tracking-wider rounded-md border flex items-center gap-1.5
+                                {% if patient.status == 'DECEASED' or patient.special_remarks == 'Deceased' %}bg-red-800 text-white border-red-900
+                                {% elif patient.status == 'ACTIVE' %}bg-emerald-50 text-emerald-800 border-emerald-300
+                                {% elif patient.status == 'INACTIVE' %}bg-amber-50 text-amber-800 border-amber-300
+                                {% elif patient.status == 'CLOSED' or patient.status == 'DISCHARGED' %}bg-slate-100 text-slate-700 border-slate-300
+                                {% else %}bg-slate-800 text-white border-slate-900{% endif %}">
+                                
+                                <span class="w-1.5 h-1.5 rounded-full
+                                    {% if patient.status == 'DECEASED' or patient.special_remarks == 'Deceased' %}bg-white
+                                    {% elif patient.status == 'ACTIVE' %}bg-emerald-500
+                                    {% elif patient.status == 'INACTIVE' %}bg-amber-500
+                                    {% else %}bg-slate-500{% endif %}">
+                                </span>
+
+                                {% if patient.status == 'DECEASED' or patient.special_remarks == 'Deceased' %}
+                                    <span>DECEASED</span>
+                                    {% if patient.date_of_death %}
+                                    <span class="text-[8.5px] font-mono text-red-200 font-bold">({{ patient.date_of_death|date:"d/m/Y" }})</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span>{{ patient.get_status_display }}</span>
+                                {% endif %}
                             </span>
                         </div>
-                        <p class="mt-1 font-mono text-[11px] font-semibold text-[#002D62]">{{ patient.hospice_number }}</p>
-                    </div>
-                </div>
-
-                <dl class="mt-6 grid grid-cols-1 sm:grid-cols-3 border-y border-slate-200 text-xs">
-                    <div class="py-3 sm:pr-5">
-                        <dt class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Age / Sex</dt>
-                        <dd class="mt-1 font-semibold text-slate-800">
-                            {% if patient.age and patient.sex and patient.sex != 'U' %}
-                                {{ patient.age }} years / {{ patient.get_sex_display }}
-                            {% elif patient.age %}
-                                {{ patient.age }} years
-                            {% elif patient.sex and patient.sex != 'U' %}
-                                {{ patient.get_sex_display }}
-                            {% else %}
-                                <span class="text-slate-400 font-mono">--</span>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-0.5 font-medium">
+                            <span class="font-mono text-[#002D62] font-bold">{{ patient.hospice_number }}</span>
+                            {% if patient.ip_op_number %}
+                            <span>&bull;</span>
+                            <span class="font-mono text-amber-900 font-semibold">IP/OP: {{ patient.ip_op_number }}</span>
                             {% endif %}
-                        </dd>
+                            {% if patient.hiv_status %}
+                            <span>&bull;</span>
+                            <span class="text-slate-700 font-semibold">HIV: <strong class="uppercase text-slate-900">{{ patient.hiv_status }}</strong></span>
+                            {% endif %}
+                            {% if patient.referred_by %}
+                            <span>&bull;</span>
+                            <span class="text-slate-600">Ref: <strong>{{ patient.referred_by }}</strong></span>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="py-3 sm:px-5 sm:border-x border-slate-200">
-                        <dt class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Phone</dt>
-                        <dd class="mt-1 font-semibold text-slate-800">{{ patient.phone_number|default:"-" }}</dd>
-                    </div>
-                    <div class="py-3 sm:pl-5">
-                        <dt class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Location</dt>
-                        <dd class="mt-1 font-semibold text-slate-800">{{ patient.county }}, {{ patient.sub_county }}{% if patient.ward %}, {{ patient.ward }} Ward{% endif %}</dd>
-                    </div>
-                </dl>
-                {% if not is_receptionist %}
-                <div class="mt-5 border-l-2 border-[#991B1B] pl-4">
-                    <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Primary diagnosis</p>
-                    <p class="mt-1 text-sm font-semibold leading-6 text-slate-800">{{ patient.primary_diagnosis }}</p>
                 </div>
-                {% endif %}
-            </div>
 
-            <!-- Role-Specific Action Panel -->
-            <aside class="border-t xl:border-t-0 xl:border-l border-slate-200 bg-slate-50 p-5 md:p-6 flex flex-col justify-between">
-                {% if is_receptionist %}
-                <!-- Reception & Front Desk Actions -->
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Reception & Front Desk Actions</p>
-                    
+                <!-- Right: Quick Action Buttons -->
+                <div class="flex flex-wrap items-center gap-1.5 shrink-0">
+                    {% if is_receptionist %}
                     <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
-                       class="mt-3 inline-flex w-full items-center justify-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white shadow-sm transition">
-                        <i data-lucide="printer" class="w-4 h-4 mr-2 text-red-300"></i> Print Patient ID Card
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-red-300"></i>
+                        <span>Print ID</span>
                     </a>
-
-                    <div class="mt-3 space-y-2">
-                        <a href="{% url 'patients:patient_update' patient.pk %}" 
-                           class="flex items-center justify-center gap-1.5 w-full bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 transition shadow-2xs">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5 text-[#002D62]"></i> Edit Biodata & Demographics
-                        </a>
-                        <a href="{% url 'appointments:appointment_create' patient.pk %}" 
-                           class="flex items-center justify-center gap-1.5 w-full bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100 transition shadow-2xs">
-                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-[#991B1B]"></i> Schedule Visit / Check-in
-                        </a>
-                    </div>
-                </div>
-                <div class="mt-4 pt-3 border-t border-slate-200 text-[10px] text-slate-400 font-medium">
-                    <i data-lucide="shield-check" class="w-3 h-3 inline mr-1 text-slate-400"></i> Front desk intake & ID registry.
-                </div>
-
-                {% else %}
-                <!-- Clinical Actions for Medical & Palliative Staff -->
-                <div>
-                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Clinical Actions</p>
-                    <a href="{% url 'encounters:encounter_create' patient.pk %}" class="mt-3 inline-flex w-full items-center justify-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white transition">
-                        <i data-lucide="stethoscope" class="w-4 h-4 mr-2 text-red-300"></i> New Encounter
+                    <a href="{% url 'patients:patient_update' patient.pk %}" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5 text-[#002D62]"></i>
+                        <span>Edit</span>
                     </a>
-                    <div class="mt-3 grid grid-cols-2 gap-px border border-slate-200 bg-slate-200">
-                        <a href="{% url 'symptoms:symptom_create' patient.pk %}" class="flex items-center justify-center gap-1.5 bg-white px-2 py-2.5 text-xs font-bold text-[#991B1B] hover:bg-red-50 transition">
-                            <i data-lucide="activity" class="w-3.5 h-3.5"></i> ESAS
-                        </a>
-                        <a href="{% url 'assessments:assessment_create' patient.pk %}" class="flex items-center justify-center gap-1.5 bg-white px-2 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition">
-                            <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i> Assess
-                        </a>
-                        <a href="{% url 'medications:medication_create' patient.pk %}" class="flex items-center justify-center gap-1.5 bg-white px-2 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition">
-                            <i data-lucide="pill" class="w-3.5 h-3.5"></i> Meds
-                        </a>
-                        <a href="{% url 'appointments:appointment_create' patient.pk %}" class="flex items-center justify-center gap-1.5 bg-white px-2 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition">
-                            <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i> Schedule
-                        </a>
-                    </div>
+                    <a href="{% url 'appointments:appointment_create' patient.pk %}" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-[#991B1B]"></i>
+                        <span>Schedule</span>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'encounters:encounter_create' patient.pk %}" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
+                        <i data-lucide="stethoscope" class="w-3.5 h-3.5 text-red-300"></i>
+                        <span>+ Encounter</span>
+                    </a>
+                    <a href="{% url 'symptoms:symptom_create' patient.pk %}" 
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-red-50 text-[#991B1B] rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                        <span>ESAS</span>
+                    </a>
+                    <a href="{% url 'assessments:assessment_create' patient.pk %}" 
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i>
+                        <span>Assess</span>
+                    </a>
+                    <a href="{% url 'medications:medication_create' patient.pk %}" 
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="pill" class="w-3.5 h-3.5"></i>
+                        <span>Meds</span>
+                    </a>
+                    <a href="{% url 'appointments:appointment_create' patient.pk %}" 
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+                        <span>Schedule</span>
+                    </a>
                     {% if is_manager or is_administrator %}
-                    <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" class="mt-4 inline-flex items-center text-xs font-bold text-[#002D62] hover:underline">
-                        <i data-lucide="printer" class="w-3.5 h-3.5 mr-1.5"></i> Print patient ID card
+                    <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition" title="Print ID Card">
+                        <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                     </a>
                     {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Compact Demographic Quick Metrics Strip -->
+            <div class="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div>
+                    <span class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">Age / Sex</span>
+                    <span class="font-semibold text-slate-800">
+                        {% if patient.age %}{{ patient.age }} yrs{% endif %}
+                        {% if patient.sex and patient.sex != 'U' %}&bull; {{ patient.get_sex_display }}{% endif %}
+                        {% if not patient.age and patient.sex == 'U' %}--{% endif %}
+                    </span>
+                </div>
+                <div>
+                    <span class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">Phone</span>
+                    <span class="font-semibold text-slate-800 font-mono">{{ patient.phone_number|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">Residence / County</span>
+                    <span class="font-semibold text-slate-800 truncate block">{{ patient.address|default:patient.county }}</span>
+                </div>
+                <div>
+                    <span class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 block">Enrollment Date</span>
+                    <span class="font-semibold text-slate-800">{{ patient.registration_date|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+
+            {% if patient.primary_diagnosis and not is_receptionist %}
+            <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-2 text-xs">
+                <span class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Diagnosis:</span>
+                <span class="font-semibold text-slate-800 text-xs">{{ patient.primary_diagnosis }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Clinical Alerts / Allergies Inline Strip if present -->
+            {% if not is_receptionist and patient.allergies or not is_receptionist and patient.clinical_alerts %}
+            <div class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-2 text-[11px]">
+                {% if patient.allergies %}
+                <div class="px-2.5 py-1 bg-red-50 text-red-800 rounded-lg border border-red-200 flex items-center space-x-1.5">
+                    <i data-lucide="alert-octagon" class="w-3.5 h-3.5 text-[#991B1B] shrink-0"></i>
+                    <span><strong>Allergies:</strong> {{ patient.allergies }}</span>
                 </div>
                 {% endif %}
-            </aside>
-        </div>
-
-        <!-- Clinical Alerts Banner if any -->
-        {% if not is_receptionist and patient.clinical_alerts or not is_receptionist and patient.allergies %}
-        <div class="mt-6 pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            {% if patient.allergies %}
-            <div class="p-3 bg-red-50 text-red-900 rounded-xl border border-red-200 flex items-start space-x-2">
-                <i data-lucide="alert-octagon" class="w-4 h-4 text-[#991B1B] flex-shrink-0 mt-0.5"></i>
-                <div>
-                    <span class="font-bold uppercase tracking-wide text-[10px] text-[#991B1B] block">Allergies & Contraindications</span>
-                    <span>{{ patient.allergies }}</span>
+                {% if patient.clinical_alerts %}
+                <div class="px-2.5 py-1 bg-amber-50 text-amber-800 rounded-lg border border-amber-200 flex items-center space-x-1.5">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+                    <span><strong>Alert:</strong> {{ patient.clinical_alerts }}</span>
                 </div>
-            </div>
-            {% endif %}
-
-            {% if patient.clinical_alerts %}
-            <div class="p-3 bg-amber-50 text-amber-900 rounded-xl border border-amber-200 flex items-start space-x-2">
-                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"></i>
-                <div>
-                    <span class="font-bold uppercase tracking-wide text-[10px] text-amber-800 block">Clinical Watchlist & Alerts</span>
-                    <span>{{ patient.clinical_alerts }}</span>
-                </div>
+                {% endif %}
             </div>
             {% endif %}
         </div>
-        {% endif %}
     </section>
 
     <!-- Longitudinal Clinical Workspace Tabs -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" 
-         x-data="{ activeTab: 'timeline' }">
+         x-data="{ activeTab: 'biodata' }">
         
-        <!-- Tab Navigation Bar -->
-        <div class="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 flex overflow-x-auto space-x-6 text-xs font-bold">
+        <!-- Compact Tab Navigation Bar -->
+        <div class="border-b border-slate-200 bg-slate-50/80 px-3 sm:px-5 flex flex-wrap gap-1 text-xs font-bold">
+            <button @click="activeTab = 'biodata'" 
+                    :class="activeTab === 'biodata' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                <span>General Data & NOK</span>
+            </button>
+
+            <button @click="activeTab = 'caregivers'" 
+                    :class="activeTab === 'caregivers' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="heart-handshake" class="w-3.5 h-3.5 text-cyan-700"></i>
+                <span>Caregivers ({{ patient.caregivers.count }})</span>
+            </button>
+
             <button @click="activeTab = 'timeline'" 
-                    :class="activeTab === 'timeline' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
-                    class="py-4 border-b-2 transition whitespace-nowrap flex items-center space-x-2">
-                <i data-lucide="history" class="w-4 h-4"></i>
+                    :class="activeTab === 'timeline' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="history" class="w-3.5 h-3.5"></i>
                 <span>Clinical Timeline & Encounters ({{ encounters|length }})</span>
             </button>
 
-            <button @click="activeTab = 'careplan'" 
-                    :class="activeTab === 'careplan' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
-                    class="py-4 border-b-2 transition whitespace-nowrap flex items-center space-x-2">
-                <i data-lucide="target" class="w-4 h-4"></i>
-                <span>Care Plan & Team</span>
-            </button>
-
-            <button @click="activeTab = 'symptoms'" 
-                    :class="activeTab === 'symptoms' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
-                    class="py-4 border-b-2 transition whitespace-nowrap flex items-center space-x-2">
-                <i data-lucide="trending-up" class="w-4 h-4"></i>
-                <span>ESAS Symptom Curves</span>
+            <button @click="activeTab = 'history'" 
+                    :class="activeTab === 'history' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
+                <span>History & Assessments ({{ assessments|length }})</span>
             </button>
 
             <button @click="activeTab = 'medications'" 
-                    :class="activeTab === 'medications' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
-                    class="py-4 border-b-2 transition whitespace-nowrap flex items-center space-x-2">
-                <i data-lucide="pill" class="w-4 h-4"></i>
+                    :class="activeTab === 'medications' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="pill" class="w-3.5 h-3.5"></i>
                 <span>Medications ({{ medications|length }})</span>
             </button>
 
-            <button @click="activeTab = 'documents'" 
-                    :class="activeTab === 'documents' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
-                    class="py-4 border-b-2 transition whitespace-nowrap flex items-center space-x-2">
-                <i data-lucide="file-text" class="w-4 h-4"></i>
-                <span>Documents & Calls</span>
+            <button @click="activeTab = 'symptoms'" 
+                    :class="activeTab === 'symptoms' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5 text-[#991B1B]"></i>
+                <span>ESAS Symptom Trends ({{ recent_symptoms|length }})</span>
+            </button>
+
+            <button @click="activeTab = 'careplan'" 
+                    :class="activeTab === 'careplan' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
+                    class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
+                <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                <span>Care Plan</span>
             </button>
         </div>
 
-        <div class="p-6 md:p-8">
-            <!-- TAB 1: Clinical Timeline -->
-            <div x-cloak x-show="activeTab === 'timeline'" class="space-y-6">
+        <div class="p-4 sm:p-6">
+            <!-- TAB 1: General Patient Data & Bio-Data -->
+            <div x-cloak x-show="activeTab === 'biodata'" class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <!-- Left: Bio-Data & Next of Kin -->
+                    <div class="lg:col-span-8 space-y-4">
+                        <!-- Patients Bio-Data Card -->
+                        <div class="bg-slate-50/70 rounded-xl p-4 border border-slate-200 space-y-3">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                                <i data-lucide="id-card" class="w-3.5 h-3.5 text-[#002D62]"></i>
+                                Nairobi Hospice Patients Bio-Data
+                            </h3>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Patient ID</span>
+                                    <span class="font-mono font-bold text-[#002D62]">{{ patient.hospice_number }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">IP/OP No</span>
+                                    <span class="font-mono font-bold text-slate-800">{{ patient.ip_op_number|default:"N/A" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Daycare No</span>
+                                    <span class="font-mono font-bold text-slate-800">{{ patient.daycare_number|default:"N/A" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">First Name</span>
+                                    <span class="font-bold text-slate-800">{{ patient.first_name }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">SurName / Middle</span>
+                                    <span class="font-bold text-slate-800">{{ patient.middle_name|default:"-" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Last Name</span>
+                                    <span class="font-bold text-slate-800">{{ patient.last_name }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Mobile Phone</span>
+                                    <span class="font-mono font-semibold text-slate-800">{{ patient.phone_number|default:"-" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Residence</span>
+                                    <span class="font-semibold text-slate-800">{{ patient.address|default:patient.county }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">E-mail</span>
+                                    <span class="font-semibold text-slate-800">{{ patient.email|default:"NA" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Age / Sex</span>
+                                    <span class="font-semibold text-slate-800">{{ patient.age|default:"-" }} yrs &bull; {{ patient.get_sex_display }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Marital Status</span>
+                                    <span class="font-semibold text-slate-800">{{ patient.get_marital_status_display }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Enrollment Date</span>
+                                    <span class="font-semibold text-slate-800">{{ patient.registration_date|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Next of Kin Card -->
+                        <div class="bg-red-50/30 rounded-xl p-4 border border-red-200/70 space-y-3">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                                <i data-lucide="users" class="w-3.5 h-3.5 text-[#991B1B]"></i>
+                                Next of Kin Information
+                            </h3>
+
+                            {% for nok in patient.next_of_kin.all %}
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-white p-3 rounded-lg border border-red-100">
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">NOK Name</span>
+                                    <span class="font-bold text-slate-900">{{ nok.name }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Relationship</span>
+                                    <span class="font-semibold text-[#002D62]">{{ nok.relationship }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Phone Number</span>
+                                    <span class="font-mono font-semibold text-slate-800">{{ nok.phone_number|default:"-" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Residence</span>
+                                    <span class="font-semibold text-slate-800">{{ nok.address|default:"-" }}</span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Age / Gender</span>
+                                    <span class="font-semibold text-slate-800">{{ nok.age|default:"-" }} yrs &bull; {{ nok.gender|default:"-" }}</span>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="p-3 bg-white rounded-lg border border-red-100 text-xs text-slate-400 text-center">
+                                No Next of Kin registered on file.
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Right: Schedule Appointments Panel -->
+                    <div class="lg:col-span-4 bg-slate-50/70 rounded-xl p-4 border border-slate-200 space-y-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#002D62]"></i>
+                            Schedule Appointment
+                        </h3>
+                        
+                        <form method="POST" action="{% url 'appointments:appointment_create' patient.pk %}" class="space-y-2.5 text-xs">
+                            {% csrf_token %}
+                            <div>
+                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Date</label>
+                                <input type="date" name="scheduled_date" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Type</label>
+                                <select name="appointment_type" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
+                                    <option value="CLINIC_VISIT">Clinic Review</option>
+                                    <option value="HOME_VISIT">Home Visit</option>
+                                    <option value="DAY_CARE">Daycare Session</option>
+                                    <option value="PROCEDURE">Nursing / Wound Care</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Location / Room</label>
+                                <input type="text" name="location" placeholder="e.g. Clinic Room 1" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Notes</label>
+                                <textarea name="reason" rows="2" placeholder="Clinical objective" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-2 px-3 bg-[#002D62] hover:bg-[#0B2545] text-white font-bold rounded-lg transition duration-150 flex items-center justify-center space-x-1 cursor-pointer">
+                                <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-red-300"></i>
+                                <span>Schedule Visit</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Caregivers Circle Register -->
+            <div x-cloak x-show="activeTab === 'caregivers'" class="space-y-4">
+                <div class="bg-cyan-50/30 rounded-xl p-4 border border-cyan-200/70 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-900 flex items-center gap-1.5">
+                        <i data-lucide="heart-handshake" class="w-3.5 h-3.5 text-cyan-700"></i>
+                        Nairobi Hospice Caregivers Circle Register
+                    </h3>
+
+                    {% for cg in patient.caregivers.all %}
+                    <div class="bg-white rounded-xl p-4 border border-cyan-100 shadow-2xs space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="space-y-1.5">
+                                <h4 class="text-[9.5px] font-bold uppercase text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded inline-block">
+                                    Caregiver Personal Information
+                                </h4>
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Name</span>
+                                        <span class="font-bold text-slate-900">{{ cg.name }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Caregiver No</span>
+                                        <span class="font-mono text-slate-800">{{ cg.caregiver_number|default:"N/A" }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Gender / Age</span>
+                                        <span class="font-semibold text-slate-800">{{ cg.gender|default:"-" }} &bull; {{ cg.age|default:"-" }} yrs</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-1.5">
+                                <h4 class="text-[9.5px] font-bold uppercase text-cyan-800 bg-cyan-50 px-2 py-0.5 rounded inline-block">
+                                    Contact & Relationship
+                                </h4>
+                                <div class="grid grid-cols-2 gap-2 pt-1">
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Phone No</span>
+                                        <span class="font-mono font-bold text-slate-900">{{ cg.phone_number|default:"-" }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Residence</span>
+                                        <span class="font-semibold text-slate-800">{{ cg.address|default:"-" }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Relationship</span>
+                                        <span class="font-semibold text-[#002D62]">{{ cg.relationship }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if cg.notes %}
+                        <div class="pt-2 border-t border-slate-100">
+                            <span class="text-slate-400 block text-[9.5px] font-bold uppercase mb-0.5">Caregiver Notes:</span>
+                            <p class="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200 whitespace-pre-line">{{ cg.notes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-xs text-slate-400 bg-white rounded-xl border border-cyan-100">
+                        No caregiver records registered for this patient yet.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- TAB 3: Clinical Timeline & Encounters -->
+            <div x-cloak x-show="activeTab === 'timeline'" class="space-y-4">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Longitudinal Care Progress</h3>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">Longitudinal Care Progress</h3>
                     {% if not is_receptionist %}
                     <a href="{% url 'encounters:encounter_create' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline">
                         + Log Encounter
@@ -244,13 +488,13 @@
                     {% endif %}
                 </div>
 
-                <div class="relative border-l-2 border-slate-200 ml-4 space-y-6">
+                <div class="relative border-l-2 border-slate-200 ml-3 space-y-4">
                     {% for enc in encounters %}
-                    <div class="relative pl-6">
-                        <div class="absolute -left-2.5 top-1 w-5 h-5 rounded-full bg-[#002D62] border-4 border-white"></div>
-                        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-2">
+                    <div class="relative pl-5">
+                        <div class="absolute -left-2 top-1.5 w-4 h-4 rounded-full bg-[#002D62] border-2 border-white"></div>
+                        <div class="bg-slate-50/80 rounded-xl p-3.5 border border-slate-200 space-y-1.5">
                             <div class="flex items-center justify-between">
-                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-[#002D62]">
+                                <span class="px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase bg-blue-100 text-[#002D62]">
                                     {{ enc.get_encounter_type_display }}
                                 </span>
                                 <span class="text-xs text-slate-500 font-medium">{{ enc.encounter_date|date:"d M Y" }}</span>
@@ -258,336 +502,258 @@
                             <h4 class="text-xs font-bold text-slate-900">{{ enc.reason }}</h4>
                             <p class="text-xs text-slate-600 whitespace-pre-line leading-relaxed">{{ enc.clinical_notes }}</p>
                             {% if enc.interventions_performed %}
-                            <div class="p-2.5 bg-white rounded-lg border border-slate-200 text-xs text-slate-700">
+                            <div class="p-2 bg-white rounded-lg border border-slate-200 text-xs text-slate-700">
                                 <strong>Interventions:</strong> {{ enc.interventions_performed }}
                             </div>
                             {% endif %}
-                            <div class="text-[11px] text-slate-400 pt-1">
+                            <div class="text-[10px] text-slate-400 pt-0.5">
                                 Recorded by {{ enc.recorded_by.display_name }} &bull; Location: {{ enc.location }}
                             </div>
                         </div>
                     </div>
                     {% empty %}
-                    <div class="p-6 text-center text-xs text-slate-400">No clinical encounters recorded yet.</div>
+                    <div class="p-4 text-center text-xs text-slate-400">No clinical encounters recorded yet.</div>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- TAB 2: Care Plan & Multidisciplinary Care Team -->
-            <div x-cloak x-show="activeTab === 'careplan'" class="space-y-6">
-                {% if care_plan %}
-                <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-bold uppercase tracking-wider text-[#991B1B]">Active Coordinated Care Plan</span>
-                            <h3 class="text-lg font-black text-slate-900 mt-0.5">{{ care_plan.title }}</h3>
-                        </div>
-                        {% if not is_receptionist %}
-                        <a href="{% url 'care:care_plan_detail' care_plan.pk %}" class="px-3.5 py-1.5 bg-[#002D62] text-white text-xs font-bold rounded-xl shadow-sm">
-                            Manage Care Plan &rarr;
-                        </a>
-                        {% endif %}
-                    </div>
-                    <div class="text-xs space-y-2">
-                        <p><strong>Overarching Goals of Care:</strong> <span class="text-slate-700 block mt-1">{{ care_plan.overall_goals }}</span></p>
-                        <p><strong>Resuscitation / Advance Directive:</strong> <span class="text-[#002D62] font-semibold">{{ care_plan.resuscitation_preference }}</span></p>
-                        <p><strong>Scheduled MDT Review Date:</strong> <span class="text-amber-700 font-bold">{{ care_plan.review_date|date:"d M Y"|default:"Not set" }}</span></p>
-                    </div>
-                </div>
-                {% else %}
-                <div class="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                    <i data-lucide="target" class="w-8 h-8 mx-auto text-slate-400"></i>
-                    <p class="text-xs text-slate-600">No active individualized care plan for this patient.</p>
+            <!-- TAB 4: Patient History & Assessments -->
+            <div x-cloak x-show="activeTab === 'history'" class="space-y-5">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                        <i data-lucide="clipboard-list" class="w-3.5 h-3.5 text-[#002D62]"></i>
+                        Patient Clinical History & Diagnostic Assessments
+                    </h3>
                     {% if not is_receptionist %}
-                    <a href="{% url 'care:care_plan_create' patient.pk %}" class="inline-flex items-center px-4 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl">
-                        Create Care Plan
+                    <a href="{% url 'assessments:assessment_create' patient.pk %}" class="inline-flex items-center px-2.5 py-1 text-xs font-bold bg-[#002D62] text-white rounded-lg hover:bg-[#0B2545] transition">
+                        <i data-lucide="plus" class="w-3 h-3 mr-1"></i> New Assessment
                     </a>
                     {% endif %}
                 </div>
-                {% endif %}
 
-                <!-- Care Team Assignment -->
+                <!-- Clinical Dossier Summary Card (From Access & Clinical Records) -->
+                <div class="bg-blue-50/50 rounded-xl p-4 border border-blue-200/80 space-y-3">
+                    <div class="flex items-center justify-between border-b border-blue-200/60 pb-2">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-[#002D62] flex items-center gap-1.5">
+                            <i data-lucide="activity" class="w-3.5 h-3.5 text-[#991B1B]"></i>
+                            Hospice Clinical Profile & Baseline History
+                        </span>
+                        {% if patient.special_remarks == 'Deceased' %}
+                        <span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-red-100 text-red-900 border border-red-200">
+                            Deceased {% if patient.date_of_death %}({{ patient.date_of_death|date:"d/m/Y" }}){% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div class="space-y-2">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-slate-500 block">Primary Diagnosis</span>
+                                <span class="font-bold text-slate-900">{{ patient.primary_diagnosis|default:"Palliative Care" }}</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-slate-500 block">Past Medical History</span>
+                                <span class="text-slate-800 font-medium">{{ patient.past_medical_history|default:patient.primary_diagnosis|default:"None recorded" }}</span>
+                            </div>
+                            {% if patient.referred_by %}
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-slate-500 block">Referred By</span>
+                                <span class="text-slate-800 font-semibold">{{ patient.referred_by }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="space-y-2">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-slate-500 block">Present Clinical Notes</span>
+                                <span class="text-slate-800 font-medium whitespace-pre-line">{{ patient.present_medical_notes|default:patient.notes|default:"Routine palliative review" }}</span>
+                            </div>
+                            {% if patient.other_medical_notes %}
+                            <div>
+                                <span class="text-[10px] font-bold uppercase text-slate-500 block">Other Medical Notes</span>
+                                <span class="text-slate-800 font-medium">{{ patient.other_medical_notes }}</span>
+                            </div>
+                            {% endif %}
+                            {% if patient.cause_of_death %}
+                            <div class="p-2 bg-red-100/70 border border-red-200 rounded-lg">
+                                <span class="text-[10px] font-bold uppercase text-red-950 block">Cause of Death Notes</span>
+                                <span class="text-red-900 font-medium text-xs">{{ patient.cause_of_death }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Assessment Timeline Cards -->
                 <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-900">Multidisciplinary Care Team</h4>
-                        {% if not is_receptionist %}
-                        <a href="{% url 'care:care_team_manage' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline">Manage Team</a>
-                        {% endif %}
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        {% for member in care_team %}
-                        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
-                            <span class="text-[10px] font-bold uppercase text-[#002D62] block">{{ member.get_role_display }}</span>
-                            <span class="font-bold text-slate-900 block mt-0.5">{{ member.staff_member.user.display_name }}</span>
-                            <span class="text-[11px] text-slate-400">{{ member.staff_member.department }}</span>
+                    <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Formal Assessments Log ({{ assessments|length }})
+                    </h4>
+
+                    {% for ass in assessments %}
+                    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-2.5">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="px-2 py-0.5 rounded-md text-[9.5px] font-bold uppercase bg-blue-100 text-[#002D62]">
+                                {{ ass.get_assessment_type_display }}
+                            </span>
+                            <span class="text-xs text-slate-500 font-medium">{{ ass.assessment_date|date:"d M Y" }}</span>
                         </div>
-                        {% empty %}
-                        <div class="sm:col-span-3 text-xs text-slate-400 py-3">No care team members assigned.</div>
-                        {% endfor %}
+                        <p class="text-xs text-slate-700 whitespace-pre-line leading-relaxed">{{ ass.clinical_summary }}</p>
+                        <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-100 flex items-center justify-between">
+                            <span>Assessed by: <strong>{{ ass.assessor.display_name|default:"Nairobi Hospice Clinician" }}</strong></span>
+                            <span class="font-mono text-slate-400">ID: {{ ass.id|stringformat:".8s" }}</span>
+                        </div>
                     </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                        No additional formal assessments on record.
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- TAB 3: ESAS Symptom Curves -->
-            <div x-cloak x-show="activeTab === 'symptoms'" class="space-y-6">
+            <!-- TAB 5: Medications -->
+            <div x-cloak x-show="activeTab === 'medications'" class="space-y-4">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Longitudinal ESAS Symptom Trends ({{ recent_symptoms|length }})</h3>
-                        <p class="text-xs text-slate-500">Tracking Edmonton Symptom Assessment System distress scores across care visits.</p>
-                    </div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">Current & Historical Prescriptions</h3>
                     {% if not is_receptionist %}
-                    <a href="{% url 'symptoms:symptom_create' patient.pk %}" class="px-3.5 py-2 text-xs font-bold bg-[#991B1B] hover:bg-[#7F1D1D] text-white rounded-xl shadow-sm transition">
-                        + Record ESAS Score
+                    <a href="{% url 'medications:medication_create' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline">
+                        + Prescribe
                     </a>
                     {% endif %}
                 </div>
 
-                {% if recent_symptoms %}
-                <!-- Chart.js Graph Canvas -->
-                <div class="bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200">
-                    <div class="h-64 sm:h-72 w-full">
-                        <canvas id="symptomChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Recent ESAS Evaluations Breakdown -->
-                <div class="space-y-3 pt-2">
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Recorded ESAS Evaluations</h4>
-                    <div class="space-y-3">
-                        {% for record in recent_symptoms %}
-                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-bold text-slate-900">{{ record.recorded_at|date:"d M Y H:i" }}</span>
-                                    <span class="text-slate-400">&bull;</span>
-                                    <span class="text-slate-500">By {{ record.recorded_by.display_name|default:"Clinical Staff" }}</span>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2.5 py-1 rounded-full font-bold text-[10px] uppercase
-                                        {% if record.total_distress_score >= 40 %}bg-red-100 text-red-800
-                                        {% elif record.total_distress_score >= 20 %}bg-amber-100 text-amber-800
-                                        {% else %}bg-emerald-100 text-emerald-800{% endif %}">
-                                        Distress: {{ record.total_distress_score }}/100
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                        <thead class="bg-slate-100/80 text-[10px] font-bold uppercase text-slate-600">
+                            <tr>
+                                <th class="p-2.5">Medication</th>
+                                <th class="p-2.5">Dosage / Route</th>
+                                <th class="p-2.5">Frequency</th>
+                                <th class="p-2.5">Start Date</th>
+                                <th class="p-2.5">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for med in medications %}
+                            <tr class="hover:bg-slate-50">
+                                <td class="p-2.5 font-bold text-slate-900">{{ med.medication_name }}</td>
+                                <td class="p-2.5 text-slate-600">{{ med.dosage }} &bull; {{ med.get_route_display }}</td>
+                                <td class="p-2.5 text-slate-600">{{ med.frequency }}</td>
+                                <td class="p-2.5 text-slate-500 font-mono">{{ med.start_date|date:"d/m/Y" }}</td>
+                                <td class="p-2.5">
+                                    <span class="px-2 py-0.5 text-[9px] font-bold uppercase rounded
+                                        {% if med.status == 'ACTIVE' %}bg-emerald-100 text-emerald-800
+                                        {% elif med.status == 'DISCONTINUED' %}bg-red-100 text-red-800
+                                        {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                        {{ med.get_status_display }}
                                     </span>
-                                </div>
-                            </div>
-                            <!-- Scores pills -->
-                            <div class="flex flex-wrap gap-1.5 pt-1">
-                                {% for score in record.scores.all %}
-                                <span class="px-2 py-0.5 rounded text-[11px] bg-white border border-slate-200 text-slate-700 font-medium">
-                                    <strong>{{ score.get_symptom_type_display }}:</strong> {{ score.score }}/10
-                                </span>
-                                {% endfor %}
-                            </div>
-                            {% if record.clinical_notes %}
-                            <p class="text-slate-600 text-[11px] pt-1"><strong>Notes:</strong> {{ record.clinical_notes }}</p>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="p-4 text-center text-slate-400 text-xs">No medication records.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
-                {% else %}
-                <div class="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                    <i data-lucide="activity" class="w-8 h-8 mx-auto text-slate-300"></i>
-                    <p class="text-xs text-slate-500">No Edmonton Symptom Assessment evaluations recorded yet.</p>
-                    {% if not is_receptionist %}
-                    <a href="{% url 'symptoms:symptom_create' patient.pk %}" class="inline-flex items-center px-4 py-2 text-xs font-bold bg-[#991B1B] hover:bg-[#7F1D1D] text-white rounded-xl shadow-sm transition">
-                        Record Baseline ESAS Assessment
-                    </a>
-                    {% endif %}
-                </div>
-                {% endif %}
             </div>
 
-            <!-- TAB 4: Active Medications -->
-            <div x-cloak x-show="activeTab === 'medications'" class="space-y-6">
+            <!-- TAB 6: ESAS Symptom Trends -->
+            <div x-cloak x-show="activeTab === 'symptoms'" class="space-y-4">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Palliative Pharmacotherapy Profile ({{ medications|length }})</h3>
-                        <p class="text-xs text-slate-500">Active and historical palliative prescriptions and opioid titrations.</p>
-                    </div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">ESAS Symptom Trends ({{ recent_symptoms|length }})</h3>
                     {% if not is_receptionist %}
-                    <a href="{% url 'medications:medication_create' patient.pk %}" class="px-3.5 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-sm transition">
-                        + Prescribe Medication
+                    <a href="{% url 'symptoms:symptom_create' patient.pk %}" class="text-xs font-bold text-[#991B1B] hover:underline">
+                        + Record ESAS
                     </a>
                     {% endif %}
                 </div>
 
-                <div class="divide-y divide-slate-100">
-                    {% for med in medications %}
-                    <div class="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs bg-slate-50/50 p-3.5 rounded-xl border border-slate-100 mb-2">
-                        <div class="space-y-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="font-bold text-sm text-slate-900">{{ med.medication_name }}</span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
-                                    {% if med.status == 'ACTIVE' %}bg-emerald-100 text-emerald-800
-                                    {% elif med.status == 'HELD' %}bg-amber-100 text-amber-800
-                                    {% else %}bg-slate-200 text-slate-600{% endif %}">
-                                    {{ med.get_status_display }}
-                                </span>
-                            </div>
-                            <span class="text-slate-600 block">
-                                <strong>Dose:</strong> {{ med.dosage }} &bull; <strong>Route:</strong> {{ med.get_route_display }} &bull; <strong>Frequency:</strong> {{ med.frequency }}
-                            </span>
-                            {% if med.indication %}
-                            <span class="text-[11px] text-[#002D62] font-semibold block">Indication: {{ med.indication }}</span>
-                            {% endif %}
-                            {% if med.instructions_for_caregiver %}
-                            <span class="text-[11px] text-slate-500 block">Caregiver Instructions: {{ med.instructions_for_caregiver }}</span>
-                            {% endif %}
-                            <span class="text-[10px] text-slate-400 block pt-0.5">
-                                Prescribed by {{ med.prescriber.display_name|default:med.prescriber_name|default:"Doctor" }} on {{ med.start_date|date:"d M Y" }}
-                                {% if med.end_date %}&bull; Ended: {{ med.end_date|date:"d M Y" }}{% endif %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for sym in recent_symptoms %}
+                    <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200 space-y-1.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-800">{{ sym.recorded_at|date:"d M Y H:i" }}</span>
+                            <span class="px-2 py-0.5 rounded text-[9.5px] font-bold bg-amber-100 text-amber-900">
+                                Distress: {{ sym.total_distress_score }}/100
                             </span>
                         </div>
-
-                        {% if not is_receptionist and med.status == 'ACTIVE' %}
-                        <div class="flex items-center space-x-2 flex-shrink-0">
-                            <form method="POST" action="{% url 'medications:medication_status_update' med.pk %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="status" value="DISCONTINUED">
-                                <input type="hidden" name="reason" value="Discontinued by clinician">
-                                <button type="submit" class="px-2.5 py-1 text-[11px] font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition">
-                                    Discontinue
-                                </button>
-                            </form>
-                        </div>
+                        {% if sym.clinical_notes %}
+                        <p class="text-slate-600 text-xs">{{ sym.clinical_notes }}</p>
                         {% endif %}
                     </div>
                     {% empty %}
-                    <div class="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                        <i data-lucide="pill" class="w-8 h-8 mx-auto text-slate-300"></i>
-                        <p class="text-xs text-slate-500">No palliative medications logged in this patient's profile.</p>
-                        {% if not is_receptionist %}
-                        <a href="{% url 'medications:medication_create' patient.pk %}" class="inline-flex items-center px-4 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl shadow-sm transition">
-                            Prescribe Initial Medication
-                        </a>
-                        {% endif %}
+                    <div class="col-span-full p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                        No ESAS assessments recorded yet.
                     </div>
                     {% endfor %}
                 </div>
             </div>
 
-            <!-- TAB 5: Documents & Contacts -->
-            <div x-cloak x-show="activeTab === 'documents'" class="space-y-8">
-                <!-- Documents Section -->
-                <div class="space-y-4">
+            <!-- TAB 7: Care Plan & Care Team -->
+            <div x-cloak x-show="activeTab === 'careplan'" class="space-y-4">
+                {% if care_plan %}
+                <div class="bg-slate-50/80 rounded-xl p-4 border border-slate-200 space-y-3">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Clinical Documents & Case Notes ({{ documents|length }})</h3>
-                        {% if not is_receptionist %}
-                        <a href="{% url 'documents:document_upload' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline">
-                            + Upload Document
-                        </a>
-                        {% endif %}
+                        <h4 class="text-xs font-bold text-slate-900">{{ care_plan.title|default:"Comprehensive Palliative Care Plan" }}</h4>
+                        <span class="text-[10px] text-slate-500 font-mono">Initiated: {{ care_plan.created_at|date:"d M Y" }}</span>
                     </div>
+                    {% if care_plan.overall_goals %}
+                    <div class="text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200">
+                        <strong>Care Goals:</strong> {{ care_plan.overall_goals }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200">
+                    No formalized care plan on record.
+                </div>
+                {% endif %}
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                        {% for doc in documents %}
-                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-start space-x-3">
-                            <i data-lucide="file" class="w-5 h-5 text-[#002D62] flex-shrink-0 mt-0.5"></i>
+                <!-- Multidisciplinary Care Team -->
+                <div class="space-y-2 pt-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Multidisciplinary Care Team</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        {% for member in care_team %}
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-[#002D62] text-white flex items-center justify-center font-bold text-xs">
+                                {{ member.staff_member.user.first_name|first }}
+                            </div>
                             <div>
-                                <a href="{% url 'documents:document_download' doc.pk %}" target="_blank" class="font-bold text-slate-900 hover:text-[#002D62] block">
-                                    {{ doc.title }}
-                                </a>
-                                <span class="text-[11px] text-slate-400 block mt-0.5">{{ doc.get_category_display }} &bull; {{ doc.uploaded_at|date:"d M Y" }}</span>
+                                <span class="font-bold text-slate-900 block">{{ member.staff_member.user.get_full_name }}</span>
+                                <span class="text-[10px] text-slate-500 font-semibold">{{ member.get_role_display }}</span>
                             </div>
                         </div>
                         {% empty %}
-                        <div class="sm:col-span-2 text-center text-xs text-slate-400 py-4">No documents uploaded yet.</div>
+                        <div class="col-span-full p-3 text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                            No multidisciplinary team members assigned yet.
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
 
-                <!-- Communications & Calls Section -->
-                <div class="space-y-4 pt-4 border-t border-slate-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-900">Phone Calls, Family Meetings & Contacts ({{ communications|length }})</h3>
-                        {% if not is_receptionist %}
-                        <a href="{% url 'communications:communication_create' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline">
-                            + Log Communication / Call
-                        </a>
-                        {% endif %}
-                    </div>
-
-                    <div class="space-y-3 text-xs">
+                {% if communications %}
+                <!-- Communications & Family Contacts -->
+                <div class="space-y-2 pt-2">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-700">Communication & Caregiver Interactions</h4>
+                    <div class="space-y-2">
                         {% for comm in communications %}
-                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
                             <div class="flex items-center justify-between">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-teal-100 text-teal-800">
-                                    {{ comm.get_communication_type_display }}
-                                </span>
-                                <span class="text-[11px] text-slate-400 font-medium">{{ comm.communication_date|date:"d M Y H:i" }}</span>
+                                <span class="font-bold text-slate-900">{{ comm.contact_person }}</span>
+                                <span class="text-[10px] text-slate-400 font-mono">{{ comm.created_at|date:"d M Y" }}</span>
                             </div>
-                            <h4 class="font-bold text-slate-900">With: {{ comm.contact_person }} {% if comm.phone_or_email %}({{ comm.phone_or_email }}){% endif %}</h4>
-                            <p class="text-slate-600 whitespace-pre-line leading-relaxed">{{ comm.summary }}</p>
-                            {% if comm.followup_required %}
-                            <div class="p-2 bg-amber-50 rounded-lg text-[11px] text-amber-800 font-medium mt-1">
-                                <strong>Follow-up Required:</strong> {{ comm.followup_notes }}
-                            </div>
-                            {% endif %}
-                            <div class="text-[10px] text-slate-400 pt-1">
-                                Logged by {{ comm.recorded_by.display_name|default:"Staff" }}
-                            </div>
+                            <p class="text-slate-600 text-xs">{{ comm.summary }}</p>
                         </div>
-                        {% empty %}
-                        <div class="text-center text-xs text-slate-400 py-4">No communication logs recorded yet.</div>
                         {% endfor %}
                     </div>
                 </div>
+                {% endif %}
             </div>
+
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const trendData = {{ symptom_trends_json|safe }};
-        const ctx = document.getElementById('symptomChart');
-        if (ctx && trendData && trendData.dates && trendData.dates.length > 0) {
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: trendData.dates,
-                    datasets: [
-                        {
-                            label: 'Total Distress Score (0-100)',
-                            data: trendData.distress_scores || trendData.distress || [],
-                            borderColor: '#991B1B',
-                            backgroundColor: 'rgba(153, 27, 27, 0.08)',
-                            fill: true,
-                            tension: 0.3,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#991B1B',
-                            pointRadius: 4,
-                        },
-                        {
-                            label: 'Pain Score (0-10)',
-                            data: trendData.pain_scores || trendData.pain || [],
-                            borderColor: '#002D62',
-                            backgroundColor: 'transparent',
-                            borderDash: [5, 5],
-                            tension: 0.3,
-                            borderWidth: 2,
-                            pointBackgroundColor: '#002D62',
-                            pointRadius: 4,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: { stepSize: 20 }
-                        }
-                    }
-                }
-            });
-        }
-    });
-</script>
 {% endblock %}

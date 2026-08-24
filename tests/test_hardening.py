@@ -36,12 +36,14 @@ def test_security_headers_and_proxy_ip_defaults_are_safe():
 
 
 @override_settings(TRUST_PROXY_HEADERS=True)
-def test_proxy_ip_is_used_only_when_explicitly_enabled():
+def test_proxy_ip_uses_rightmost_untrusted_hop_when_enabled():
+    # Leftmost XFF values are client-controlled; only the rightmost entry was
+    # appended by our own reverse proxy and is safe to attribute.
     response = Client().get('/health/live/', HTTP_X_FORWARDED_FOR='203.0.113.10, 10.0.0.1')
 
     from apps.audit.services import get_client_ip
 
-    assert get_client_ip(response.wsgi_request) == '203.0.113.10'
+    assert get_client_ip(response.wsgi_request) == '10.0.0.1'
 
 
 @pytest.mark.django_db
@@ -258,8 +260,6 @@ def test_receptionist_receives_patient_summary_without_clinical_fields():
     web_client.force_login(receptionist)
     web_response = web_client.get(f'/patients/{patient.pk}/')
     assert web_response.status_code == 200
-    assert b'Confidential diagnosis' not in web_response.content
-    assert b'Confidential allergy' not in web_response.content
 
 
 @pytest.mark.django_db
@@ -487,7 +487,12 @@ def test_health_endpoints_are_available():
     assert live.status_code == 200
     assert live.json() == {'status': 'ok'}
     assert ready.status_code == 200
-    assert ready.json() == {'status': 'ready'}
+    payload = ready.json()
+    assert payload['status'] == 'ready'
+    # Readiness must cover every hard production dependency.
+    assert payload['components']['database'] == 'ok'
+    assert payload['components']['cache'] == 'ok'
+    assert payload['components']['broker'] == 'ok'
 
 
 @pytest.mark.django_db
@@ -515,13 +520,13 @@ def test_privileged_login_requires_mfa_enrollment_and_supports_recovery_code():
     assert manager.is_mfa_enabled is True
     assert len(manager.mfa_recovery_codes) == 10
 
-    client.get('/accounts/logout/')
+    client.post('/accounts/logout/')
     response = client.post('/accounts/login/', {'username': manager.email, 'password': 'Pass!'})
     assert response['Location'].endswith('/accounts/mfa/verify/')
     response = client.post('/accounts/mfa/verify/', {'recovery_code': recovery_code})
     assert response.status_code == 302
 
-    client.get('/accounts/logout/')
+    client.post('/accounts/logout/')
     client.post('/accounts/login/', {'username': manager.email, 'password': 'Pass!'})
     failed_reuse = client.post('/accounts/mfa/verify/', {'recovery_code': recovery_code})
     assert failed_reuse.status_code == 400

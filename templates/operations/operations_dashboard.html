@@ -34,6 +34,30 @@
         </div>
     </div>
 
+    {% if pending_deletions_count > 0 %}
+    <!-- Pending Deletion Requests Alert Banner -->
+    <div class="bg-rose-50 border-2 border-rose-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+        <div class="flex items-center space-x-3 text-rose-900">
+            <div class="w-9 h-9 rounded-xl bg-rose-200/80 flex items-center justify-center shrink-0">
+                <i data-lucide="shield-alert" class="w-5 h-5 text-rose-700"></i>
+            </div>
+            <div>
+                <h4 class="text-xs font-black uppercase tracking-wider text-rose-900">
+                    Pending Patient Record Deletion Approvals ({{ pending_deletions_count }})
+                </h4>
+                <p class="text-[11px] text-rose-800">
+                    Front desk / clinical staff have requested patient file deletion requiring Operations authorization.
+                </p>
+            </div>
+        </div>
+        <a href="{% url 'operations:deletion_requests' %}?status=PENDING" 
+           class="inline-flex items-center px-3.5 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-xs space-x-1 shrink-0">
+            <span>Review Requests</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </a>
+    </div>
+    {% endif %}
+
     <!-- Operations KPI Metrics Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         

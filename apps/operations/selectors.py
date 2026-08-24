@@ -127,7 +127,14 @@ def get_operations_dashboard_data():
     modality_labels = ['Home Visits', 'Clinic Rooms', 'Community / Outreach', 'Teleconsults']
     modality_data = [home_visits_count, clinic_visits_count, community_visits_count, phone_consults_count]
 
+    from .models import PatientDeletionRequest, DeletionRequestStatusChoices
+    pending_deletions = PatientDeletionRequest.objects.filter(
+        status=DeletionRequestStatusChoices.PENDING
+    ).select_related('requested_by').order_by('-created_at')
+
     return {
+        'pending_deletions_count': pending_deletions.count(),
+        'pending_deletions': pending_deletions[:5],
         'total_vendors': total_vendors,
         'active_vendors': active_vendors,
         'preferred_vendors': preferred_vendors,

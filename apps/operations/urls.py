@@ -22,4 +22,7 @@ urlpatterns = [
     path('invoices/<uuid:pk>/add-item/', views.InvoiceAddLineItemView.as_view(), name='invoice_add_item'),
     path('invoices/<uuid:pk>/pdf/', views.InvoicePdfView.as_view(), name='invoice_pdf'),
     path('disease-analytics/', views.DiseaseAnalyticsView.as_view(), name='disease_analytics'),
+    path('deletions/', views.PatientDeletionRequestListView.as_view(), name='deletion_requests'),
+    path('deletions/<uuid:pk>/approve/', views.PatientDeletionRequestApproveView.as_view(), name='deletion_request_approve'),
+    path('deletions/<uuid:pk>/reject/', views.PatientDeletionRequestRejectView.as_view(), name='deletion_request_reject'),
 ]

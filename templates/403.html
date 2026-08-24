@@ -1,87 +1,62 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-100">
+<html lang="en" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>403 - Access Restricted | Nairobi Hospice PCMS</title>
+    <title>Access Denied | Nairobi Hospice PCMS</title>
     
-    <!-- Google Fonts: Sora -->
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Sora', 'sans-serif'],
-                        heading: ['Matter', 'Sora', 'sans-serif'],
-                        title: ['Matter', 'Sora', 'sans-serif'],
-                        matter: ['Matter', 'Sora', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { font-family: 'Sora', sans-serif; }
-        h1, h2, h3, h4, h5, h6, .font-heading, .font-title, .font-matter {
-            font-family: 'Matter', 'Sora', sans-serif;
-        }
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="min-h-full font-sans antialiased text-slate-800 bg-slate-100 flex items-center justify-center p-4">
+<body class="min-h-full font-sans antialiased text-slate-800 bg-slate-50 flex items-center justify-center p-6">
 
-    <div class="max-w-lg w-full bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-xl text-center space-y-6 relative overflow-hidden">
+    <div class="max-w-md w-full text-center space-y-6">
         
-        <!-- Decorative Ambient Top Border -->
-        <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#991B1B] via-amber-500 to-[#991B1B]"></div>
-
-        <!-- Official Logo -->
-        <div class="flex justify-center mb-1">
-            <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="h-14 sm:h-16 w-auto object-contain">
+        <!-- Big Red Access Denied Symbol -->
+        <div class="mx-auto w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-red-100 border-2 border-red-300 text-red-600 flex items-center justify-center shadow-lg shadow-red-500/10 animate-pulse">
+            <i data-lucide="shield-alert" class="w-10 h-10 sm:w-12 sm:h-12 text-red-600"></i>
         </div>
 
-        <!-- 403 Visual Icon & Code -->
+        <!-- Red Heading and Message -->
         <div class="space-y-2">
-            <div class="w-14 h-14 mx-auto rounded-2xl bg-red-50 text-[#991B1B] border border-red-200 flex items-center justify-center shadow-xs">
-                <i data-lucide="shield-alert" class="w-7 h-7 text-[#991B1B]"></i>
-            </div>
-            <div class="inline-block px-3 py-1 rounded-full bg-red-50 border border-red-200 text-[#991B1B] text-xs font-black tracking-widest uppercase">
-                Error Code: 403 Forbidden
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Access Restricted</h1>
-            <p class="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                You do not have the required clinical or administrative role permissions to perform this action.
+            <h1 class="text-3xl sm:text-4xl font-black text-red-600 tracking-tight uppercase">
+                Access Denied
+            </h1>
+            <p class="text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
+                You do not have permission to view or perform operations on this page.
             </p>
         </div>
 
-        <!-- Quick Action Navigation -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <a href="/" 
-               class="inline-flex items-center justify-center px-4 py-2.5 bg-[#002D62] hover:bg-[#0B2545] text-white text-xs font-bold rounded-xl shadow-sm transition space-x-1.5 cursor-pointer">
-                <i data-lucide="home" class="w-4 h-4 text-red-300"></i>
-                <span>Return to Home</span>
-            </a>
-            <a href="{% url 'patients:patient_list' %}" 
-               class="inline-flex items-center justify-center px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl transition space-x-1.5 cursor-pointer">
-                <i data-lucide="users" class="w-4 h-4 text-slate-500"></i>
-                <span>Patient Directory</span>
-            </a>
+        <!-- Role Badge If Authenticated -->
+        {% if user.is_authenticated %}
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/70 border border-slate-300 text-slate-700 text-xs font-semibold">
+            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i>
+            <span>Signed in as: <strong>{{ user.display_name }}</strong> ({{ user.get_role_display|default:"Staff" }})</span>
         </div>
+        {% endif %}
 
-        <!-- Support Assistance Footer -->
-        <div class="pt-4 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-center space-x-2">
-            <i data-lucide="user-check" class="w-3.5 h-3.5 text-slate-400"></i>
-            <span>Permission Escalations: <strong class="text-slate-600 font-mono">admin@nairobihospice.or.ke</strong></span>
+        <!-- Clean Navigation Buttons -->
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <button onclick="window.history.back()" 
+                    class="px-4 py-2.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                <span>Go Back</span>
+            </button>
+            <a href="/" 
+               class="px-5 py-2.5 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 text-blue-300"></i>
+                <span>Dashboard</span>
+            </a>
         </div>
 
     </div>

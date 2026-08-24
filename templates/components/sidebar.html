@@ -188,6 +188,11 @@
                     <i data-lucide="receipt" class="w-5 h-5 shrink-0 {% if request.resolver_match.url_name in 'invoice_list invoice_create invoice_detail' %}text-emerald-300{% else %}text-slate-400 group-hover:text-slate-200{% endif %}"></i>
                     <span class="truncate">Invoicing & Billing</span>
                 </a>
+                <a href="{% url 'operations:deletion_requests' %}" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition duration-150 group {% if request.resolver_match.url_name in 'deletion_requests' %}text-white bg-[#002D62] font-semibold shadow-xs{% else %}text-slate-300 hover:text-white hover:bg-white/[0.06] font-medium{% endif %}">
+                    <i data-lucide="shield-alert" class="w-5 h-5 shrink-0 {% if request.resolver_match.url_name in 'deletion_requests' %}text-rose-300{% else %}text-rose-400 group-hover:text-rose-200{% endif %}"></i>
+                    <span class="truncate">Deletion Approvals</span>
+                </a>
 
                 {% elif is_receptionist %}
                 <a href="{% url 'patients:patient_register' %}" 
@@ -255,6 +260,11 @@
                    class="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition duration-150 group {% if request.resolver_match.app_name == 'medications' %}text-white bg-[#002D62] font-semibold shadow-xs{% else %}text-slate-300 hover:text-white hover:bg-white/[0.06] font-medium{% endif %}">
                     <i data-lucide="pill" class="w-5 h-5 shrink-0 {% if request.resolver_match.app_name == 'medications' %}text-blue-300{% else %}text-slate-400 group-hover:text-slate-200{% endif %}"></i>
                     <span class="truncate">Medications & Rx</span>
+                </a>
+                <a href="{% url 'care:advice_list' %}" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition duration-150 group {% if request.resolver_match.url_name == 'advice_list' %}text-white bg-[#002D62] font-semibold shadow-xs{% else %}text-slate-300 hover:text-white hover:bg-white/[0.06] font-medium{% endif %}">
+                    <i data-lucide="book-open" class="w-5 h-5 shrink-0 {% if request.resolver_match.url_name == 'advice_list' %}text-blue-300{% else %}text-slate-400 group-hover:text-slate-200{% endif %}"></i>
+                    <span class="truncate">Clinical Advices & Guides</span>
                 </a>
                 {% endif %}
             </nav>

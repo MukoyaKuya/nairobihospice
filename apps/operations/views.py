@@ -22,10 +22,12 @@ from .forms import (
     VendorForm,
 )
 from .models import (
+    DeletionRequestStatusChoices,
     Invoice,
     InvoiceLineItem,
     InvoiceTypeChoices,
     MovementTypeChoices,
+    PatientDeletionRequest,
     PaymentStatusChoices,
     ProcurementOrder,
     StockItem,
@@ -468,3 +470,96 @@ class InvoicePdfView(ManagerRequiredMixin, View):
         filename = f"Invoice_{invoice.invoice_number}.pdf"
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         return response
+
+
+class PatientDeletionRequestListView(ManagerRequiredMixin, ListView):
+    model = PatientDeletionRequest
+    template_name = 'operations/deletion_requests_list.html'
+    context_object_name = 'deletion_requests'
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = PatientDeletionRequest.objects.select_related('requested_by', 'reviewed_by').order_by('-created_at')
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['pending_count'] = PatientDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.PENDING).count()
+        context['approved_count'] = PatientDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.APPROVED).count()
+        context['rejected_count'] = PatientDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.REJECTED).count()
+        context['selected_status'] = self.request.GET.get('status', '')
+        return context
+
+
+class PatientDeletionRequestApproveView(ManagerRequiredMixin, View):
+    def post(self, request, pk):
+        deletion_req = get_object_or_404(PatientDeletionRequest, pk=pk)
+        
+        if deletion_req.status != DeletionRequestStatusChoices.PENDING:
+            messages.warning(request, f"This deletion request has already been {deletion_req.get_status_display().lower()}.")
+            return redirect('operations:deletion_requests')
+
+        review_notes = request.POST.get('review_notes', '').strip()
+
+        with transaction.atomic():
+            patient = deletion_req.patient
+            patient_name = deletion_req.patient_name
+            hospice_number = deletion_req.hospice_number
+
+            deletion_req.status = DeletionRequestStatusChoices.APPROVED
+            deletion_req.reviewed_by = request.user
+            deletion_req.reviewed_at = timezone.now()
+            deletion_req.review_notes = review_notes
+            deletion_req.patient = None  # Detach FK before deleting patient record
+            deletion_req.save()
+
+            if patient:
+                # Log audit trail
+                log_audit_event(
+                    action=AuditAction.DELETE,
+                    resource_type='Patient',
+                    resource_id=str(patient.id),
+                    summary=f"Approved deletion and permanently purged patient {patient_name} ({hospice_number}). Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
+                    user=request.user,
+                )
+                patient.delete()
+
+        messages.success(
+            request,
+            f"Patient record for {patient_name} ({hospice_number}) has been permanently deleted and archived in audit records."
+        )
+        return redirect('operations:deletion_requests')
+
+
+class PatientDeletionRequestRejectView(ManagerRequiredMixin, View):
+    def post(self, request, pk):
+        deletion_req = get_object_or_404(PatientDeletionRequest, pk=pk)
+        
+        if deletion_req.status != DeletionRequestStatusChoices.PENDING:
+            messages.warning(request, f"This deletion request has already been {deletion_req.get_status_display().lower()}.")
+            return redirect('operations:deletion_requests')
+
+        review_notes = request.POST.get('review_notes', '').strip()
+
+        deletion_req.status = DeletionRequestStatusChoices.REJECTED
+        deletion_req.reviewed_by = request.user
+        deletion_req.reviewed_at = timezone.now()
+        deletion_req.review_notes = review_notes
+        deletion_req.save()
+
+        log_audit_event(
+            action=AuditAction.UPDATE,
+            resource_type='PatientDeletionRequest',
+            resource_id=str(deletion_req.id),
+            summary=f"Rejected deletion request for patient {deletion_req.patient_name} ({deletion_req.hospice_number}). Reason: {review_notes}",
+            user=request.user,
+        )
+
+        messages.info(
+            request,
+            f"Deletion request for {deletion_req.patient_name} ({deletion_req.hospice_number}) has been rejected."
+        )
+        return redirect('operations:deletion_requests')

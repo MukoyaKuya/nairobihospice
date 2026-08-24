@@ -1,7 +1,7 @@
 
 import pyodbc
 
-db_path = r"C:\Users\Little Human\Downloads\New folder (3)\Hospice V6.0_be.accdb"
+db_path = r"C:\Users\Little Human\Desktop\NairobiHospice Access\Hospice V6.0_be.accdb"
 conn_str = f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};"
 
 print(f"Connecting to: {db_path}")
@@ -15,16 +15,15 @@ for row in cursor.tables(tableType='TABLE'):
     if not table_name.startswith("MSys"):
         tables.append(table_name)
 
-print(f"\nFound {len(tables)} user tables:")
+print("\n=== Access Database Table Summary ===")
 for t in sorted(tables):
     try:
         cursor.execute(f"SELECT COUNT(*) FROM [{t}]")
         count = cursor.fetchone()[0]
-        print(f" - [{t}] : {count} rows")
+        print(f" - {t:<30} : {count:>6} rows")
     except Exception as e:
-        print(f" - [{t}] : Error counting ({e})")
-
-print("\n--- Detailed Schema & Sample for Primary Tables ---")
+        print(f" - {t:<30} : Error counting ({e})")
+print("======================================\n")
 for t in sorted(tables):
     print("\n==========================================")
     print(f"TABLE: {t}")

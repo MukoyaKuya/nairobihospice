@@ -132,6 +132,11 @@ class PCMSLoginView(DjangoLoginView):
 
 
 def logout_view(request):
+    # POST-only: a GET link could be triggered cross-site (CSRF-able logout).
+    if request.method != 'POST':
+        if request.user.is_authenticated:
+            return redirect('reporting:clinical_dashboard')
+        return redirect('accounts:login')
     if request.user.is_authenticated:
         log_audit_event(
             action=AuditAction.LOGOUT,

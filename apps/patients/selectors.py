@@ -1,4 +1,5 @@
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Value
+from django.db.models.functions import Concat
 
 from .models import Patient, PatientStatusChoices
 
@@ -25,17 +26,42 @@ def search_patients(
     year: str = '',
     age_group: str = '',
 ) -> QuerySet[Patient]:
-    qs = Patient.objects.all().order_by('-registration_date', '-created_at')
+    qs = Patient.objects.annotate(
+        full_name_annotated=Concat('first_name', Value(' '), 'middle_name', Value(' '), 'last_name'),
+        first_middle_annotated=Concat('first_name', Value(' '), 'middle_name'),
+        first_last_annotated=Concat('first_name', Value(' '), 'last_name'),
+        middle_last_annotated=Concat('middle_name', Value(' '), 'last_name'),
+    ).order_by('-registration_date', '-created_at')
 
     if query:
         q = query.strip()
+        tokens = q.split()
+
+        # Token-based multi-field matching (matches every token in query against any name/field)
+        token_filter = Q()
+        for t in tokens:
+            token_filter &= (
+                Q(first_name__icontains=t) |
+                Q(middle_name__icontains=t) |
+                Q(last_name__icontains=t) |
+                Q(hospice_number__icontains=t) |
+                Q(ip_op_number__icontains=t) |
+                Q(daycare_number__icontains=t) |
+                Q(phone_number__icontains=t) |
+                Q(identification_number__icontains=t) |
+                Q(primary_diagnosis__icontains=t) |
+                Q(address__icontains=t)
+            )
+
         qs = qs.filter(
+            token_filter |
+            Q(full_name_annotated__icontains=q) |
+            Q(first_middle_annotated__icontains=q) |
+            Q(first_last_annotated__icontains=q) |
+            Q(middle_last_annotated__icontains=q) |
             Q(hospice_number__icontains=q) |
-            Q(first_name__icontains=q) |
-            Q(middle_name__icontains=q) |
-            Q(last_name__icontains=q) |
-            Q(phone_number__icontains=q) |
-            Q(identification_number__icontains=q) |
+            Q(ip_op_number__icontains=q) |
+            Q(daycare_number__icontains=q) |
             Q(primary_diagnosis__icontains=q)
         )
 

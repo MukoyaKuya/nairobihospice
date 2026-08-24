@@ -28,7 +28,14 @@
                             <a href="{% url 'patients:patient_detail' patient.pk %}" class="font-bold text-slate-900 group-hover:text-[#002D62] transition block leading-tight">
                                 {{ patient.full_name }}
                             </a>
-                            <span class="font-mono text-[10px] text-[#002D62] font-semibold block">{{ patient.hospice_number }}</span>
+                            <div class="flex items-center space-x-1.5 mt-0.5">
+                                <span class="font-mono text-[10px] text-[#002D62] font-semibold">{{ patient.hospice_number }}</span>
+                                {% if patient.ip_op_number %}
+                                <span class="px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200 text-[9px] font-mono font-bold" title="Hospital IP/OP File Number">
+                                    OP: {{ patient.ip_op_number }}
+                                </span>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </td>
@@ -63,20 +70,25 @@
                     {{ patient.phone_number|default:"-" }}
                 </td>
 
-                <!-- Care Status -->
+                <!-- Status -->
                 <td class="px-3 py-2 whitespace-nowrap text-center">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
-                        {% if patient.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
-                        {% elif patient.status == 'DECEASED' %}bg-slate-100 text-slate-700 border border-slate-300
-                        {% elif patient.status == 'DISCHARGED' %}bg-sky-50 text-sky-700 border border-sky-200
-                        {% else %}bg-amber-50 text-amber-700 border border-amber-200{% endif %}">
-                        <span class="w-1 h-1 rounded-full mr-1
-                            {% if patient.status == 'ACTIVE' %}bg-emerald-500
-                            {% elif patient.status == 'DECEASED' %}bg-slate-500
-                            {% elif patient.status == 'DISCHARGED' %}bg-sky-500
-                            {% else %}bg-amber-500{% endif %}">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider
+                        {% if patient.status == 'DECEASED' or patient.special_remarks == 'Deceased' %}bg-red-800 text-white border border-red-900
+                        {% elif patient.status == 'ACTIVE' %}bg-emerald-50 text-emerald-800 border border-emerald-300
+                        {% elif patient.status == 'INACTIVE' %}bg-amber-50 text-amber-800 border border-amber-300
+                        {% elif patient.status == 'CLOSED' or patient.status == 'DISCHARGED' %}bg-slate-100 text-slate-700 border border-slate-300
+                        {% else %}bg-slate-100 text-slate-800 border border-slate-300{% endif %}">
+                        <span class="w-1.5 h-1.5 rounded-full mr-1.5
+                            {% if patient.status == 'DECEASED' or patient.special_remarks == 'Deceased' %}bg-white
+                            {% elif patient.status == 'ACTIVE' %}bg-emerald-500
+                            {% elif patient.status == 'INACTIVE' %}bg-amber-500
+                            {% else %}bg-slate-500{% endif %}">
                         </span>
-                        {{ patient.get_status_display }}
+                        {% if patient.status == 'DECEASED' or patient.special_remarks == 'Deceased' %}
+                            DECEASED
+                        {% else %}
+                            {{ patient.get_status_display }}
+                        {% endif %}
                     </span>
                 </td>
 

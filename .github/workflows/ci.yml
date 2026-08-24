@@ -50,6 +50,8 @@ jobs:
       DJANGO_SETTINGS_MODULE: config.settings.development
       DJANGO_SECRET_KEY: ci-only-secret-key-not-used-for-anything-real
       PCMS_E2E_BASE_URL: http://127.0.0.1:8010
+      PCMS_E2E_RECEPTION_EMAIL: reception@nairobihospice.or.ke
+      PCMS_E2E_RECEPTION_PASSWORD: ci-ephemeral-e2e-password
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,8 +65,9 @@ jobs:
       - name: Prepare database
         run: |
           python manage.py migrate --noinput
-          python manage.py seed_hospice_data --no-color > /tmp/seed_output.txt
-          grep -E '^[^:]+: ' /tmp/seed_output.txt | head -1 || true
+          python manage.py seed_hospice_data --no-color > /tmp/seed_output.txt 2>&1
+          # Ephemeral CI-only credential for the browser suite (never reuse).
+          python manage.py shell -c "from apps.accounts.models import User; u=User.objects.get(email='reception@nairobihospice.or.ke'); u.set_password('ci-ephemeral-e2e-password'); u.save()"
       - name: Install Playwright
         run: |
           cd e2e

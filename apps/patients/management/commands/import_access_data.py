@@ -7,8 +7,12 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
+from apps.assessments.models import Assessment, AssessmentTypeChoices
 from apps.encounters.models import Encounter, EncounterTypeChoices
+from apps.medications.models import MedicationStatement, MedicationStatusChoices, RouteChoices
 from apps.patients.models import (
+    Caregiver,
     NextOfKin,
     Patient,
     PatientStatusChoices,
@@ -18,13 +22,13 @@ from apps.symptoms.models import SymptomAssessmentRecord, SymptomScore, SymptomT
 
 
 class Command(BaseCommand):
-    help = 'Import historical patients and clinical records from legacy MS Access database (.accdb / .mdb)'
+    help = 'Import historical patients, clinical encounters, prescriptions, and history from legacy MS Access database (.accdb / .mdb)'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--db-path',
             type=str,
-            default=r"C:\Users\Little Human\Downloads\New folder (3)\Hospice V6.0_be.accdb",
+            default=r"C:\Users\Little Human\Desktop\NairobiHospice Access\Hospice V6.0_be.accdb",
             help='Path to the MS Access .accdb or .mdb file'
         )
         parser.add_argument(
@@ -63,15 +67,22 @@ class Command(BaseCommand):
 
         cursor = conn.cursor()
 
-        # Get system creator user
+        # Get system creator user and default staff profile
         admin_user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        from apps.accounts.models import StaffProfile
+        default_staff = StaffProfile.objects.filter(user=admin_user).first() or StaffProfile.objects.first()
+        if not default_staff and admin_user:
+            default_staff = StaffProfile.objects.create(user=admin_user, role='DOCTOR', department='Clinical Services')
 
         try:
             with transaction.atomic():
-                # 1. Import Patients
+                # -------------------------------------------------------------
+                # 1. Import Patients, Next of Kin & Caregivers
+                # -------------------------------------------------------------
                 imported_patients_count = 0
                 updated_patients_count = 0
                 nok_count = 0
+                cg_count = 0
                 patient_map = {}  # legacy_id -> Patient instance
 
                 query = "SELECT * FROM [Patients Database] WHERE [Patient ID] IS NOT NULL"
@@ -180,8 +191,11 @@ class Command(BaseCommand):
                     other_notes = (r.get('Other Notes') or '').strip()
                     referred_by = (r.get('Reffered By') or '').strip()
                     hiv_status = (r.get('HIV /RVD Status') or '').strip()
+                    ip_op_no = (r.get('IP/OP No') or '').strip()
 
                     clinical_notes_parts = []
+                    if ip_op_no:
+                        clinical_notes_parts.append(f"Legacy IP/OP No: {ip_op_no}")
                     if diagnosis:
                         clinical_notes_parts.append(f"Legacy Diagnosis: {diagnosis}")
                     if referred_by:
@@ -199,11 +213,17 @@ class Command(BaseCommand):
 
                     combined_notes = "\n".join(clinical_notes_parts)
 
+                    daycare_no = (r.get('Daycare No') or '').strip()
+
                     patient_defaults = {
                         'first_name': first_name,
                         'middle_name': middle_name,
                         'last_name': last_name,
                         'sex': sex,
+                        'ip_op_number': ip_op_no,
+                        'daycare_number': daycare_no,
+                        'hiv_status': hiv_status,
+                        'referred_by': referred_by,
                         'date_of_birth': dob_val,
                         'is_approximate_dob': is_approx_dob,
                         'phone_number': phone_str,
@@ -235,6 +255,14 @@ class Command(BaseCommand):
                     nok_phone_raw = r.get('Next of Kin Contacts')
                     nok_rel = (r.get('NOK Relationship') or '').strip() or 'Family Member'
                     nok_residence = (r.get('Next of Kin Residence') or '').strip()
+                    nok_gender = (r.get('NOK Gender') or '').strip()
+                    nok_age_raw = r.get('NOK Age')
+                    nok_age = None
+                    if nok_age_raw:
+                        try:
+                            nok_age = int(str(nok_age_raw).strip())
+                        except ValueError:
+                            nok_age = None
 
                     if nok_name:
                         nok_phone = ''
@@ -252,18 +280,62 @@ class Command(BaseCommand):
                                 'relationship': nok_rel,
                                 'phone_number': nok_phone,
                                 'address': nok_residence,
+                                'gender': nok_gender,
+                                'age': nok_age,
                                 'is_primary': True,
                             }
                         )
                         nok_count += 1
 
+                    # Caregiver
+                    cg_name = (r.get('CG FirsName') or '').strip().title()
+                    cg_phone_raw = r.get('CG Contacts')
+                    cg_rel = (r.get('CG Relationship') or '').strip() or 'Caregiver'
+                    cg_residence = (r.get('CG Residence') or '').strip()
+                    cg_notes = (r.get('CG Notes') or '').strip()
+                    cg_gender = (r.get('CG Gender') or '').strip()
+                    cg_age_raw = r.get('CG Age')
+                    cg_age = None
+                    if cg_age_raw:
+                        try:
+                            cg_age = int(str(cg_age_raw).strip())
+                        except ValueError:
+                            cg_age = None
+
+                    if cg_name:
+                        cg_phone = ''
+                        if cg_phone_raw:
+                            cgp_digits = str(cg_phone_raw).strip()
+                            if len(cgp_digits) >= 9:
+                                cg_phone = f"+254 {cgp_digits}" if not cgp_digits.startswith('+') else cgp_digits
+                            else:
+                                cg_phone = cgp_digits
+
+                        Caregiver.objects.update_or_create(
+                            patient=patient,
+                            name=cg_name,
+                            defaults={
+                                'relationship': cg_rel,
+                                'phone_number': cg_phone,
+                                'address': cg_residence,
+                                'gender': cg_gender,
+                                'age': cg_age,
+                                'notes': cg_notes,
+                                'is_primary': True,
+                            }
+                        )
+                        cg_count += 1
+
                 self.stdout.write(self.style.SUCCESS(
-                    f"Patients Processed: {imported_patients_count} new created, {updated_patients_count} updated. Next of Kin records: {nok_count}."
+                    f"Patients Processed: {imported_patients_count} new created, {updated_patients_count} updated. Next of Kin: {nok_count}, Caregivers: {cg_count}."
                 ))
 
-                # 2. Import Appointments & Encounters
+                # -------------------------------------------------------------
+                # 2. Import Appointments, Encounters & ESAS Symptoms
+                # -------------------------------------------------------------
                 imported_encounters_count = 0
                 imported_esas_count = 0
+                imported_appts_count = 0
 
                 cursor.execute("SELECT * FROM [Appointments] WHERE [Patient ID] IS NOT NULL")
                 appt_columns = [col[0] for col in cursor.description]
@@ -276,7 +348,6 @@ class Command(BaseCommand):
                     p_id = a.get('Patient ID')
                     patient = patient_map.get(p_id)
                     if not patient:
-                        # Try to look up patient by formatted hospice number
                         if p_id:
                             pid_s = str(p_id)
                             h_num = f"NH-{pid_s[:4]}-{int(pid_s[4:]):04d}" if len(pid_s) >= 5 else f"NH-LEG-{pid_s}"
@@ -299,12 +370,15 @@ class Command(BaseCommand):
                     if 'HOME' in appt_type_str:
                         enc_type = EncounterTypeChoices.HOME_VISIT
                         loc = 'Patient Residence (Home Visit)'
+                        appt_type = AppointmentTypeChoices.HOME_VISIT
                     elif 'COUNSEL' in appt_type_str:
                         enc_type = EncounterTypeChoices.COUNSELLING
                         loc = 'Psychosocial Support Room'
+                        appt_type = AppointmentTypeChoices.CLINIC_VISIT
                     else:
                         enc_type = EncounterTypeChoices.CLINIC_VISIT
                         loc = 'Nairobi Hospice Outpatient Clinic'
+                        appt_type = AppointmentTypeChoices.CLINIC_VISIT
 
                     # Extract Clinical Details
                     treatments_done = (a.get('Treatment Done') or a.get('Treatment1') or '').strip()
@@ -364,7 +438,6 @@ class Command(BaseCommand):
 
                     interventions_summary = "; ".join(interventions) if interventions else treatments_done or "Clinical Consultation"
 
-                    # Notes assembly
                     notes_lines = [
                         f"Legacy Clinician: {doctor_name or 'Nairobi Hospice Clinical Team'}",
                         f"Vitals: {vitals_summary}",
@@ -389,7 +462,7 @@ class Command(BaseCommand):
                     )
                     imported_encounters_count += 1
 
-                    # Create ESAS / Symptom assessment if pain score or symptoms are present
+                    # Create ESAS / Symptom assessment
                     numeric_pain = 0
                     if pain_score_raw:
                         try:
@@ -415,8 +488,143 @@ class Command(BaseCommand):
                             )
                         imported_esas_count += 1
 
+                    # Also create appointment record for historical scheduling
+                    if default_staff:
+                        Appointment.objects.get_or_create(
+                            patient=patient,
+                            scheduled_date=appt_date_val,
+                            defaults={
+                                'staff_member': default_staff,
+                                'appointment_type': appt_type,
+                                'location': loc,
+                                'reason': treatments_done or 'Palliative follow-up appointment',
+                                'status': AppointmentStatusChoices.COMPLETED,
+                                'outcome_notes': f"Attended on {appt_date_val}. {interventions_summary}",
+                                'created_by': admin_user,
+                            }
+                        )
+                        imported_appts_count += 1
+
                 self.stdout.write(self.style.SUCCESS(
-                    f"Encounters Processed: {imported_encounters_count} encounters created, {imported_esas_count} ESAS symptom assessments."
+                    f"Appointments & Encounters Processed: {imported_encounters_count} encounters, {imported_esas_count} ESAS assessments, {imported_appts_count} appointments."
+                ))
+
+                # -------------------------------------------------------------
+                # 3. Import Prescriptions & Medication Statements
+                # -------------------------------------------------------------
+                imported_meds_count = 0
+                cursor.execute("SELECT * FROM [Prescriptions] WHERE [Patient ID] IS NOT NULL")
+                rx_columns = [col[0] for col in cursor.description]
+                raw_rxs = cursor.fetchall()
+
+                self.stdout.write(f"Found {len(raw_rxs)} prescription records in MS Access. Processing...")
+
+                for row in raw_rxs:
+                    rx = {rx_columns[i]: row[i] for i in range(len(rx_columns))}
+                    p_id = rx.get('Patient ID')
+                    patient = patient_map.get(p_id)
+                    if not patient and p_id:
+                        pid_s = str(p_id)
+                        h_num = f"NH-{pid_s[:4]}-{int(pid_s[4:]):04d}" if len(pid_s) >= 5 else f"NH-LEG-{pid_s}"
+                        patient = Patient.objects.filter(hospice_number=h_num).first()
+
+                    if not patient:
+                        continue
+
+                    rx_date = rx.get('Prescription Date')
+                    if isinstance(rx_date, datetime):
+                        rx_date_val = rx_date.date()
+                    elif isinstance(rx_date, date):
+                        rx_date_val = rx_date
+                    else:
+                        rx_date_val = patient.registration_date
+
+                    for d_idx in range(1, 8):
+                        drug_name = rx.get(f'DRUG{d_idx}')
+                        if drug_name and str(drug_name).strip():
+                            dosage = rx.get(f'Dosage{d_idx}') or 'As directed'
+                            duration = rx.get(f'Duration{d_idx}') or ''
+                            dtype = rx.get(f'Type{d_idx}') or 'Oral'
+
+                            route = RouteChoices.ORAL
+                            if 'INJECTION' in str(dtype).upper() or 'INJ' in str(drug_name).upper():
+                                route = RouteChoices.SUBCUTANEOUS
+                            elif 'TOPICAL' in str(dtype).upper():
+                                route = RouteChoices.TOPICAL
+
+                            MedicationStatement.objects.create(
+                                patient=patient,
+                                medication_name=str(drug_name).strip(),
+                                dosage=str(dosage).strip(),
+                                route=route,
+                                frequency=str(duration).strip() or 'Daily',
+                                indication=f"Prescribed on {rx_date_val}",
+                                start_date=rx_date_val,
+                                status=MedicationStatusChoices.COMPLETED,
+                                prescriber=admin_user,
+                                prescriber_name='Nairobi Hospice Medical Officer',
+                                instructions_for_caregiver=f"Type: {dtype}. Duration: {duration}",
+                            )
+                            imported_meds_count += 1
+
+                self.stdout.write(self.style.SUCCESS(
+                    f"Prescriptions Processed: {imported_meds_count} medication statements created."
+                ))
+
+                # -------------------------------------------------------------
+                # 4. Import Patient Clinical History Records
+                # -------------------------------------------------------------
+                imported_history_count = 0
+                cursor.execute("SELECT * FROM [patients history] WHERE [History ID] IS NOT NULL")
+                hist_columns = [col[0] for col in cursor.description]
+                raw_hist = cursor.fetchall()
+
+                self.stdout.write(f"Found {len(raw_hist)} patient history records in MS Access. Processing...")
+
+                for row in raw_hist:
+                    h = {hist_columns[i]: row[i] for i in range(len(hist_columns))}
+                    h_id = h.get('History ID')
+                    patient = patient_map.get(h_id)
+                    if not patient and h_id:
+                        pid_s = str(h_id)
+                        h_num = f"NH-{pid_s[:4]}-{int(pid_s[4:]):04d}" if len(pid_s) >= 5 else f"NH-LEG-{pid_s}"
+                        patient = Patient.objects.filter(hospice_number=h_num).first()
+
+                    if not patient:
+                        continue
+
+                    h_summary_parts = []
+                    if h.get('C/C'):
+                        h_summary_parts.append(f"Chief Complaint: {h.get('C/C')}")
+                    if h.get('History of Presenting Illness'):
+                        h_summary_parts.append(f"History of Presenting Illness: {h.get('History of Presenting Illness')}")
+                    if h.get('History of past illness'):
+                        h_summary_parts.append(f"Past Medical History: {h.get('History of past illness')}")
+                    if h.get('Familial history'):
+                        h_summary_parts.append(f"Family History: {h.get('Familial history')}")
+                    if h.get('Drug History'):
+                        h_summary_parts.append(f"Past Drug History: {h.get('Drug History')}")
+                    if h.get('On Examination'):
+                        h_summary_parts.append(f"Physical Examination: {h.get('On Examination')}")
+                    if h.get('Radiological Examination'):
+                        h_summary_parts.append(f"Radiology Findings: {h.get('Radiological Examination')}")
+                    if h.get('Investigation results'):
+                        h_summary_parts.append(f"Lab Investigations: {h.get('Investigation results')}")
+                    if h.get('Confirm Diagnosis') or h.get('Provisional Diagnosis'):
+                        h_summary_parts.append(f"Confirmed Diagnosis: {h.get('Confirm Diagnosis') or h.get('Provisional Diagnosis')}")
+
+                    if h_summary_parts:
+                        Assessment.objects.create(
+                            patient=patient,
+                            assessment_type=AssessmentTypeChoices.INITIAL,
+                            assessment_date=patient.registration_date,
+                            clinical_summary="\n".join(h_summary_parts),
+                            assessor=admin_user,
+                        )
+                        imported_history_count += 1
+
+                self.stdout.write(self.style.SUCCESS(
+                    f"Patient History Processed: {imported_history_count} initial clinical assessments created."
                 ))
 
                 if is_dry_run:
@@ -434,6 +642,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("\n======================================================="))
         self.stdout.write(self.style.SUCCESS(" MIGRATION SUCCESSFUL!"))
         self.stdout.write(self.style.SUCCESS(f" Total Patients: {Patient.objects.count():,}"))
-        self.stdout.write(self.style.SUCCESS(f" Total Encounters: {Encounter.objects.count():,}"))
         self.stdout.write(self.style.SUCCESS(f" Total Next of Kin: {NextOfKin.objects.count():,}"))
+        self.stdout.write(self.style.SUCCESS(f" Total Caregivers: {Caregiver.objects.count():,}"))
+        self.stdout.write(self.style.SUCCESS(f" Total Encounters: {Encounter.objects.count():,}"))
+        self.stdout.write(self.style.SUCCESS(f" Total Prescriptions: {MedicationStatement.objects.count():,}"))
+        self.stdout.write(self.style.SUCCESS(f" Total Clinical Assessments: {Assessment.objects.count():,}"))
         self.stdout.write(self.style.SUCCESS("=======================================================\n"))

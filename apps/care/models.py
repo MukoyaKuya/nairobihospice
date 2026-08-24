@@ -181,3 +181,26 @@ class CarePlanNeed(models.Model):
 
     def __str__(self):
         return f"[{self.get_category_display()}] {self.problem_description[:50]}"
+
+
+class ClinicalAdvice(models.Model):
+    """
+    Standardized clinical procedure guidelines and patient care instructions
+    from the Hospice knowledge base.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    procedure = models.CharField(max_length=150, db_index=True)
+    heading = models.CharField(max_length=200, blank=True)
+    advice_text = models.TextField()
+    category = models.CharField(max_length=100, default='Procedural Care & Patient Advice')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Clinical Advice Guide')
+        verbose_name_plural = _('Clinical Advice Guides')
+        ordering = ['procedure']
+
+    def __str__(self):
+        return f"{self.procedure} - {self.heading or 'Clinical Advice'}"

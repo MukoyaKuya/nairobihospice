@@ -32,7 +32,7 @@
 
                 <!-- User Profile Dropdown -->
                 <div class="relative" x-data="{ userMenu: false }">
-                    <button @click="userMenu = !userMenu" class="flex items-center space-x-2.5 p-1 rounded-xl hover:bg-slate-100 transition">
+                    <button @click="userMenu = !userMenu" aria-label="User menu" class="flex items-center space-x-2.5 p-1 rounded-xl hover:bg-slate-100 transition">
                         <div class="w-9 h-9 rounded-full bg-[#002D62] text-white font-bold text-xs flex items-center justify-center border-2 border-red-500 overflow-hidden shadow-sm">
                             {% if current_user.staff_profile.profile_picture %}
                             <img src="{{ current_user.staff_profile.profile_picture.url }}" alt="{{ current_user.display_name }}" class="w-full h-full object-cover">
@@ -64,9 +64,12 @@
                             {% endif %}
                         </div>
                         <div class="py-1">
-                            <a href="{% url 'accounts:logout' %}" class="flex items-center px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-red-50">
-                                <i data-lucide="log-out" class="w-4 h-4 mr-2.5 text-[#991B1B]"></i> Sign Out
-                            </a>
+                            <form method="post" action="{% url 'accounts:logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="w-full flex items-center px-4 py-2 text-xs font-bold text-[#991B1B] hover:bg-red-50">
+                                    <i data-lucide="log-out" class="w-4 h-4 mr-2.5 text-[#991B1B]"></i> Sign Out
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

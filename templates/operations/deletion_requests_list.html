@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block title %}Patient Deletion Requests - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="space-y-6" x-data="{ 
+    showApproveModal: false, 
+    showRejectModal: false, 
+    selectedReq: null,
+    approveUrl: '',
+    rejectUrl: ''
+}">
+
+    <!-- Header & Breadcrumbs -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2 text-xs text-slate-500 mb-1">
+                <a href="{% url 'operations:dashboard' %}" class="hover:text-[#002D62] font-semibold flex items-center">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Operations Dashboard
+                </a>
+                <span>/</span>
+                <span class="text-slate-900 font-bold">Patient Deletion Governance</span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-6 h-6 text-rose-600"></i>
+                <span>Patient Record Deletion Requests</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Authorize or reject requested deletions submitted by Front Desk and Clinical teams.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a href="{% url 'patients:patient_list' %}" class="px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition flex items-center space-x-1.5">
+                <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                <span>Patient Directory</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="{% url 'operations:deletion_requests' %}?status=PENDING" 
+           class="p-4 rounded-2xl border transition {% if selected_status == 'PENDING' or not selected_status %}bg-rose-50/70 border-rose-300 ring-2 ring-rose-500/20{% else %}bg-white border-slate-200 hover:bg-slate-50{% endif %}">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-rose-700 block">Pending Review</span>
+                    <span class="text-2xl font-black text-rose-900">{{ pending_count }}</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-black">
+                    <i data-lucide="clock" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'operations:deletion_requests' %}?status=APPROVED" 
+           class="p-4 rounded-2xl border transition {% if selected_status == 'APPROVED' %}bg-slate-100 border-slate-400 ring-2 ring-slate-500/20{% else %}bg-white border-slate-200 hover:bg-slate-50{% endif %}">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 block">Approved & Purged</span>
+                    <span class="text-2xl font-black text-slate-900">{{ approved_count }}</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'operations:deletion_requests' %}?status=REJECTED" 
+           class="p-4 rounded-2xl border transition {% if selected_status == 'REJECTED' %}bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-500/20{% else %}bg-white border-slate-200 hover:bg-slate-50{% endif %}">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 block">Rejected (Preserved)</span>
+                    <span class="text-2xl font-black text-emerald-900">{{ rejected_count }}</span>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Table Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700">Deletion Requests Dossier</h3>
+            {% if selected_status %}
+            <a href="{% url 'operations:deletion_requests' %}" class="text-[11px] font-bold text-[#002D62] hover:underline">
+                Clear Status Filter
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs divide-y divide-slate-100">
+                <thead class="bg-slate-50/80 text-[10px] font-bold uppercase text-slate-500 tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3">Patient Name & File No.</th>
+                        <th class="px-4 py-3">Requested By & Date</th>
+                        <th class="px-4 py-3">Justification / Reason</th>
+                        <th class="px-4 py-3 text-center">Status</th>
+                        <th class="px-4 py-3 text-right">Review Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium">
+                    {% for req in deletion_requests %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <!-- Patient -->
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                            <div class="font-bold text-slate-900">{{ req.patient_name }}</div>
+                            <div class="flex items-center space-x-1.5 text-[10px] text-slate-500 font-mono mt-0.5">
+                                <span class="font-bold text-[#002D62]">{{ req.hospice_number }}</span>
+                                {% if req.ip_op_number %}
+                                <span>&bull;</span>
+                                <span class="text-amber-800">OP: {{ req.ip_op_number }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Requested By -->
+                        <td class="px-4 py-3.5 whitespace-nowrap">
+                            <div class="font-semibold text-slate-800">{{ req.requested_by.display_name }}</div>
+                            <div class="text-[10px] text-slate-400 font-mono">{{ req.created_at|date:"d M Y, H:i" }}</div>
+                        </td>
+
+                        <!-- Reason -->
+                        <td class="px-4 py-3.5 max-w-sm">
+                            <div class="text-xs text-slate-700 leading-relaxed font-normal bg-slate-50 p-2 rounded-lg border border-slate-200/70">
+                                {{ req.reason }}
+                            </div>
+                            {% if req.review_notes %}
+                            <div class="mt-1.5 text-[10.5px] text-slate-500">
+                                <strong>Operations Note:</strong> {{ req.review_notes }}
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="px-4 py-3.5 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9.5px] font-bold uppercase tracking-wider
+                                {% if req.status == 'PENDING' %}bg-rose-100 text-rose-800 border border-rose-300
+                                {% elif req.status == 'APPROVED' %}bg-slate-100 text-slate-700 border border-slate-300
+                                {% else %}bg-emerald-100 text-emerald-800 border border-emerald-300{% endif %}">
+                                {{ req.get_status_display }}
+                            </span>
+                        </td>
+
+                        <!-- Action Buttons -->
+                        <td class="px-4 py-3.5 whitespace-nowrap text-right">
+                            {% if req.status == 'PENDING' %}
+                            <div class="flex items-center justify-end space-x-1.5">
+                                <button type="button" 
+                                        @click="showApproveModal = true; selectedReq = { name: '{{ req.patient_name|escapejs }}', number: '{{ req.hospice_number }}', id: '{{ req.pk }}' }; approveUrl = '{% url 'operations:deletion_request_approve' req.pk %}';"
+                                        class="px-2.5 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center space-x-1 cursor-pointer">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                                    <span>Approve & Delete</span>
+                                </button>
+                                <button type="button" 
+                                        @click="showRejectModal = true; selectedReq = { name: '{{ req.patient_name|escapejs }}', number: '{{ req.hospice_number }}', id: '{{ req.pk }}' }; rejectUrl = '{% url 'operations:deletion_request_reject' req.pk %}';"
+                                        class="px-2.5 py-1 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg transition cursor-pointer">
+                                    <span>Reject</span>
+                                </button>
+                            </div>
+                            {% else %}
+                            <span class="text-[11px] text-slate-400 italic">
+                                Reviewed by {{ req.reviewed_by.display_name|default:"Operations" }} on {{ req.reviewed_at|date:"d/m/Y" }}
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-xs text-slate-400 bg-slate-50/50">
+                            <i data-lucide="check-circle" class="w-8 h-8 mx-auto text-emerald-400 mb-1"></i>
+                            No patient deletion requests found matching your filter.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Approve Deletion Modal -->
+    <div x-cloak x-show="showApproveModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-rose-200 space-y-4" @click.outside="showApproveModal = false">
+            <div class="flex items-center space-x-3 text-rose-700">
+                <div class="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center">
+                    <i data-lucide="alert-triangle" class="w-6 h-6 text-rose-600"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">Authorize Permanent Deletion</h3>
+                    <p class="text-[11px] text-slate-500">Irreversible patient file purge</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed">
+                You are approving the permanent removal of patient record <strong x-text="selectedReq?.name"></strong> (<span x-text="selectedReq?.number" class="font-mono text-slate-900"></span>).
+            </p>
+
+            <form :action="approveUrl" method="POST" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Approval / Governance Notes (Optional)</label>
+                    <textarea name="review_notes" rows="2" placeholder="e.g., Verified duplicate file #081/21 created by mistake..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-2">
+                    <button type="button" @click="showApproveModal = false" class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition cursor-pointer">
+                        Confirm & Purge Patient File
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reject Deletion Modal -->
+    <div x-cloak x-show="showRejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4" @click.outside="showRejectModal = false">
+            <div class="flex items-center space-x-3 text-slate-800">
+                <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-6 h-6 text-slate-700"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">Reject Deletion Request</h3>
+                    <p class="text-[11px] text-slate-500">Patient file will remain active and intact</p>
+                </div>
+            </div>
+
+            <form :action="rejectUrl" method="POST" class="space-y-3">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Reason for Rejection *</label>
+                    <textarea name="review_notes" required rows="2" placeholder="e.g. Valid clinical history on record, do not delete..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-2">
+                    <button type="button" @click="showRejectModal = false" class="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-xs transition cursor-pointer">
+                        Reject Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

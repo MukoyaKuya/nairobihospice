@@ -7,6 +7,66 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 
+class DeletionRequestStatusChoices(models.TextChoices):
+    PENDING = 'PENDING', _('Pending Operations Approval')
+    APPROVED = 'APPROVED', _('Approved & Purged')
+    REJECTED = 'REJECTED', _('Rejected')
+
+
+class PatientDeletionRequest(models.Model):
+    """
+    Formal deletion request submitted by front desk or clinicians,
+    requiring Operations Manager / Admin authorization before purging patient records.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    patient = models.ForeignKey(
+        'patients.Patient',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deletion_requests'
+    )
+    patient_id_copy = models.UUIDField(null=True, blank=True)
+    patient_name = models.CharField(max_length=200)
+    hospice_number = models.CharField(max_length=50)
+    ip_op_number = models.CharField(max_length=50, blank=True)
+    
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='requested_deletions'
+    )
+    reason = models.TextField(help_text=_('Reason why this patient file should be deleted (duplicate, test, error, etc.)'))
+    
+    status = models.CharField(
+        max_length=20,
+        choices=DeletionRequestStatusChoices.choices,
+        default=DeletionRequestStatusChoices.PENDING,
+        db_index=True
+    )
+    
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_deletions'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Patient Deletion Request')
+        verbose_name_plural = _('Patient Deletion Requests')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Deletion Request: {self.patient_name} ({self.hospice_number}) - {self.get_status_display()}"
+
+
 class VendorCategoryChoices(models.TextChoices):
     PHARMACEUTICAL = 'PHARMACEUTICAL', _('Pharmaceutical & Essential Meds')
     CONSUMABLES = 'CONSUMABLES', _('Medical Consumables & Wound Care')
@@ -136,14 +196,14 @@ class ProcurementOrder(models.Model):
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     po_number = models.CharField(max_length=50, unique=True, db_index=True)
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name='procurement_orders')
+    vendor = models.ForeignKey(Vendor, on_delete=models.PROTECT, related_name='procurement_orders')
     order_date = models.DateField(default=timezone.now, db_index=True)
     expected_delivery_date = models.DateField(null=True, blank=True)
     actual_delivery_date = models.DateField(null=True, blank=True)
     status = models.CharField(
         max_length=30,
         choices=ProcurementStatusChoices.choices,
-        default=ProcurementStatusChoices.APPROVED,
+        default=ProcurementStatusChoices.PENDING_APPROVAL,
         db_index=True
     )
     total_amount_kes = models.DecimalField(max_digits=14, decimal_places=2, default=0.00, verbose_name="Total Amount (KES)")
@@ -182,8 +242,8 @@ class ProcurementOrderItem(models.Model):
     Line item inside a procurement order.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    order = models.ForeignKey(ProcurementOrder, on_delete=models.CASCADE, related_name='items')
-    stock_item = models.ForeignKey(StockItem, on_delete=models.CASCADE, related_name='order_items')
+    order = models.ForeignKey(ProcurementOrder, on_delete=models.PROTECT, related_name='items')
+    stock_item = models.ForeignKey(StockItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     quantity_requested = models.IntegerField(default=1)
     quantity_received = models.IntegerField(default=0)
     unit_price_kes = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -218,7 +278,7 @@ class StockMovement(models.Model):
     Immutable audit ledger of inventory inflows, outflows, and adjustments.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    stock_item = models.ForeignKey(StockItem, on_delete=models.CASCADE, related_name='movements')
+    stock_item = models.ForeignKey(StockItem, on_delete=models.PROTECT, related_name='movements')
     movement_type = models.CharField(max_length=20, choices=MovementTypeChoices.choices, db_index=True)
     quantity = models.IntegerField(help_text=_("Positive for inbound, negative for outbound"))
     balance_after = models.IntegerField()
@@ -242,6 +302,16 @@ class StockMovement(models.Model):
 
     def __str__(self):
         return f"{self.stock_item.name} | {self.get_movement_type_display()}: {self.quantity} ({self.created_at.strftime('%d %b %Y')})"
+
+    def save(self, *args, **kwargs):
+        # The movement ledger is an append-only record (controlled substances
+        # compliance). Corrections are new ADJUSTMENT movements, never edits.
+        if not self._state.adding:
+            raise RuntimeError('Stock movements are immutable and cannot be updated.')
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise RuntimeError('Stock movements are immutable and cannot be deleted.')
 
 
 class InvoiceTypeChoices(models.TextChoices):

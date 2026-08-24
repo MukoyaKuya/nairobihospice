@@ -13,13 +13,20 @@ async function login(page, email = process.env.PCMS_E2E_RECEPTION_EMAIL, passwor
   await expect(page).not.toHaveURL(/\/accounts\/login\//);
 }
 
+// Logout is POST-only (CSRF protection); open the user menu and use its form.
+async function logout(page) {
+  await page.getByRole('button', { name: 'User menu' }).click();
+  await page.getByRole('button', { name: /sign out|logout/i }).first().click();
+  await expect(page).toHaveURL(/\/accounts\/login\//);
+}
+
 test.describe('PCMS staging browser flows', () => {
   test('1. login and privileged MFA enrollment', async ({ page }) => {
     await login(page);
     await expect(page).toHaveURL(/\/reporting\/|\/patients\/|\/accounts\//);
 
     test.skip(!process.env.PCMS_E2E_MANAGER_EMAIL, 'Set manager credentials to run MFA flow');
-    await page.goto('/accounts/logout/');
+    await logout(page);
     await login(page, process.env.PCMS_E2E_MANAGER_EMAIL, process.env.PCMS_E2E_MANAGER_PASSWORD);
     if (await page.getByText(/MFA|authenticator/i).count()) {
       await expect(page).toHaveURL(/mfa/);
@@ -61,8 +68,7 @@ test.describe('PCMS staging browser flows', () => {
 
   test('6. logout and session-expiry behavior', async ({ page }) => {
     await login(page);
-    await page.goto('/accounts/logout/');
-    await expect(page).toHaveURL(/\/accounts\/login\//);
+    await logout(page);
     await page.goto('/patients/');
     await expect(page).toHaveURL(/\/accounts\/login\//);
   });
