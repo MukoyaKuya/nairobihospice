@@ -9,7 +9,7 @@ from apps.accounts.permissions import ClinicalStaffRequiredMixin
 from apps.patients.access import authorized_patient_queryset, get_authorized_patient_or_404
 from apps.patients.models import Patient
 
-from .forms import CarePlanForm, CarePlanNeedForm, CareTeamMemberForm
+from .forms import CarePlanForm, CarePlanNeedForm, CareTeamMemberForm, ClinicalAdviceForm
 from .models import CarePlan, CarePlanStatusChoices, ClinicalAdvice
 from .services import assign_care_team_member, create_care_plan, start_episode_of_care
 
@@ -195,15 +195,70 @@ class ClinicalAdviceListView(LoginRequiredMixin, View):
     """
     def get(self, request):
         query = request.GET.get('q', '').strip()
-        advices = ClinicalAdvice.objects.filter(is_active=True)
+        advices = ClinicalAdvice.objects.filter(is_active=True).order_by('procedure')
         if query:
             advices = advices.filter(
                 models.Q(procedure__icontains=query) |
                 models.Q(heading__icontains=query) |
                 models.Q(advice_text__icontains=query)
             )
+        can_edit = bool(
+            request.user.is_authenticated and (
+                request.user.is_clinical or request.user.is_manager or request.user.is_administrator
+            )
+        )
         return render(request, 'care/advice_list.html', {
             'advices': advices,
             'query': query,
             'total_advices': advices.count(),
+            'can_edit': can_edit,
         })
+
+
+class ClinicalAdviceCreateView(LoginRequiredMixin, View):
+    def get(self, request):
+        if not request.user.is_clinical and not request.user.is_manager and not request.user.is_administrator:
+            raise PermissionDenied("Only clinical staff and administrators may manage clinical advice guides.")
+        form = ClinicalAdviceForm()
+        return render(request, 'care/advice_form.html', {'form': form, 'is_edit': False})
+
+    def post(self, request):
+        if not request.user.is_clinical and not request.user.is_manager and not request.user.is_administrator:
+            raise PermissionDenied("Only clinical staff and administrators may manage clinical advice guides.")
+        form = ClinicalAdviceForm(request.POST)
+        if form.is_valid():
+            advice = form.save()
+            messages.success(request, f"Clinical advice protocol '{advice.heading}' created successfully.")
+            return redirect('care:advice_list')
+        return render(request, 'care/advice_form.html', {'form': form, 'is_edit': False})
+
+
+class ClinicalAdviceUpdateView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        if not request.user.is_clinical and not request.user.is_manager and not request.user.is_administrator:
+            raise PermissionDenied("Only clinical staff and administrators may manage clinical advice guides.")
+        advice = get_object_or_404(ClinicalAdvice, pk=pk)
+        form = ClinicalAdviceForm(instance=advice)
+        return render(request, 'care/advice_form.html', {'form': form, 'advice': advice, 'is_edit': True})
+
+    def post(self, request, pk):
+        if not request.user.is_clinical and not request.user.is_manager and not request.user.is_administrator:
+            raise PermissionDenied("Only clinical staff and administrators may manage clinical advice guides.")
+        advice = get_object_or_404(ClinicalAdvice, pk=pk)
+        form = ClinicalAdviceForm(request.POST, instance=advice)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Clinical advice protocol '{advice.heading}' updated successfully.")
+            return redirect('care:advice_list')
+        return render(request, 'care/advice_form.html', {'form': form, 'advice': advice, 'is_edit': True})
+
+
+class ClinicalAdviceDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        if not request.user.is_clinical and not request.user.is_manager and not request.user.is_administrator:
+            raise PermissionDenied("Only clinical staff and administrators may delete clinical advice guides.")
+        advice = get_object_or_404(ClinicalAdvice, pk=pk)
+        title = advice.heading or advice.procedure
+        advice.delete()
+        messages.success(request, f"Clinical advice protocol '{title}' deleted successfully.")
+        return redirect('care:advice_list')

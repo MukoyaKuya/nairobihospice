@@ -16,27 +16,36 @@
                 <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Clinical Advices & Patient Guides</h1>
             </div>
             <p class="text-xs text-slate-500 mt-1">
-                Standardized procedural guidelines, post-treatment instructions, and patient self-care advice protocols.
+                Standardized palliative protocols, step-by-step procedural guidelines, and patient self-care instructions.
             </p>
         </div>
 
-        <!-- Search Form -->
-        <form method="GET" class="flex items-center gap-2 max-w-sm w-full">
-            <div class="relative flex-1">
-                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
-                <input type="text" name="q" value="{{ query|default:'' }}" 
-                       placeholder="Search procedure, advice..."
-                       class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-            </div>
-            <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl shadow-xs transition">
-                Search
-            </button>
-            {% if query %}
-            <a href="{% url 'care:advice_list' %}" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
-                Clear
+        <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            <!-- Search Form -->
+            <form method="GET" class="flex items-center gap-2 max-w-sm w-full">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                    <input type="text" name="q" value="{{ query|default:'' }}" 
+                           placeholder="Search procedure, advice..." 
+                           class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                </div>
+                <button type="submit" class="px-3.5 py-2 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl shadow-xs transition">
+                    Search
+                </button>
+                {% if query %}
+                <a href="{% url 'care:advice_list' %}" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Clear
+                </a>
+                {% endif %}
+            </form>
+
+            {% if can_edit %}
+            <a href="{% url 'care:advice_create' %}" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition flex items-center gap-1.5 shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add New Guide</span>
             </a>
             {% endif %}
-        </form>
+        </div>
     </div>
 
     <!-- Advice Grid -->
@@ -50,7 +59,24 @@
                     <span class="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#002D62] text-[10px] font-black tracking-wider uppercase">
                         {{ advice.procedure }}
                     </span>
-                    <span class="text-[10px] text-slate-400 font-medium">Protocol #{{ forloop.counter }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-slate-400 font-medium">Protocol #{{ forloop.counter }}</span>
+                        {% if can_edit %}
+                        <a href="{% url 'care:advice_edit' advice.id %}" 
+                           class="p-1 rounded-lg text-slate-400 hover:text-[#002D62] hover:bg-blue-50 transition" 
+                           title="Edit Guide">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </a>
+                        <form method="POST" action="{% url 'care:advice_delete' advice.id %}" 
+                              onsubmit="return confirm('Are you sure you want to delete this clinical guide?');" 
+                              class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer" title="Delete Guide">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
                 </div>
 
                 <h2 class="text-base font-bold text-slate-900 tracking-tight">
@@ -67,13 +93,23 @@
             <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span class="text-[10px] text-slate-400">Category: {{ advice.category }}</span>
                 
-                <button type="button" 
-                        @click="navigator.clipboard.writeText(document.getElementById('advice-text-{{ advice.id }}').innerText); copied = true; setTimeout(() => copied = false, 2500);"
-                        class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-                        :class="copied ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'">
-                    <i :data-lucide="copied ? 'check' : 'copy'" class="w-3.5 h-3.5"></i>
-                    <span x-text="copied ? 'Copied to Clipboard!' : 'Copy Advice'">Copy Advice</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    {% if can_edit %}
+                    <a href="{% url 'care:advice_edit' advice.id %}" 
+                       class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-[#002D62] bg-blue-50/80 hover:bg-blue-100 border border-blue-200 transition flex items-center gap-1">
+                        <i data-lucide="pencil" class="w-3 h-3"></i>
+                        <span>Edit</span>
+                    </a>
+                    {% endif %}
+
+                    <button type="button" 
+                            @click="navigator.clipboard.writeText(document.getElementById('advice-text-{{ advice.id }}').innerText); copied = true; setTimeout(() => copied = false, 2500);"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                            :class="copied ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'">
+                        <i :data-lucide="copied ? 'check' : 'copy'" class="w-3.5 h-3.5"></i>
+                        <span x-text="copied ? 'Copied to Clipboard!' : 'Copy Advice'">Copy Advice</span>
+                    </button>
+                </div>
             </div>
 
         </div>
@@ -81,7 +117,13 @@
         <div class="col-span-full p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-2">
             <i data-lucide="book-open-check" class="w-10 h-10 mx-auto text-slate-300"></i>
             <h3 class="text-sm font-bold text-slate-700">No Clinical Advices Found</h3>
-            <p class="text-xs text-slate-400">Try adjusting your search keywords.</p>
+            <p class="text-xs text-slate-400">Try adjusting your search keywords or add a new guide.</p>
+            {% if can_edit %}
+            <a href="{% url 'care:advice_create' %}" class="inline-flex items-center gap-1.5 mt-2 px-4 py-2 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl transition">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Add First Clinical Guide</span>
+            </a>
+            {% endif %}
         </div>
         {% endfor %}
     </div>

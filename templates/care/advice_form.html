@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Clinical Advice Guide{% else %}Add New Clinical Advice Protocol{% endif %} - Nairobi Hospice PCMS{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-5">
+    
+    <!-- Breadcrumb & Header -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div>
+            <div class="flex items-center space-x-2 text-xs text-[#002D62] font-semibold mb-1">
+                <a href="{% url 'care:advice_list' %}" class="hover:underline flex items-center gap-1">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                    <span>Clinical Advices</span>
+                </a>
+                <span>/</span>
+                <span>{% if is_edit %}Edit Protocol{% else %}New Protocol{% endif %}</span>
+            </div>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight">
+                {% if is_edit %}Edit Clinical Guide: {{ advice.heading|default:advice.procedure }}{% else %}Create New Clinical Advice Protocol{% endif %}
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Author standardized step-by-step palliative procedures, symptom control guidelines, and patient self-care instructions.</p>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-6">
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-1">
+                {% for err in form.non_field_errors %}
+                <p>{{ err }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                <!-- Procedure / Topic -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Procedure / Clinical Topic <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.procedure }}
+                    {% if form.procedure.errors %}
+                    <p class="text-[11px] text-red-600 font-medium">{{ form.procedure.errors.0 }}</p>
+                    {% endif %}
+                    <span class="text-[10px] text-slate-400 block">Short identifier (e.g., Opioid Bowel Care, Extraction, Wound Dressing)</span>
+                </div>
+
+                <!-- Category -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Category <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.category }}
+                    {% if form.category.errors %}
+                    <p class="text-[11px] text-red-600 font-medium">{{ form.category.errors.0 }}</p>
+                    {% endif %}
+                    <span class="text-[10px] text-slate-400 block">Grouping code (e.g., PALLIATIVE_CARE, ORAL_CARE, SYMPTOM_CONTROL)</span>
+                </div>
+
+            </div>
+
+            <!-- Full Heading Title -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Full Protocol Heading / Title <span class="text-red-500">*</span>
+                </label>
+                {{ form.heading }}
+                {% if form.heading.errors %}
+                <p class="text-[11px] text-red-600 font-medium">{{ form.heading.errors.0 }}</p>
+                {% endif %}
+                <span class="text-[10px] text-slate-400 block">Descriptive clinical title displayed at the top of the guide card</span>
+            </div>
+
+            <!-- Advice Text -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Procedural Instructions & Patient Advice <span class="text-red-500">*</span>
+                </label>
+                {{ form.advice_text }}
+                {% if form.advice_text.errors %}
+                <p class="text-[11px] text-red-600 font-medium">{{ form.advice_text.errors.0 }}</p>
+                {% endif %}
+                <span class="text-[10px] text-slate-400 block">Numbered steps, warning flags, dosage timings, or patient home-care instructions</span>
+            </div>
+
+            <!-- Is Active Checkbox -->
+            <div class="flex items-center space-x-2 pt-2">
+                {{ form.is_active }}
+                <label for="{{ form.is_active.id_for_label }}" class="text-xs font-bold text-slate-700 cursor-pointer">
+                    Active (Publish in Clinical Knowledge Repository)
+                </label>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <a href="{% url 'care:advice_list' %}" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                    <span>{% if is_edit %}Save Changes{% else %}Create Guide{% endif %}</span>
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}
