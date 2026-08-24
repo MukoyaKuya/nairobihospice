@@ -25,13 +25,10 @@
 
     <!-- Compact Centered Authentication Card -->
     <div class="relative z-10 w-full max-w-[420px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-5 sm:p-6 border border-slate-200/80 text-center space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
-        
-        <!-- Top Colored Brand Accent -->
-        <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[#002D62] via-[#991B1B] to-[#002D62] rounded-t-2xl"></div>
 
-        <!-- Official Logo Header -->
-        <div class="flex flex-col items-center pt-0.5">
-            <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="h-10 sm:h-11 w-auto object-contain mb-1">
+        <!-- Official Logo Header (Larger Logo) -->
+        <div class="flex flex-col items-center pt-1">
+            <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="h-14 sm:h-16 w-auto object-contain mb-1.5 drop-shadow-xs">
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-[#002D62] text-[9px] font-bold tracking-wider uppercase border border-slate-200/60">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 <span>Palliative Care Management System</span>
@@ -49,93 +46,89 @@
             </div>
             {% endif %}
 
-            <!-- Role Selector: 8 Core Roles in 2 Compact Rows -->
+            <!-- Role Selector: 7 Core Staff Roles -->
             <div class="space-y-1">
                 <div class="flex items-center justify-between text-[10px]">
                     <span class="font-bold uppercase tracking-wider text-slate-500">Select Role</span>
                     <span class="font-bold text-[#002D62] truncate max-w-[200px]" x-text="roleEmail">doctor@nairobihospice.or.ke</span>
                 </div>
 
-                <div class="grid grid-cols-4 gap-1">
-                    <!-- 1. Reception -->
-                    <button type="button" @click="setRole('reception@nairobihospice.or.ke')"
-                            :class="roleEmail === 'reception@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="users" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'reception@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Reception</span>
-                    </button>
+                <div class="space-y-1">
+                    <!-- Row 1: 4 Primary Care Roles -->
+                    <div class="grid grid-cols-4 gap-1">
+                        <!-- 1. Reception -->
+                        <button type="button" @click="setRole('reception@nairobihospice.or.ke')"
+                                :class="roleEmail === 'reception@nairobihospice.or.ke' 
+                                    ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="users" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'reception@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Reception</span>
+                        </button>
 
-                    <!-- 2. Doctor -->
-                    <button type="button" @click="setRole('doctor@nairobihospice.or.ke')"
-                            :class="roleEmail === 'doctor@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="stethoscope" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'doctor@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Doctor</span>
-                    </button>
+                        <!-- 2. Doctor -->
+                        <button type="button" @click="setRole('doctor@nairobihospice.or.ke')"
+                                :class="roleEmail === 'doctor@nairobihospice.or.ke' 
+                                    ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="stethoscope" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'doctor@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Doctor</span>
+                        </button>
 
-                    <!-- 3. Nurse -->
-                    <button type="button" @click="setRole('nurse@nairobihospice.or.ke')"
-                            :class="roleEmail === 'nurse@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="heart-pulse" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'nurse@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Nurse</span>
-                    </button>
+                        <!-- 3. Nurse -->
+                        <button type="button" @click="setRole('nurse@nairobihospice.or.ke')"
+                                :class="roleEmail === 'nurse@nairobihospice.or.ke' 
+                                    ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="heart-pulse" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'nurse@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Nurse</span>
+                        </button>
 
-                    <!-- 4. Clinical Officer -->
-                    <button type="button" @click="setRole('co@nairobihospice.or.ke')"
-                            :class="roleEmail === 'co@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="user-check" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'co@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Clin. Officer</span>
-                    </button>
+                        <!-- 4. Clinical Officer -->
+                        <button type="button" @click="setRole('co@nairobihospice.or.ke')"
+                                :class="roleEmail === 'co@nairobihospice.or.ke' 
+                                    ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="user-check" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'co@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Clin. Officer</span>
+                        </button>
+                    </div>
 
-                    <!-- 5. Pharmacist -->
-                    <button type="button" @click="setRole('pharmacist@nairobihospice.or.ke')"
-                            :class="roleEmail === 'pharmacist@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="pill" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'pharmacist@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Pharmacist</span>
-                    </button>
+                    <!-- Row 2: 3 Specialized Roles (Balanced 3 columns) -->
+                    <div class="grid grid-cols-3 gap-1">
+                        <!-- 5. Pharmacist -->
+                        <button type="button" @click="setRole('pharmacist@nairobihospice.or.ke')"
+                                :class="roleEmail === 'pharmacist@nairobihospice.or.ke' 
+                                    ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="pill" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'pharmacist@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Pharmacist</span>
+                        </button>
 
-                    <!-- 6. Social Worker -->
-                    <button type="button" @click="setRole('social@nairobihospice.or.ke')"
-                            :class="roleEmail === 'social@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="clipboard-list" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'social@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Social Work</span>
-                    </button>
+                        <!-- 6. Social Worker -->
+                        <button type="button" @click="setRole('social@nairobihospice.or.ke')"
+                                :class="roleEmail === 'social@nairobihospice.or.ke' 
+                                    ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="clipboard-list" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'social@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Social Work</span>
+                        </button>
 
-                    <!-- 7. Operations -->
-                    <button type="button" @click="setRole('manager@nairobihospice.or.ke')"
-                            :class="roleEmail === 'manager@nairobihospice.or.ke' 
+                        <!-- 7. Operations -->
+                        <button type="button" @click="setRole('manager@nairobihospice.or.ke')"
+                                :class="roleEmail === 'manager@nairobihospice.or.ke' 
                                 ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
                                 : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="briefcase" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'manager@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Operations</span>
-                    </button>
-
-                    <!-- 8. Admin -->
-                    <button type="button" @click="setRole('admin@nairobihospice.or.ke')"
-                            :class="roleEmail === 'admin@nairobihospice.or.ke' 
-                                ? 'bg-[#002D62] text-white font-bold shadow-xs border-[#002D62]' 
-                                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'"
-                            class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
-                        <i data-lucide="shield-check" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'admin@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
-                        <span class="text-[9px] block leading-tight">Admin</span>
-                    </button>
+                                class="flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition text-center cursor-pointer select-none active:scale-95">
+                            <i data-lucide="briefcase" class="w-3.5 h-3.5 mb-0.5" :class="roleEmail === 'manager@nairobihospice.or.ke' ? 'text-blue-300' : 'text-slate-400'"></i>
+                            <span class="text-[9px] block leading-tight">Operations</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
