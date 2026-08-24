@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.PatientListView.as_view(), name='patient_list'),
     path('register/', views.PatientCreateView.as_view(), name='patient_register'),
     path('api/locations/', views.kenya_locations_api, name='api_locations'),
+    path('api/search/', views.patient_search_api, name='api_search'),
     path('<uuid:pk>/', views.PatientDetailView.as_view(), name='patient_detail'),
     path('<uuid:pk>/edit/', views.PatientUpdateView.as_view(), name='patient_update'),
     path('<uuid:pk>/request-delete/', views.PatientRequestDeleteView.as_view(), name='patient_request_delete'),

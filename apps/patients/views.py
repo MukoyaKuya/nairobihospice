@@ -415,3 +415,38 @@ class PatientRequestDeleteView(LoginRequiredMixin, View):
             f"Deletion request for {patient.full_name} ({patient.hospice_number}) has been submitted to Operations Management for approval."
         )
         return redirect('patients:patient_detail', pk=patient.pk)
+
+
+def patient_search_api(request):
+    """Fast JSON search endpoint for typeahead comboboxes across clinical forms."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'results': []}, status=401)
+
+    q = request.GET.get('q', '').strip()
+    if not q:
+        patients = Patient.objects.all().order_by('-registration_date', '-created_at')[:15]
+    else:
+        patients = Patient.objects.filter(
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(middle_name__icontains=q)
+            | Q(hospice_number__icontains=q)
+            | Q(identification_number__icontains=q)
+            | Q(primary_diagnosis__icontains=q)
+            | Q(phone_number__icontains=q)
+        ).order_by('-registration_date', '-created_at')[:25]
+
+    results = [
+        {
+            'id': str(p.id),
+            'full_name': p.full_name,
+            'hospice_number': p.hospice_number,
+            'primary_diagnosis': p.primary_diagnosis or '',
+            'age': p.age or '',
+            'sex': p.get_sex_display() if hasattr(p, 'get_sex_display') else '',
+            'status': p.get_status_display() if hasattr(p, 'get_status_display') else 'Active',
+        }
+        for p in patients
+    ]
+    return JsonResponse({'results': results})
+
