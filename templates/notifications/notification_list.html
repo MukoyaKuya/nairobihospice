@@ -3,7 +3,23 @@
 {% block title %}System Alerts & Notifications - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-4xl mx-auto space-y-6"
+     x-data="{ 
+         modalOpen: false,
+         activeNotif: {
+             id: '',
+             title: '',
+             message: '',
+             time: '',
+             type: '',
+             link: ''
+         },
+         openModal(id, title, message, time, type, link) {
+             this.activeNotif = { id, title, message, time, type, link };
+             this.modalOpen = true;
+             $nextTick(() => { if (window.lucide) { lucide.createIcons(); } });
+         }
+     }">
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">System Alerts & Notifications</h1>
@@ -11,7 +27,7 @@
         </div>
         <form method="POST" action="{% url 'notifications:notification_mark_all_read' %}">
             {% csrf_token %}
-            <button type="submit" class="px-3.5 py-2 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl shadow-sm transition">
+            <button type="submit" class="px-3.5 py-2 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl shadow-sm transition cursor-pointer">
                 Mark All as Read
             </button>
         </form>
@@ -19,31 +35,33 @@
 
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
         {% for notif in notifications %}
-        <div class="p-4 sm:p-5 flex items-start justify-between gap-4 {% if not notif.is_read %}bg-teal-50/40{% else %}hover:bg-slate-50{% endif %} transition">
-            <div class="flex items-start space-x-3.5">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5
-                    {% if not notif.is_read %}bg-teal-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-500{% endif %}">
+        <div class="p-4 sm:p-5 flex items-start justify-between gap-4 {% if not notif.is_read %}bg-blue-50/40{% else %}hover:bg-slate-50{% endif %} transition">
+            <div class="flex items-start space-x-3.5 cursor-pointer flex-1"
+                 @click="openModal('{{ notif.pk }}', '{{ notif.title|escapejs }}', '{{ notif.message|escapejs }}', '{{ notif.created_at|date:'d M Y, H:i' }}', '{{ notif.get_notification_type_display|escapejs }}', '{{ notif.link_url|escapejs }}')">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5
+                    {% if not notif.is_read %}bg-[#002D62] text-white shadow-sm{% else %}bg-slate-100 text-slate-500{% endif %}">
                     <i data-lucide="bell" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold text-slate-900">{{ notif.title }}</h3>
+                    <h3 class="text-sm font-bold text-slate-900 hover:text-[#002D62] transition">{{ notif.title }}</h3>
                     <p class="text-xs text-slate-600 mt-1 leading-relaxed">{{ notif.message }}</p>
                     <span class="text-[11px] text-slate-400 mt-2 block">{{ notif.created_at|date:"d M Y H:i" }} &bull; {{ notif.get_notification_type_display }}</span>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-2 flex-shrink-0">
+            <div class="flex items-center space-x-2 shrink-0">
+                <button type="button"
+                        @click="openModal('{{ notif.pk }}', '{{ notif.title|escapejs }}', '{{ notif.message|escapejs }}', '{{ notif.created_at|date:'d M Y, H:i' }}', '{{ notif.get_notification_type_display|escapejs }}', '{{ notif.link_url|escapejs }}')"
+                        class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer">
+                    View Details
+                </button>
                 {% if not notif.is_read %}
                 <form method="POST" action="{% url 'notifications:notification_read' notif.pk %}">
                     {% csrf_token %}
-                    <button type="submit" class="px-3 py-1.5 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition">
-                        View & Dismiss
+                    <button type="submit" class="px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#001D42] text-white rounded-lg transition cursor-pointer">
+                        Dismiss
                     </button>
                 </form>
-                {% elif notif.link_url %}
-                <a href="{{ notif.link_url }}" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg">
-                    Open &rarr;
-                </a>
                 {% endif %}
             </div>
         </div>
@@ -53,6 +71,76 @@
             No notifications in your tray.
         </div>
         {% endfor %}
+    </div>
+
+    <!-- Notification Detail Modal -->
+    <div x-cloak x-show="modalOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            
+            <!-- Backdrop -->
+            <div x-show="modalOpen" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+                 @click="modalOpen = false"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Dialog Content -->
+            <div x-show="modalOpen" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-slate-200">
+                
+                <!-- Modal Header -->
+                <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-[#002D62] text-white flex items-center justify-center">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Notification Details</h3>
+                            <span class="text-[10px] font-semibold text-[#002D62] uppercase tracking-wider" x-text="activeNotif.type || 'Clinical Alert'"></span>
+                        </div>
+                    </div>
+                    <button @click="modalOpen = false" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <h4 class="text-base font-extrabold text-slate-900 leading-snug" x-text="activeNotif.title"></h4>
+                        <span class="text-[11px] text-slate-400 mt-1 block font-medium flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                            <span x-text="activeNotif.time"></span>
+                        </span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line" x-text="activeNotif.message">
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end">
+                    <button type="button" 
+                            @click="modalOpen = false" 
+                            class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl transition cursor-pointer">
+                        Close
+                    </button>
+                </div>
+
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

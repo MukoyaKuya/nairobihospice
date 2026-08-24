@@ -1,12 +1,43 @@
-<!-- Notification Bell Component with Polling & Dropdown -->
+<!-- Notification Bell Component with Polling, Dropdown & Detail Modal -->
 <div id="notification-bell-container"
      class="relative"
-     x-data="{ open: false }"
+     x-data="{ 
+         open: false,
+         modalOpen: false,
+         activeNotif: {
+             id: '',
+             title: '',
+             message: '',
+             time: '',
+             type: '',
+             link: ''
+         },
+         openNotification(id, title, message, time, type, link) {
+             this.activeNotif = { id, title, message, time, type, link };
+             this.open = false;
+             this.modalOpen = true;
+             $nextTick(() => { if (window.lucide) { lucide.createIcons(); } });
+             // Mark as read in background
+             if (id) {
+                 fetch('/notifications/' + id + '/read/', {
+                     method: 'POST',
+                     headers: {
+                         'X-CSRFToken': '{{ csrf_token }}',
+                         'X-Requested-With': 'XMLHttpRequest'
+                     }
+                 }).catch(() => {});
+             }
+         }
+     }"
      hx-get="{% url 'notifications:unread_badge' %}"
      hx-trigger="every 20s"
      hx-swap="outerHTML"
      hx-disinherit="*">
-    <button @click="open = !open" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 relative transition">
+
+    <!-- Bell Icon Button -->
+    <button @click="open = !open; $nextTick(() => { if (window.lucide) { lucide.createIcons(); } });" 
+            class="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 relative transition cursor-pointer"
+            aria-label="Open notifications">
         <i data-lucide="bell" class="w-5 h-5"></i>
         {% if unread_notifications_count > 0 %}
         <span class="absolute top-1 right-1 flex h-4 w-4">
@@ -18,7 +49,8 @@
 
     <!-- Dropdown Panel -->
     <div x-cloak x-show="open" @click.away="open = false" x-transition
-         class="origin-top-right absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl shadow-xl bg-white ring-1 ring-black ring-opacity-5 divide-y divide-slate-100 z-50">
+         class="origin-top-right absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl shadow-2xl bg-white ring-1 ring-black ring-opacity-5 divide-y divide-slate-100 z-50">
+        
         <div class="p-3.5 flex items-center justify-between bg-slate-50 rounded-t-2xl border-b border-slate-200">
             <div class="flex items-center space-x-2">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Notifications</span>
@@ -26,26 +58,122 @@
                 <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-red-100 text-red-700">{{ unread_notifications_count }} new</span>
                 {% endif %}
             </div>
-            <a href="{% url 'notifications:notification_list' %}" class="text-xs font-semibold text-[#002D62] hover:underline">View all</a>
+            <a href="{% url 'notifications:notification_list' %}" class="text-xs font-bold text-[#002D62] hover:underline flex items-center gap-1">
+                <span>View all</span>
+                <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </a>
         </div>
-        <div class="max-h-72 overflow-y-auto divide-y divide-slate-100">
+
+        <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
             {% for notif in recent_notifications %}
-            <div class="p-3 hover:bg-slate-50 transition">
-                <a href="{% if notif.link_url %}{{ notif.link_url }}{% else %}#{% endif %}" class="block">
-                    <div class="flex items-center justify-between">
-                        <p class="text-xs font-bold text-slate-900">{{ notif.title }}</p>
-                        <span class="inline-block w-2 h-2 rounded-full bg-red-600 ml-2 flex-shrink-0"></span>
+            <div @click="openNotification('{{ notif.pk }}', '{{ notif.title|escapejs }}', '{{ notif.message|escapejs }}', '{{ notif.created_at|date:'d M Y, H:i' }}', '{{ notif.get_notification_type_display|escapejs }}', '{{ notif.link_url|escapejs }}')"
+                 class="p-3.5 hover:bg-slate-50 transition cursor-pointer group">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-start space-x-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-[#002D62] group-hover:text-white transition">
+                            <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-900 group-hover:text-[#002D62] transition leading-snug">{{ notif.title }}</p>
+                            <p class="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">{{ notif.message }}</p>
+                            <span class="text-[10px] text-slate-400 mt-1 block font-medium">{{ notif.created_at|timesince }} ago</span>
+                        </div>
                     </div>
-                    <p class="text-xs text-slate-600 mt-0.5">{{ notif.message|truncatewords:14 }}</p>
-                    <span class="text-[10px] text-slate-400 mt-1 block">{{ notif.created_at|timesince }} ago</span>
-                </a>
+                    <span class="w-2 h-2 rounded-full bg-red-600 shrink-0 mt-1"></span>
+                </div>
             </div>
             {% empty %}
-            <div class="p-6 text-center text-xs text-slate-500">
-                <i data-lucide="check-circle" class="w-6 h-6 mx-auto text-emerald-500 mb-1"></i>
-                All caught up! No unread notifications.
+            <div class="p-8 text-center text-xs text-slate-500">
+                <i data-lucide="check-circle-2" class="w-7 h-7 mx-auto text-emerald-500 mb-1.5"></i>
+                <p class="font-medium">All caught up!</p>
+                <p class="text-[11px] text-slate-400 mt-0.5">No unread notifications in your tray.</p>
             </div>
             {% endfor %}
         </div>
+
+        <div class="p-2.5 bg-slate-50 rounded-b-2xl text-center border-t border-slate-100">
+            <a href="{% url 'notifications:notification_list' %}" class="text-xs font-bold text-[#002D62] hover:text-[#001D42] transition">
+                Go to Notifications Inbox &rarr;
+            </a>
+        </div>
     </div>
+
+    <!-- Notification Detail Modal -->
+    <div x-cloak x-show="modalOpen" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            
+            <!-- Backdrop -->
+            <div x-show="modalOpen" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+                 @click="modalOpen = false"></div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <!-- Modal Dialog Content -->
+            <div x-show="modalOpen" 
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-slate-200">
+                
+                <!-- Modal Header -->
+                <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-[#002D62] text-white flex items-center justify-center">
+                            <i data-lucide="bell" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900">Notification Details</h3>
+                            <span class="text-[10px] font-semibold text-[#002D62] uppercase tracking-wider" x-text="activeNotif.type || 'Clinical Notification'"></span>
+                        </div>
+                    </div>
+                    <button @click="modalOpen = false" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Modal Body -->
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <h4 class="text-base font-extrabold text-slate-900 leading-snug" x-text="activeNotif.title"></h4>
+                        <span class="text-[11px] text-slate-400 mt-1 block font-medium flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                            <span x-text="activeNotif.time"></span>
+                        </span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line" x-text="activeNotif.message">
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                    <a href="{% url 'notifications:notification_list' %}" 
+                       class="text-xs font-bold text-[#002D62] hover:underline flex items-center gap-1">
+                        <i data-lucide="inbox" class="w-3.5 h-3.5"></i>
+                        <span>All Notifications</span>
+                    </a>
+
+                    <div class="flex items-center space-x-2">
+                        <button type="button" 
+                                @click="modalOpen = false" 
+                                class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl transition cursor-pointer">
+                            Close
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
 </div>
