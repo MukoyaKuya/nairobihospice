@@ -3,89 +3,177 @@
 {% block title %}Medications & Prescriptions - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="space-y-3">
+<div class="space-y-4">
     
-    <!-- Compact Header -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm">
-        <div class="flex items-center space-x-3">
-            <h1 class="text-lg font-black text-slate-900 tracking-tight">Medications & Prescriptions</h1>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#002D62] border border-blue-200">
-                Palliative Pharmacotherapy
-            </span>
+    <!-- Page Header & Quick Metric Pills -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+            <h1 class="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                <i data-lucide="pill" class="w-6 h-6 text-[#002D62]"></i>
+                <span>Medications & Prescriptions Register</span>
+            </h1>
+            <p class="text-xs text-slate-500 mt-1">Complete pharmacotherapy records, active regimens, and controlled analgesia across hospice cohorts.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="?status=ACTIVE" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border
+               {% if request.GET.status == 'ACTIVE' %}bg-emerald-600 text-white border-emerald-600 shadow-xs{% else %}bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100{% endif %}">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Active: {{ active_count }}</span>
+            </a>
+
+            <a href="?status=ON_HOLD" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border
+               {% if request.GET.status == 'ON_HOLD' %}bg-amber-600 text-white border-amber-600 shadow-xs{% else %}bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100{% endif %}">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>On Hold: {{ on_hold_count }}</span>
+            </a>
+
+            <a href="?status=STOPPED" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border
+               {% if request.GET.status == 'STOPPED' %}bg-slate-700 text-white border-slate-700 shadow-xs{% else %}bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200{% endif %}">
+                <span>Stopped: {{ stopped_count }}</span>
+            </a>
+
+            {% if request.GET.status or request.GET.search %}
+            <a href="{% url 'medications:medication_list' %}" 
+               class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-slate-300 text-slate-600 hover:bg-slate-50 transition">
+                Reset Filters
+            </a>
+            {% endif %}
         </div>
     </div>
 
     <!-- Search & Filter Bar -->
-    <div class="bg-white px-3 py-2.5 rounded-xl border border-slate-200 shadow-sm">
-        <form method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+    <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm">
+        <form method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center">
             <div class="sm:col-span-8 relative">
-                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search drug name, patient name, hospice ID..."
-                       class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
-                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search by medication name, patient name, hospice ID, prescriber, indication..."
+                       class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
             </div>
             <div class="sm:col-span-4 flex items-center space-x-2">
-                <select name="status" class="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-700 font-bold focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
-                    <option value="">All Statuses</option>
-                    <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active</option>
-                    <option value="STOPPED" {% if request.GET.status == 'STOPPED' %}selected{% endif %}>Stopped</option>
-                    <option value="ON_HOLD" {% if request.GET.status == 'ON_HOLD' %}selected{% endif %}>On Hold</option>
+                <select name="status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-700 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition cursor-pointer">
+                    <option value="">All Statuses ({{ total_count }})</option>
+                    <option value="ACTIVE" {% if request.GET.status == 'ACTIVE' %}selected{% endif %}>Active Only ({{ active_count }})</option>
+                    <option value="STOPPED" {% if request.GET.status == 'STOPPED' %}selected{% endif %}>Stopped ({{ stopped_count }})</option>
+                    <option value="ON_HOLD" {% if request.GET.status == 'ON_HOLD' %}selected{% endif %}>On Hold ({{ on_hold_count }})</option>
                 </select>
-                <button type="submit" class="px-3 py-1.5 bg-[#002D62] text-white text-xs font-bold rounded-lg hover:bg-[#0B2545] transition">
-                    Filter
+                <button type="submit" class="px-4 py-2 bg-[#002D62] text-white text-xs font-bold rounded-xl hover:bg-[#0B2545] transition cursor-pointer shrink-0 flex items-center gap-1.5 shadow-xs">
+                    <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                    <span>Filter</span>
                 </button>
             </div>
         </form>
     </div>
 
-    <!-- Medications Table -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <!-- Medications Table Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left divide-y divide-slate-200 text-xs">
                 <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                     <tr>
-                        <th class="px-3 py-2.5 whitespace-nowrap">Patient</th>
-                        <th class="px-3 py-2.5 whitespace-nowrap">Medication</th>
-                        <th class="px-3 py-2.5">Dosage & Frequency</th>
-                        <th class="px-3 py-2.5 whitespace-nowrap">Route</th>
-                        <th class="px-3 py-2.5 whitespace-nowrap">Start Date</th>
-                        <th class="px-3 py-2.5 whitespace-nowrap">Prescriber</th>
-                        <th class="px-3 py-2.5 whitespace-nowrap text-center">Status</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Patient</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Medication & Indication</th>
+                        <th class="px-4 py-3">Dosage & Frequency</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Route</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Start Date</th>
+                        <th class="px-4 py-3 whitespace-nowrap">Prescriber</th>
+                        <th class="px-4 py-3 whitespace-nowrap text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for med in medications %}
                     <tr class="hover:bg-slate-50/90 transition duration-150 group">
-                        <td class="px-3 py-2 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <a href="{% url 'patients:patient_detail' med.patient.id %}" class="font-bold text-slate-900 group-hover:text-[#002D62] block leading-tight">
                                 {{ med.patient.full_name }}
                             </a>
                             <span class="text-[10px] text-[#002D62] font-semibold block font-mono">{{ med.patient.hospice_number }}</span>
                         </td>
-                        <td class="px-3 py-2 font-bold text-slate-900 whitespace-nowrap text-[11px]">{{ med.medication_name }}</td>
-                        <td class="px-3 py-2 text-slate-700 font-medium text-[11px]">{{ med.dosage }} &bull; {{ med.frequency }}</td>
-                        <td class="px-3 py-2 text-slate-600 whitespace-nowrap text-[11px]">{{ med.get_route_display }}</td>
-                        <td class="px-3 py-2 text-slate-500 font-mono text-[10px] whitespace-nowrap">{{ med.start_date|date:"d M Y" }}</td>
-                        <td class="px-3 py-2 text-slate-600 whitespace-nowrap text-[11px]">{{ med.prescriber_name|default:med.prescriber.display_name|default:"-" }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider
+                        <td class="px-4 py-3 text-[11px]">
+                            <div class="font-bold text-slate-900">{{ med.medication_name }}</div>
+                            {% if med.indication %}
+                            <div class="text-[10px] text-slate-500 truncate max-w-xs">{{ med.indication }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-slate-700 font-medium text-[11px]">
+                            <span class="font-bold text-slate-800">{{ med.dosage }}</span>
+                            <span class="text-slate-500 block text-[10px]">{{ med.frequency }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap text-[11px]">
+                            <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-semibold text-[10px]">
+                                {{ med.get_route_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-slate-500 font-mono text-[10px] whitespace-nowrap">{{ med.start_date|date:"d M Y"|default:"-" }}</td>
+                        <td class="px-4 py-3 text-slate-600 whitespace-nowrap text-[11px]">
+                            {{ med.prescriber_name|default:med.prescriber.display_name|default:"Hospice Clinical Team" }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider
                                 {% if med.status == 'ACTIVE' %}bg-emerald-50 text-emerald-700 border border-emerald-200
                                 {% elif med.status == 'ON_HOLD' %}bg-amber-50 text-amber-700 border border-amber-200
                                 {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
-                                {{ med.get_status_display }}
+                                <span class="w-1.5 h-1.5 rounded-full {% if med.status == 'ACTIVE' %}bg-emerald-500{% elif med.status == 'ON_HOLD' %}bg-amber-500{% else %}bg-slate-400{% endif %}"></span>
+                                <span>{{ med.get_status_display }}</span>
                             </span>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-8 text-slate-400">
-                            <i data-lucide="pill" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
-                            No medication records found.
+                        <td colspan="7" class="text-center py-12 text-slate-400 space-y-2">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                                <i data-lucide="pill" class="w-6 h-6"></i>
+                            </div>
+                            <p class="font-bold text-sm text-slate-700">No medication records found</p>
+                            <p class="text-xs text-slate-400">Try adjusting your search query or status filter.</p>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination Controls -->
+        {% if is_paginated %}
+        <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+            <div>
+                Showing page <span class="font-bold text-slate-900">{{ page_obj.number }}</span> of <span class="font-bold text-slate-900">{{ paginator.num_pages }}</span>
+                (<span class="font-bold text-slate-900">{{ paginator.count }}</span> total records)
+            </div>
+
+            <div class="flex items-center space-x-1.5">
+                {% if page_obj.has_previous %}
+                <a href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+                   class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-bold transition">
+                    &laquo; First
+                </a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+                   class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-bold transition">
+                    &lsaquo; Prev
+                </a>
+                {% endif %}
+
+                <span class="px-3 py-1.5 bg-[#002D62] text-white rounded-lg font-bold">
+                    {{ page_obj.number }}
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+                   class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-bold transition">
+                    Next &rsaquo;
+                </a>
+                <a href="?page={{ paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+                   class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-bold transition">
+                    Last &raquo;
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
+
 </div>
 {% endblock %}

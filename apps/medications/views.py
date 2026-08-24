@@ -16,20 +16,39 @@ class MedicationListView(LoginRequiredMixin, ListView):
     model = MedicationStatement
     template_name = 'medications/medication_list.html'
     context_object_name = 'medications'
-    paginate_by = 15
+    paginate_by = 30
 
     def get_queryset(self):
-        queryset = MedicationStatement.objects.select_related('patient', 'prescriber').order_by('-start_date')
-        if not self.request.user.is_clinical and not self.request.user.is_manager:
-            return queryset.none()
-        queryset = queryset.filter(patient__in=authorized_patient_queryset(self.request.user))
+        if not self.request.user.is_clinical and not self.request.user.is_manager and not self.request.user.is_superuser:
+            return MedicationStatement.objects.none()
+        
+        queryset = MedicationStatement.objects.select_related('patient', 'prescriber').order_by('-start_date', '-created_at')
+        
         status = self.request.GET.get('status')
         if status:
             queryset = queryset.filter(status=status)
+            
         search = self.request.GET.get('search')
         if search:
-            queryset = queryset.filter(medication_name__icontains=search) | queryset.filter(patient__first_name__icontains=search) | queryset.filter(patient__last_name__icontains=search)
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(medication_name__icontains=search)
+                | Q(patient__first_name__icontains=search)
+                | Q(patient__last_name__icontains=search)
+                | Q(patient__hospice_number__icontains=search)
+                | Q(indication__icontains=search)
+                | Q(prescriber_name__icontains=search)
+            )
         return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        base_qs = MedicationStatement.objects.all()
+        context['total_count'] = base_qs.count()
+        context['active_count'] = base_qs.filter(status='ACTIVE').count()
+        context['stopped_count'] = base_qs.filter(status='STOPPED').count()
+        context['on_hold_count'] = base_qs.filter(status='ON_HOLD').count()
+        return context
 
 
 class MedicationCreateView(ClinicalStaffRequiredMixin, View):

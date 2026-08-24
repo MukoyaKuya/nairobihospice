@@ -17,9 +17,11 @@ def can_manage_all_patients(user):
 
 def authorized_patient_queryset(user):
     """Return patients whose clinical records this user is allowed to access."""
-    if can_manage_all_patients(user):
+    if not user or not user.is_authenticated:
+        return Patient.objects.none()
+    if can_manage_all_patients(user) or user.role == RoleChoices.PHARMACIST:
         return Patient.objects.all()
-    if not user or not user.is_authenticated or not user.is_clinical:
+    if not user.is_clinical:
         return Patient.objects.none()
 
     today = timezone.localdate()
