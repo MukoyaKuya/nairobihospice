@@ -27,6 +27,21 @@
                      }
                  }).catch(() => {});
              }
+         },
+         deleteNotification(id) {
+             if (!id) return;
+             fetch('/notifications/' + id + '/delete/', {
+                 method: 'POST',
+                 headers: {
+                     'X-CSRFToken': '{{ csrf_token }}',
+                     'X-Requested-With': 'XMLHttpRequest'
+                 }
+             }).then(() => {
+                 this.modalOpen = false;
+                 htmx.trigger('#notification-bell-container', 'refresh');
+             }).catch(() => {
+                 this.modalOpen = false;
+             });
          }
      }"
      hx-get="{% url 'notifications:unread_badge' %}"
@@ -157,13 +172,20 @@
 
                 <!-- Modal Footer -->
                 <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-                    <a href="{% url 'notifications:notification_list' %}" 
-                       class="text-xs font-bold text-[#002D62] hover:underline flex items-center gap-1">
-                        <i data-lucide="inbox" class="w-3.5 h-3.5"></i>
-                        <span>All Notifications</span>
-                    </a>
+                    <button type="button" 
+                            @click="deleteNotification(activeNotif.id)"
+                            class="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <span>Delete</span>
+                    </button>
 
                     <div class="flex items-center space-x-2">
+                        <a href="{% url 'notifications:notification_list' %}" 
+                           class="text-xs font-bold text-[#002D62] hover:underline flex items-center gap-1 mr-2">
+                            <i data-lucide="inbox" class="w-3.5 h-3.5"></i>
+                            <span>Inbox</span>
+                        </a>
+
                         <button type="button" 
                                 @click="modalOpen = false" 
                                 class="px-4 py-2 text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl transition cursor-pointer">
