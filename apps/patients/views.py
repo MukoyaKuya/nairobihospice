@@ -424,17 +424,27 @@ def patient_search_api(request):
 
     q = request.GET.get('q', '').strip()
     if not q:
-        patients = Patient.objects.all().order_by('-registration_date', '-created_at')[:15]
+        patients = Patient.objects.all().order_by('-registration_date', '-created_at')[:20]
     else:
-        patients = Patient.objects.filter(
-            Q(first_name__icontains=q)
-            | Q(last_name__icontains=q)
-            | Q(middle_name__icontains=q)
-            | Q(hospice_number__icontains=q)
-            | Q(identification_number__icontains=q)
-            | Q(primary_diagnosis__icontains=q)
-            | Q(phone_number__icontains=q)
-        ).order_by('-registration_date', '-created_at')[:25]
+        terms = q.split()
+        qs = Patient.objects.all()
+        for term in terms:
+            clean_term = term.strip()
+            if clean_term:
+                qs = qs.filter(
+                    Q(first_name__icontains=clean_term)
+                    | Q(last_name__icontains=clean_term)
+                    | Q(middle_name__icontains=clean_term)
+                    | Q(hospice_number__icontains=clean_term)
+                    | Q(ip_op_number__icontains=clean_term)
+                    | Q(identification_number__icontains=clean_term)
+                    | Q(primary_diagnosis__icontains=clean_term)
+                    | Q(phone_number__icontains=clean_term)
+                    | Q(alternative_phone__icontains=clean_term)
+                    | Q(county__icontains=clean_term)
+                    | Q(sub_county__icontains=clean_term)
+                )
+        patients = qs.order_by('-registration_date', '-created_at')[:60]
 
     results = [
         {
@@ -448,5 +458,5 @@ def patient_search_api(request):
         }
         for p in patients
     ]
-    return JsonResponse({'results': results})
+    return JsonResponse({'results': results, 'count': len(results)})
 

@@ -57,29 +57,27 @@
               diagnosisValue: '{% if form.primary_diagnosis.value %}{{ form.primary_diagnosis.value|escapejs }}{% elif patient and patient.primary_diagnosis %}{{ patient.primary_diagnosis|escapejs }}{% endif %}',
 
               searchPatients() {
+                  this.isOpen = true;
                   this.loading = true;
-                  fetch('/patients/api/search/?q=' + encodeURIComponent(this.searchQuery.trim()))
+                  const query = this.searchQuery ? this.searchQuery.trim() : '';
+                  fetch('/patients/api/search/?q=' + encodeURIComponent(query))
                       .then(res => res.json())
                       .then(data => {
                           this.results = data.results || [];
                           this.loading = false;
                           this.isOpen = true;
+                          $nextTick(() => { if (window.lucide) { lucide.createIcons(); } });
                       })
-                      .catch(() => { this.loading = false; });
+                      .catch(() => { 
+                          this.loading = false; 
+                      });
               },
 
               fetchInitial() {
-                  if (this.results.length === 0) {
-                      this.loading = true;
-                      fetch('/patients/api/search/')
-                          .then(res => res.json())
-                          .then(data => {
-                              this.results = data.results || [];
-                              this.loading = false;
-                          })
-                          .catch(() => { this.loading = false; });
-                  }
                   this.isOpen = true;
+                  if (this.results.length === 0) {
+                      this.searchPatients();
+                  }
               },
 
               selectPatient(p) {
@@ -89,6 +87,7 @@
                   if (!this.diagnosisValue && p.primary_diagnosis) {
                       this.diagnosisValue = p.primary_diagnosis;
                   }
+                  $nextTick(() => { if (window.lucide) { lucide.createIcons(); } });
               },
 
               clearSelection() {
@@ -97,8 +96,9 @@
                   $nextTick(() => { 
                       if (this.$refs.searchInput) {
                           this.$refs.searchInput.focus();
-                          this.fetchInitial();
+                          this.searchPatients();
                       }
+                      if (window.lucide) { lucide.createIcons(); }
                   });
               }
           }">
@@ -129,15 +129,16 @@
             <!-- Patient Selector (Searchable Typeahead Combobox) -->
             {% if not patient %}
             <div class="relative">
-                <label class="block text-xs font-bold text-slate-700 mb-1">
-                    Select Patient <span class="text-red-500">*</span>
+                <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Search Patient <span class="text-red-500">*</span></span>
+                    <span class="text-[10px] font-normal text-slate-400">Search whole database by name, ID, or diagnosis</span>
                 </label>
 
                 <!-- Hidden Input for Form Submission -->
                 <input type="hidden" name="patient" :value="selectedPatient ? selectedPatient.id : ''" required>
 
                 <!-- 1. State: Patient Selected Card -->
-                <div x-show="selectedPatient" x-cloak class="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between">
+                <div x-show="selectedPatient" x-cloak class="p-3 bg-blue-50/90 border border-blue-200 rounded-xl flex items-center justify-between shadow-xs">
                     <div class="flex items-center space-x-3">
                         <div class="w-8 h-8 rounded-lg bg-[#002D62] text-white font-bold text-xs flex items-center justify-center shrink-0">
                             <i data-lucide="user" class="w-4 h-4"></i>
@@ -148,7 +149,7 @@
                             <span x-show="selectedPatient?.primary_diagnosis" class="text-[10px] text-slate-500 ml-1.5" x-text="'• ' + selectedPatient?.primary_diagnosis"></span>
                         </div>
                     </div>
-                    <button type="button" @click="clearSelection()" class="px-2.5 py-1 text-[11px] font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition cursor-pointer">
+                    <button type="button" @click="clearSelection()" class="px-2.5 py-1 text-[11px] font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition cursor-pointer">
                         Change Patient
                     </button>
                 </div>
@@ -159,9 +160,9 @@
                         <input type="text" 
                                x-ref="searchInput"
                                x-model="searchQuery" 
-                               @input.debounce.250ms="searchPatients()"
+                               @input="searchPatients()"
                                @focus="fetchInitial()"
-                               placeholder="Type patient name, Hospice ID (e.g. NH-2026-0001), diagnosis, or phone..."
+                               placeholder="Search whole database: type name, Hospice ID (e.g. NH-2026-0001), diagnosis..."
                                class="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
                         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
                         
@@ -172,7 +173,13 @@
 
                     <!-- Search Results Dropdown -->
                     <div x-show="isOpen" x-cloak
-                         class="origin-top-left absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 divide-y divide-slate-100 z-50 animate-in fade-in zoom-in-95 duration-100">
+                         class="origin-top-left absolute left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white rounded-xl shadow-xl border border-slate-200 divide-y divide-slate-100 z-50 animate-in fade-in zoom-in-95 duration-100">
+                        <div class="px-3 py-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-100">
+                            <span>Matching Patients (<span x-text="results.length"></span>)</span>
+                            <span x-show="loading" class="text-[#002D62] font-semibold flex items-center gap-1">
+                                <i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Searching...
+                            </span>
+                        </div>
                         <template x-for="p in results" :key="p.id">
                             <div @click="selectPatient(p)" 
                                  class="p-3 hover:bg-slate-50 transition cursor-pointer flex items-center justify-between group">
@@ -194,7 +201,7 @@
 
                         <div x-show="results.length === 0 && !loading" class="p-6 text-center text-xs text-slate-400">
                             <i data-lucide="user-x" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
-                            No matching hospice patients found.
+                            No matching hospice patients found in database.
                         </div>
                     </div>
                 </div>
