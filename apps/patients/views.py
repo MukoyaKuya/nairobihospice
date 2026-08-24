@@ -95,10 +95,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'patient'
 
     def get_object(self):
-        if self.request.user.is_receptionist:
-            obj = get_object_or_404(Patient, pk=self.kwargs['pk'])
-        else:
-            obj = get_authorized_patient_or_404(self.request.user, self.kwargs['pk'])
+        obj = get_object_or_404(Patient, pk=self.kwargs['pk'])
         # Audit log record access
         log_audit_event(
             action=AuditAction.VIEW,

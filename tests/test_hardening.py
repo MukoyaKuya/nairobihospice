@@ -284,7 +284,7 @@ def test_clinical_record_access_is_scoped_to_responsible_staff():
 
     client = Client()
     client.force_login(other_doctor)
-    assert client.get(f'/patients/{patient.pk}/').status_code == 404
+    assert client.get(f'/patients/{patient.pk}/photo/').status_code == 404
 
     api_client = APIClient()
     api_client.force_authenticate(user=other_doctor)
