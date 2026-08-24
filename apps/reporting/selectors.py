@@ -31,9 +31,14 @@ def get_clinical_dashboard_data(user):
         review_date__lte=today + timedelta(days=7)
     ).select_related('patient', 'created_by').order_by('review_date')[:10]
 
+    from apps.assessments.models import Assessment
+    pain_spikes_qs = Assessment.objects.filter(
+        pain_score__gte=7
+    ).select_related('patient', 'assessor').order_by('-assessment_date')
+    pain_spikes_count = pain_spikes_qs.count()
+
     recent_high_distress = SymptomAssessmentRecord.objects.filter(
-        recorded_at__gte=timezone.now() - timedelta(days=7),
-        total_distress_score__gte=35
+        total_distress_score__gte=30
     ).select_related('patient', 'recorded_by').order_by('-total_distress_score')[:8]
 
     pending_referrals = Referral.objects.filter(
@@ -82,6 +87,8 @@ def get_clinical_dashboard_data(user):
         'clinic_visits_today': clinic_visits_today,
         'due_reviews': due_reviews,
         'due_reviews_count': due_reviews.count(),
+        'pain_spikes_count': pain_spikes_count,
+        'pain_spikes': pain_spikes_qs[:8],
         'recent_high_distress': recent_high_distress,
         'pending_referrals': pending_referrals,
         'pending_referrals_count': pending_referrals.count(),

@@ -49,15 +49,15 @@
             <div class="flex items-start justify-between">
                 <div>
                     <span class="text-xs font-bold text-slate-600 block">Pain Distress Spikes</span>
-                    <span class="text-3xl font-black text-amber-600 mt-1.5 block tracking-tight">{{ recent_high_distress|length }}</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5 block">May require dose titration</span>
+                    <span class="text-3xl font-black text-amber-600 mt-1.5 block tracking-tight">{{ pain_spikes_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Patients with pain score &ge; 7/10</span>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
                     <i data-lucide="activity" class="w-5 h-5"></i>
                 </div>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-100">
-                <a href="{% url 'assessments:assessment_list' %}" class="inline-flex items-center text-xs font-bold text-amber-700 hover:text-amber-800 space-x-1">
+                <a href="{% url 'assessments:assessment_list' %}?filter=pain_spikes" class="inline-flex items-center text-xs font-bold text-amber-700 hover:text-amber-800 space-x-1">
                     <span>Review pain scores</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </a>

@@ -3,6 +3,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView, View
 
+from django.db.models import Q
+
 from apps.accounts.permissions import ClinicalStaffRequiredMixin
 from apps.patients.access import authorized_patient_queryset, get_authorized_patient_or_404
 
@@ -22,10 +24,41 @@ class AssessmentListView(LoginRequiredMixin, ListView):
         if not self.request.user.is_clinical and not self.request.user.is_manager:
             return qs.none()
         qs = qs.filter(patient__in=authorized_patient_queryset(self.request.user))
+        
+        # Search query across patient & notes
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            qs = qs.filter(
+                Q(patient__first_name__icontains=q)
+                | Q(patient__last_name__icontains=q)
+                | Q(patient__middle_name__icontains=q)
+                | Q(patient__hospice_number__icontains=q)
+                | Q(clinical_summary__icontains=q)
+            )
+
+        # Pain spikes filter
+        filter_type = self.request.GET.get('filter', '').strip()
+        if filter_type == 'pain_spikes' or self.request.GET.get('pain') == 'severe':
+            qs = qs.filter(pain_score__gte=7)
+
+        # Assessment type filter
         ass_type = self.request.GET.get('type')
         if ass_type:
             qs = qs.filter(assessment_type=ass_type)
         return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        base_qs = Assessment.objects.filter(patient__in=authorized_patient_queryset(self.request.user))
+        context['total_count'] = base_qs.count()
+        context['pain_spikes_count'] = base_qs.filter(pain_score__gte=7).count()
+        context['pain_type_count'] = base_qs.filter(assessment_type=AssessmentTypeChoices.PAIN).count()
+        context['functional_count'] = base_qs.filter(assessment_type=AssessmentTypeChoices.FUNCTIONAL).count()
+        context['followup_count'] = base_qs.filter(assessment_type=AssessmentTypeChoices.FOLLOWUP).count()
+        context['current_filter'] = self.request.GET.get('filter', '')
+        context['current_type'] = self.request.GET.get('type', '')
+        context['search_query'] = self.request.GET.get('q', '')
+        return context
 
 
 class AssessmentDetailView(ClinicalStaffRequiredMixin, DetailView):

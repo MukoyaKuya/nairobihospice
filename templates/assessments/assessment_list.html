@@ -4,15 +4,91 @@
 
 {% block content %}
 <div class="space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-2xs">
+    
+    <!-- Top Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
-            <h1 class="text-xl font-black text-slate-900 tracking-tight">Clinical & Psychosocial Assessments</h1>
-            <p class="text-xs text-slate-500 mt-0.5">Holistic palliative evaluations, pain mapping, PPS performance metrics, and psychosocial reviews.</p>
+            <h1 class="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Clinical & Psychosocial Assessments</span>
+                {% if current_filter == 'pain_spikes' %}
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200 animate-pulse">
+                    🚨 Pain Distress Spikes
+                </span>
+                {% endif %}
+            </h1>
+            <p class="text-xs text-slate-500 mt-0.5">Holistic palliative evaluations, severe pain spikes (&ge;7/10), PPS performance metrics, and clinical tracking.</p>
+        </div>
+    </div>
+
+    <!-- Filter Pills & Search Bar -->
+    <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        
+        <!-- Search & Filter Controls -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            
+            <!-- Quick Status / Severity Filter Pills -->
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <a href="{% url 'assessments:assessment_list' %}" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if not current_filter and not current_type %}bg-[#002D62] text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    <span>All Assessments</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if not current_filter and not current_type %}bg-white/20 text-white{% else %}bg-slate-200 text-slate-700{% endif %}">{{ total_count }}</span>
+                </a>
+
+                <a href="{% url 'assessments:assessment_list' %}?filter=pain_spikes" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if current_filter == 'pain_spikes' %}bg-red-600 text-white shadow-xs{% else %}bg-red-50 text-red-700 hover:bg-red-100 border border-red-200/60{% endif %}">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    <span>Severe Pain Spikes (&ge;7/10)</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if current_filter == 'pain_spikes' %}bg-white/20 text-white{% else %}bg-red-200 text-red-800{% endif %}">{{ pain_spikes_count }}</span>
+                </a>
+
+                <a href="{% url 'assessments:assessment_list' %}?type=PAIN" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if current_type == 'PAIN' %}bg-amber-600 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    <span>Pain Evaluations</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if current_type == 'PAIN' %}bg-white/20 text-white{% else %}bg-slate-200 text-slate-700{% endif %}">{{ pain_type_count }}</span>
+                </a>
+
+                <a href="{% url 'assessments:assessment_list' %}?type=FUNCTIONAL" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if current_type == 'FUNCTIONAL' %}bg-teal-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    <span>Functional (PPS)</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if current_type == 'FUNCTIONAL' %}bg-white/20 text-white{% else %}bg-slate-200 text-slate-700{% endif %}">{{ functional_count }}</span>
+                </a>
+
+                <a href="{% url 'assessments:assessment_list' %}?type=FOLLOWUP" 
+                   class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 {% if current_type == 'FOLLOWUP' %}bg-blue-700 text-white shadow-xs{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                    <span>Routine Follow-up</span>
+                    <span class="px-1.5 py-0.2 rounded-md text-[10px] {% if current_type == 'FOLLOWUP' %}bg-white/20 text-white{% else %}bg-slate-200 text-slate-700{% endif %}">{{ followup_count }}</span>
+                </a>
+            </div>
+
+            <!-- Search Form -->
+            <form method="GET" class="flex items-center gap-2">
+                {% if current_filter %}<input type="hidden" name="filter" value="{{ current_filter }}">{% endif %}
+                {% if current_type %}<input type="hidden" name="type" value="{{ current_type }}">{% endif %}
+                
+                <div class="relative w-full md:w-64">
+                    <input type="text" 
+                           name="q" 
+                           value="{{ search_query }}" 
+                           placeholder="Search patient, ID, notes..." 
+                           class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                </div>
+                
+                <button type="submit" class="px-3 py-1.5 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl transition cursor-pointer shrink-0">
+                    Search
+                </button>
+                
+                {% if search_query or current_filter or current_type %}
+                <a href="{% url 'assessments:assessment_list' %}" class="px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition shrink-0" title="Clear Filters">
+                    Reset
+                </a>
+                {% endif %}
+            </form>
         </div>
     </div>
 
     <!-- Assessments Table -->
-    <div class="bg-white rounded-xl shadow-2xs border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200 text-left text-xs">
                 <thead class="bg-slate-50/90 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
@@ -20,45 +96,64 @@
                         <th class="px-4 py-3 whitespace-nowrap">Date</th>
                         <th class="px-4 py-3">Patient</th>
                         <th class="px-4 py-3">Assessment Type</th>
-                        <th class="px-4 py-3">Clinical Scores</th>
+                        <th class="px-4 py-3">Clinical Scores / Distress</th>
                         <th class="px-4 py-3">Assessor</th>
                         <th class="px-4 py-3 text-right whitespace-nowrap">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for ass in assessments %}
-                    <tr class="hover:bg-slate-50/80 transition duration-150 group">
-                        <td class="px-4 py-2.5 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">{{ ass.assessment_date|date:"d M Y" }}</td>
-                        <td class="px-4 py-2.5">
+                    <tr class="hover:bg-slate-50/80 transition duration-150 group {% if ass.pain_score >= 7 %}bg-red-50/40{% endif %}">
+                        <td class="px-4 py-3 font-bold text-slate-900 font-mono text-[11px] whitespace-nowrap">{{ ass.assessment_date|date:"d M Y" }}</td>
+                        <td class="px-4 py-3">
                             <a href="{% url 'patients:patient_detail' ass.patient.pk %}" class="font-bold text-slate-900 group-hover:text-[#002D62] block leading-tight">
                                 {{ ass.patient.full_name }}
                             </a>
                             <span class="text-[10px] text-[#002D62] font-semibold block font-mono">{{ ass.patient.hospice_number }}</span>
                         </td>
-                        <td class="px-4 py-2.5 font-medium text-slate-800 text-xs">{{ ass.get_assessment_type_display }}</td>
-                        <td class="px-4 py-2.5">
-                            <div class="flex items-center space-x-1.5">
+                        <td class="px-4 py-3 font-medium text-slate-800 text-xs">
+                            {{ ass.get_assessment_type_display }}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 {% if ass.pain_score is not None %}
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                    Pain: {{ ass.pain_score }}/10
-                                </span>
+                                    {% if ass.pain_score >= 7 %}
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-800 border border-red-300 flex items-center gap-1">
+                                        <i data-lucide="flame" class="w-3 h-3 text-red-600"></i>
+                                        Pain: {{ ass.pain_score }}/10 (Severe Spike)
+                                    </span>
+                                    {% elif ass.pain_score >= 4 %}
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                        Pain: {{ ass.pain_score }}/10 (Moderate)
+                                    </span>
+                                    {% else %}
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        Pain: {{ ass.pain_score }}/10 (Controlled)
+                                    </span>
+                                    {% endif %}
                                 {% endif %}
+
                                 {% if ass.pps_score is not None %}
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
                                     PPS: {{ ass.pps_score }}%
                                 </span>
                                 {% endif %}
+
                                 {% if ass.ecog_score is not None %}
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                     ECOG: {{ ass.ecog_score }}
                                 </span>
                                 {% endif %}
+
+                                {% if ass.pain_score is None and ass.pps_score is None and ass.ecog_score is None %}
+                                <span class="text-[10px] text-slate-400 italic">Routine Evaluation</span>
+                                {% endif %}
                             </div>
                         </td>
-                        <td class="px-4 py-2.5 text-slate-600 text-xs">{{ ass.assessor.display_name|default:"-" }}</td>
-                        <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                        <td class="px-4 py-3 text-slate-600 text-xs">{{ ass.assessor.display_name|default:"-" }}</td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
                             <a href="{% url 'assessments:assessment_detail' ass.pk %}" 
-                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/70 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-md transition duration-150 space-x-1">
+                               class="inline-flex items-center px-2.5 py-1 text-[11px] font-bold text-[#002D62] hover:text-white bg-blue-50/80 hover:bg-[#002D62] border border-blue-200 hover:border-[#002D62] rounded-lg transition duration-150 space-x-1">
                                 <span>Review &bull; Amend</span>
                                 <i data-lucide="chevron-right" class="w-3 h-3"></i>
                             </a>
@@ -66,15 +161,44 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-6 py-10 text-center text-slate-400">
-                            <i data-lucide="clipboard-list" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
-                            No clinical assessments logged yet.
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                            <i data-lucide="clipboard-list" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+                            <p class="font-bold text-slate-600">No clinical assessments found matching your filter.</p>
+                            {% if current_filter or current_type or search_query %}
+                            <a href="{% url 'assessments:assessment_list' %}" class="inline-block mt-2 text-xs text-[#002D62] font-bold hover:underline">
+                                Reset filters
+                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+            <div>
+                Showing page <strong>{{ page_obj.number }}</strong> of <strong>{{ page_obj.paginator.num_pages }}</strong>
+            </div>
+            <div class="flex items-center space-x-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-bold hover:bg-slate-100 transition">
+                    Previous
+                </a>
+                {% endif %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if current_filter %}&filter={{ current_filter }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}"
+                   class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-bold hover:bg-slate-100 transition">
+                    Next
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
