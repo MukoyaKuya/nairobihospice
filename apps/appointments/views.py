@@ -14,7 +14,7 @@ from apps.patients.access import (
 from apps.patients.models import Patient
 
 from .forms import AppointmentForm
-from .models import AppointmentStatusChoices, AppointmentTypeChoices
+from .models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
 from .selectors import (
     get_daily_appointments,
     get_upcoming_appointments,
@@ -150,5 +150,62 @@ class AppointmentStatusUpdateView(LoginRequiredMixin, View):
                 outcome_notes=outcome,
                 user=request.user,
             )
-            messages.success(request, f"Appointment for {appt.patient.full_name} updated to {appt.get_status_display()}.")
+            messages.success(request, f"Home visit status for {appt.patient.full_name} updated to {appt.get_status_display()}.")
+        
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
         return redirect('appointments:calendar')
+
+
+class HomeRouteLogisticsView(LoginRequiredMixin, View):
+    """
+    Dedicated field logistics, patient residence, and navigational route dispatch workspace
+    for Palliative Care Nurses, Clinical Officers, and home outreach teams.
+    """
+    def get(self, request):
+        today = timezone.now().date()
+        date_str = request.GET.get('date')
+        if date_str:
+            try:
+                selected_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = today
+        else:
+            selected_date = today
+
+        prev_date = selected_date - timezone.timedelta(days=1)
+        next_date = selected_date + timezone.timedelta(days=1)
+
+        visible_appointments = authorized_appointment_queryset(request.user)
+        home_visits = (
+            Appointment.objects.filter(
+                appointment_type=AppointmentTypeChoices.HOME_VISIT,
+                scheduled_date=selected_date,
+            )
+            .filter(pk__in=visible_appointments.values('pk'))
+            .select_related('patient', 'staff_member__user')
+            .order_by('scheduled_time', 'patient__sub_county', 'patient__last_name')
+        )
+
+        total_stops = home_visits.count()
+        completed_stops = home_visits.filter(status=AppointmentStatusChoices.COMPLETED).count()
+        pending_stops = home_visits.filter(status=AppointmentStatusChoices.SCHEDULED).count()
+
+        # Extract unique areas / sub-counties and assigned nurses
+        areas = sorted(list(set([v.patient.sub_county or v.patient.county for v in home_visits if (v.patient.sub_county or v.patient.county)])))
+        assigned_staff = sorted(list(set([v.staff_member.user.display_name for v in home_visits if (v.staff_member and v.staff_member.user)])))
+
+        return render(request, 'appointments/home_routes.html', {
+            'today': today,
+            'selected_date': selected_date,
+            'prev_date': prev_date,
+            'next_date': next_date,
+            'home_visits': home_visits,
+            'total_stops': total_stops,
+            'completed_stops': completed_stops,
+            'pending_stops': pending_stops,
+            'areas': areas,
+            'assigned_staff': assigned_staff,
+            'status_choices': AppointmentStatusChoices.choices,
+        })

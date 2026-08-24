@@ -141,11 +141,19 @@
                     <i data-lucide="inbox" class="w-5 h-5 shrink-0 {% if request.resolver_match.app_name == 'referrals' %}text-red-300{% else %}text-slate-400 group-hover:text-slate-200{% endif %}"></i>
                     <span class="truncate">Referrals & Triage</span>
                 </a>
+                {% if is_nurse %}
+                <a href="{% url 'appointments:home_routes' %}" 
+                   class="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition duration-150 group {% if request.resolver_match.url_name == 'home_routes' %}text-white bg-[#002D62] font-semibold shadow-xs{% else %}text-slate-300 hover:text-white hover:bg-white/[0.06] font-medium{% endif %}">
+                    <i data-lucide="map-pin" class="w-5 h-5 shrink-0 {% if request.resolver_match.url_name == 'home_routes' %}text-teal-300{% else %}text-slate-400 group-hover:text-slate-200{% endif %}"></i>
+                    <span class="truncate">Home Visits & Routes</span>
+                </a>
+                {% else %}
                 <a href="{% url 'appointments:calendar' %}" 
                    class="flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition duration-150 group {% if request.resolver_match.app_name == 'appointments' %}text-white bg-[#002D62] font-semibold shadow-xs{% else %}text-slate-300 hover:text-white hover:bg-white/[0.06] font-medium{% endif %}">
                     <i data-lucide="calendar" class="w-5 h-5 shrink-0 {% if request.resolver_match.app_name == 'appointments' %}text-teal-300{% else %}text-slate-400 group-hover:text-slate-200{% endif %}"></i>
-                    <span class="truncate">{% if is_nurse %}Home Visits & Routes{% else %}Visits & Appointments{% endif %}</span>
+                    <span class="truncate">Visits & Appointments</span>
                 </a>
+                {% endif %}
                 {% endif %}
             </nav>
         </div>
