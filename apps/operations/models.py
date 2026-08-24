@@ -67,6 +67,64 @@ class PatientDeletionRequest(models.Model):
         return f"Deletion Request: {self.patient_name} ({self.hospice_number}) - {self.get_status_display()}"
 
 
+class AppointmentDeletionRequest(models.Model):
+    """
+    Formal deletion request for completed, cancelled, or obsolete appointments/tasks,
+    requiring Operations Manager / Admin authorization before purging.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    appointment = models.ForeignKey(
+        'appointments.Appointment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='deletion_requests'
+    )
+    appointment_id_copy = models.UUIDField(null=True, blank=True)
+    patient_name = models.CharField(max_length=200)
+    hospice_number = models.CharField(max_length=50)
+    scheduled_date = models.DateField()
+    scheduled_time = models.TimeField(null=True, blank=True)
+    appointment_type = models.CharField(max_length=50)
+    appointment_status = models.CharField(max_length=50)
+    clinician_name = models.CharField(max_length=200, blank=True)
+    
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='requested_appointment_deletions'
+    )
+    reason = models.TextField(help_text=_('Reason why this appointment/task should be deleted (completed, duplicate, cancelled, error, etc.)'))
+    
+    status = models.CharField(
+        max_length=20,
+        choices=DeletionRequestStatusChoices.choices,
+        default=DeletionRequestStatusChoices.PENDING,
+        db_index=True
+    )
+    
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_appointment_deletions'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Appointment Deletion Request')
+        verbose_name_plural = _('Appointment Deletion Requests')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Appointment Deletion: {self.patient_name} ({self.scheduled_date}) - {self.get_status_display()}"
+
+
 class VendorCategoryChoices(models.TextChoices):
     PHARMACEUTICAL = 'PHARMACEUTICAL', _('Pharmaceutical & Essential Meds')
     CONSUMABLES = 'CONSUMABLES', _('Medical Consumables & Wound Care')

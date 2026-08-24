@@ -138,3 +138,123 @@ def test_manager_can_reject_deletion_and_preserves_patient(manager_user, recepti
 
     # Patient remains safely intact in DB
     assert Patient.objects.filter(pk=test_patient.pk).exists()
+
+
+@pytest.mark.django_db
+def test_clinician_can_submit_appointment_deletion_request(receptionist_user, test_patient):
+    from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
+    staff_profile = receptionist_user.staff_profile
+    appt = Appointment.objects.create(
+        patient=test_patient,
+        staff_member=staff_profile,
+        appointment_type=AppointmentTypeChoices.CLINIC_VISIT,
+        scheduled_date='2026-08-24',
+        scheduled_time='10:00:00',
+        status=AppointmentStatusChoices.COMPLETED,
+        location='Clinic Room 1',
+    )
+
+    client = Client()
+    client.force_login(receptionist_user)
+
+    url = reverse('appointments:appointment_request_delete', kwargs={'pk': appt.pk})
+    response = client.post(url, {
+        'reason': 'Completed visit already documented in clinical encounters ledger'
+    }, follow=True)
+
+    assert response.status_code == 200
+
+    from apps.operations.models import AppointmentDeletionRequest
+    req = AppointmentDeletionRequest.objects.get(appointment_id_copy=appt.pk)
+    assert req.status == DeletionRequestStatusChoices.PENDING
+    assert req.requested_by == receptionist_user
+    assert req.appointment == appt
+    assert Appointment.objects.filter(pk=appt.pk).exists()
+
+
+@pytest.mark.django_db
+def test_manager_can_approve_appointment_deletion_and_purges_appointment(manager_user, receptionist_user, test_patient):
+    from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
+    from apps.operations.models import AppointmentDeletionRequest
+    
+    staff_profile = receptionist_user.staff_profile
+    appt = Appointment.objects.create(
+        patient=test_patient,
+        staff_member=staff_profile,
+        appointment_type=AppointmentTypeChoices.CLINIC_VISIT,
+        scheduled_date='2026-08-24',
+        status=AppointmentStatusChoices.COMPLETED,
+        location='Clinic Room 1',
+    )
+
+    deletion_req = AppointmentDeletionRequest.objects.create(
+        appointment=appt,
+        appointment_id_copy=appt.pk,
+        patient_name=test_patient.full_name,
+        hospice_number=test_patient.hospice_number,
+        scheduled_date=appt.scheduled_date,
+        appointment_type='Clinic Consultation',
+        appointment_status='Completed',
+        requested_by=receptionist_user,
+        reason='Task completed and archived',
+        status=DeletionRequestStatusChoices.PENDING
+    )
+
+    client = Client()
+    client.force_login(manager_user)
+
+    approve_url = reverse('operations:appointment_deletion_approve', kwargs={'pk': deletion_req.pk})
+    response = client.post(approve_url, {
+        'review_notes': 'Authorized by Operations Manager.'
+    }, follow=True)
+
+    assert response.status_code == 200
+
+    deletion_req.refresh_from_db()
+    assert deletion_req.status == DeletionRequestStatusChoices.APPROVED
+    assert deletion_req.reviewed_by == manager_user
+    assert not Appointment.objects.filter(pk=appt.pk).exists()
+
+
+@pytest.mark.django_db
+def test_manager_can_reject_appointment_deletion_and_preserves_appointment(manager_user, receptionist_user, test_patient):
+    from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
+    from apps.operations.models import AppointmentDeletionRequest
+    
+    staff_profile = receptionist_user.staff_profile
+    appt = Appointment.objects.create(
+        patient=test_patient,
+        staff_member=staff_profile,
+        appointment_type=AppointmentTypeChoices.CLINIC_VISIT,
+        scheduled_date='2026-08-24',
+        status=AppointmentStatusChoices.COMPLETED,
+        location='Clinic Room 1',
+    )
+
+    deletion_req = AppointmentDeletionRequest.objects.create(
+        appointment=appt,
+        appointment_id_copy=appt.pk,
+        patient_name=test_patient.full_name,
+        hospice_number=test_patient.hospice_number,
+        scheduled_date=appt.scheduled_date,
+        appointment_type='Clinic Consultation',
+        appointment_status='Completed',
+        requested_by=receptionist_user,
+        reason='Task completed and archived',
+        status=DeletionRequestStatusChoices.PENDING
+    )
+
+    client = Client()
+    client.force_login(manager_user)
+
+    reject_url = reverse('operations:appointment_deletion_reject', kwargs={'pk': deletion_req.pk})
+    response = client.post(reject_url, {
+        'review_notes': 'Keep for quarterly MDT audit trail.'
+    }, follow=True)
+
+    assert response.status_code == 200
+
+    deletion_req.refresh_from_db()
+    assert deletion_req.status == DeletionRequestStatusChoices.REJECTED
+    assert deletion_req.reviewed_by == manager_user
+    assert Appointment.objects.filter(pk=appt.pk).exists()

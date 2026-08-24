@@ -22,6 +22,7 @@ from .forms import (
     VendorForm,
 )
 from .models import (
+    AppointmentDeletionRequest,
     DeletionRequestStatusChoices,
     Invoice,
     InvoiceLineItem,
@@ -487,9 +488,27 @@ class PatientDeletionRequestListView(ManagerRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        status = self.request.GET.get('status')
+        current_tab = self.request.GET.get('tab', 'patients')
+        
+        # Appointment deletion requests
+        appt_qs = AppointmentDeletionRequest.objects.select_related('requested_by', 'reviewed_by').order_by('-created_at')
+        if status:
+            appt_qs = appt_qs.filter(status=status)
+            
+        context['appointment_deletion_requests'] = appt_qs
+        context['current_tab'] = current_tab
+        
+        # Patient counts
         context['pending_count'] = PatientDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.PENDING).count()
         context['approved_count'] = PatientDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.APPROVED).count()
         context['rejected_count'] = PatientDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.REJECTED).count()
+        
+        # Appointment counts
+        context['appt_pending_count'] = AppointmentDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.PENDING).count()
+        context['appt_approved_count'] = AppointmentDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.APPROVED).count()
+        context['appt_rejected_count'] = AppointmentDeletionRequest.objects.filter(status=DeletionRequestStatusChoices.REJECTED).count()
+        
         context['selected_status'] = self.request.GET.get('status', '')
         return context
 
@@ -563,3 +582,74 @@ class PatientDeletionRequestRejectView(ManagerRequiredMixin, View):
             f"Deletion request for {deletion_req.patient_name} ({deletion_req.hospice_number}) has been rejected."
         )
         return redirect('operations:deletion_requests')
+
+
+class AppointmentDeletionRequestApproveView(ManagerRequiredMixin, View):
+    def post(self, request, pk):
+        deletion_req = get_object_or_404(AppointmentDeletionRequest, pk=pk)
+        
+        if deletion_req.status != DeletionRequestStatusChoices.PENDING:
+            messages.warning(request, f"This deletion request has already been {deletion_req.get_status_display().lower()}.")
+            return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")
+
+        review_notes = request.POST.get('review_notes', '').strip()
+
+        with transaction.atomic():
+            appt = deletion_req.appointment
+            patient_name = deletion_req.patient_name
+            sched_date = deletion_req.scheduled_date
+
+            deletion_req.status = DeletionRequestStatusChoices.APPROVED
+            deletion_req.reviewed_by = request.user
+            deletion_req.reviewed_at = timezone.now()
+            deletion_req.review_notes = review_notes
+            deletion_req.appointment = None  # Detach FK before deleting appointment record
+            deletion_req.save()
+
+            if appt:
+                # Log audit trail
+                log_audit_event(
+                    action=AuditAction.DELETE,
+                    resource_type='Appointment',
+                    resource_id=str(appt.id),
+                    summary=f"Approved deletion and permanently purged appointment for {patient_name} scheduled on {sched_date}. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
+                    user=request.user,
+                )
+                appt.delete()
+
+        messages.success(
+            request,
+            f"Appointment for {patient_name} on {sched_date} has been permanently deleted and purged from schedule."
+        )
+        return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")
+
+
+class AppointmentDeletionRequestRejectView(ManagerRequiredMixin, View):
+    def post(self, request, pk):
+        deletion_req = get_object_or_404(AppointmentDeletionRequest, pk=pk)
+        
+        if deletion_req.status != DeletionRequestStatusChoices.PENDING:
+            messages.warning(request, f"This deletion request has already been {deletion_req.get_status_display().lower()}.")
+            return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")
+
+        review_notes = request.POST.get('review_notes', '').strip()
+
+        deletion_req.status = DeletionRequestStatusChoices.REJECTED
+        deletion_req.reviewed_by = request.user
+        deletion_req.reviewed_at = timezone.now()
+        deletion_req.review_notes = review_notes
+        deletion_req.save()
+
+        log_audit_event(
+            action=AuditAction.UPDATE,
+            resource_type='AppointmentDeletionRequest',
+            resource_id=str(deletion_req.id),
+            summary=f"Rejected appointment deletion request for {deletion_req.patient_name} on {deletion_req.scheduled_date}. Reason: {review_notes}",
+            user=request.user,
+        )
+
+        messages.info(
+            request,
+            f"Deletion request for {deletion_req.patient_name}'s appointment on {deletion_req.scheduled_date} has been rejected."
+        )
+        return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")

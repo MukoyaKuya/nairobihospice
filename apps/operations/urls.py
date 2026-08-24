@@ -25,4 +25,6 @@ urlpatterns = [
     path('deletions/', views.PatientDeletionRequestListView.as_view(), name='deletion_requests'),
     path('deletions/<uuid:pk>/approve/', views.PatientDeletionRequestApproveView.as_view(), name='deletion_request_approve'),
     path('deletions/<uuid:pk>/reject/', views.PatientDeletionRequestRejectView.as_view(), name='deletion_request_reject'),
+    path('deletions/appointments/<uuid:pk>/approve/', views.AppointmentDeletionRequestApproveView.as_view(), name='appointment_deletion_approve'),
+    path('deletions/appointments/<uuid:pk>/reject/', views.AppointmentDeletionRequestRejectView.as_view(), name='appointment_deletion_reject'),
 ]

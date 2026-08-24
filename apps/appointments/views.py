@@ -5,6 +5,9 @@ from django.utils import timezone
 from django.views.generic import View
 
 from apps.accounts.selectors import get_active_staff
+from apps.audit.models import AuditAction
+from apps.audit.services import log_audit_event
+from apps.operations.models import AppointmentDeletionRequest, DeletionRequestStatusChoices
 from apps.patients.access import (
     authorized_appointment_queryset,
     authorized_patient_queryset,
@@ -79,6 +82,12 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
             recent_patients = recent_patients.filter(pk__in=authorized_patient_queryset(request.user).values('pk'))
         recent_patients = recent_patients.order_by('-registration_date', 'last_name')[:40]
 
+        pending_deletion_appt_ids = set(
+            AppointmentDeletionRequest.objects.filter(
+                status=DeletionRequestStatusChoices.PENDING
+            ).values_list('appointment_id', flat=True)
+        )
+
         return render(request, 'appointments/appointment_calendar.html', {
             'today': today,
             'selected_date': selected_date,
@@ -89,6 +98,7 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
             'all_appointments': all_appointments,
             'active_staff': active_staff,
             'recent_patients': recent_patients,
+            'pending_deletion_appt_ids': pending_deletion_appt_ids,
             'status_choices': AppointmentStatusChoices.choices,
             'type_choices': AppointmentTypeChoices.choices,
             'search_query': query,
@@ -151,6 +161,60 @@ class AppointmentStatusUpdateView(LoginRequiredMixin, View):
                 user=request.user,
             )
             messages.success(request, f"Home visit status for {appt.patient.full_name} updated to {appt.get_status_display()}.")
+        
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
+        return redirect('appointments:calendar')
+
+
+class AppointmentDeletionRequestCreateView(LoginRequiredMixin, View):
+    """
+    Submits a deletion request for a completed, cancelled, or obsolete appointment/task,
+    which must be reviewed and approved by Operations/Management before deletion.
+    """
+    def post(self, request, pk):
+        appt = get_object_or_404(authorized_appointment_queryset(request.user), pk=pk)
+        
+        # Check if already has a pending deletion request
+        existing = AppointmentDeletionRequest.objects.filter(
+            appointment=appt, status=DeletionRequestStatusChoices.PENDING
+        ).first()
+        if existing:
+            messages.warning(request, f"A deletion request for this appointment is already pending Operations approval.")
+            return redirect('appointments:calendar')
+            
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            reason = "Completed task/visit marked for deletion by clinical/front desk staff."
+            
+        deletion_req = AppointmentDeletionRequest.objects.create(
+            appointment=appt,
+            appointment_id_copy=appt.id,
+            patient_name=appt.patient.full_name,
+            hospice_number=appt.patient.hospice_number,
+            scheduled_date=appt.scheduled_date,
+            scheduled_time=appt.scheduled_time,
+            appointment_type=appt.get_appointment_type_display(),
+            appointment_status=appt.get_status_display(),
+            clinician_name=appt.staff_member.user.display_name if (appt.staff_member and appt.staff_member.user) else '',
+            requested_by=request.user,
+            reason=reason,
+            status=DeletionRequestStatusChoices.PENDING,
+        )
+        
+        log_audit_event(
+            action=AuditAction.CREATE,
+            resource_type='AppointmentDeletionRequest',
+            resource_id=str(deletion_req.id),
+            summary=f"Requested deletion of appointment for {appt.patient.full_name} on {appt.scheduled_date}. Reason: {reason}",
+            user=request.user,
+        )
+        
+        messages.success(
+            request, 
+            f"Deletion request for {appt.patient.full_name}'s appointment on {appt.scheduled_date} has been submitted for Operations approval."
+        )
         
         next_url = request.POST.get('next')
         if next_url:
