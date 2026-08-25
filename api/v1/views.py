@@ -153,7 +153,15 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAppointmentApiPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['patient', 'staff_member', 'status', 'appointment_type', 'scheduled_date']
-    search_fields = ['reason', 'notes']
+    search_fields = ['location', 'patient__first_name', 'patient__last_name', 'patient__hospice_number']
+
+    def filter_queryset(self, queryset):
+        user = self.request.user
+        if getattr(user, 'is_clinical', False) or getattr(user, 'is_manager', False):
+            self.search_fields = ['reason', 'notes', 'location', 'patient__first_name', 'patient__last_name', 'patient__hospice_number']
+        else:
+            self.search_fields = ['location', 'patient__first_name', 'patient__last_name', 'patient__hospice_number']
+        return super().filter_queryset(queryset)
 
     def get_serializer_class(self):
         user = self.request.user

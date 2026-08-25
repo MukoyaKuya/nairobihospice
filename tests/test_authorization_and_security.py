@@ -1164,3 +1164,34 @@ class TestInputValidationAndAuditIntegrity:
         resp_pat = client.get('/patients/')
         assert resp_pat.status_code == 200
         assert b'Search Name, Hospice ID, Phone, Location...' in resp_pat.content
+
+    def test_appointment_api_search_excludes_reason_for_receptionist(self):
+        """Appointment REST API ?search= excludes matching reason/notes for receptionists."""
+        from apps.appointments.models import Appointment, AppointmentTypeChoices, AppointmentStatusChoices
+        from django.utils import timezone
+
+        Appointment.objects.create(
+            patient=self.patient,
+            staff_member=self.doctor.staff_profile,
+            appointment_type=AppointmentTypeChoices.CLINIC_VISIT,
+            scheduled_date=timezone.now().date(),
+            scheduled_time=timezone.now().time(),
+            status=AppointmentStatusChoices.SCHEDULED,
+            reason="Unbearable thoracic bone metastasis pain review",
+            notes="Secret clinical palliative notes",
+            created_by=self.doctor,
+        )
+
+        # Receptionist search for clinical keyword -> returns 0 results
+        from rest_framework.test import APIClient
+        api = APIClient()
+        api.force_authenticate(user=self.receptionist)
+        res_rec = api.get('/api/v1/appointments/?search=metastasis')
+        assert res_rec.status_code == 200
+        assert len(res_rec.json()['results']) == 0
+
+        # Doctor search for clinical keyword -> matches appointment
+        api.force_authenticate(user=self.doctor)
+        res_doc = api.get('/api/v1/appointments/?search=metastasis')
+        assert res_doc.status_code == 200
+        assert len(res_doc.json()['results']) == 1
