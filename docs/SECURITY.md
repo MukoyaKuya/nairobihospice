@@ -49,38 +49,39 @@ The PCMS enforces strict separation between **Demographic Bio-Data** (Intake/Log
 
 2. **Calendar & Patient Lists**:
    - Diagnosis and clinical focus reasons on the appointment calendar are gated by `clinical_access`.
+   - Appointment search by query `q` excludes clinical `reason` matching for non-clinical staff.
    - Patient directory tables render `Palliative Care` instead of actual clinical diagnoses for non-clinical users.
 
 3. **Referral Intake**:
-   - Referrals created by non-clinical staff omit clinical summary and medication fields; `primary_diagnosis` defaults to `'Pending Clinical Review'`.
+   - Referral form conditionally hides diagnosis, clinical summary, and medication fields from receptionists.
+   - Submissions from non-clinical staff set `primary_diagnosis` to `'Pending Clinical Review'` and scrub clinical fields.
+   - Intake purpose / reason is validated as logistical request context.
 
-4. **Private Media Isolation**:
-   - Patient ID photos and clinical documents are stored outside the web root (`private_media/`).
-   - Served exclusively through authenticated, role-gated endpoints with headers:
-     ```http
-     Cache-Control: private, no-store, max-age=0, must-revalidate
-     X-Content-Type-Options: nosniff
-     ```
+4. **Media Access Controls**:
+   - Clinical documents and patient photos are protected behind role-authorized streaming endpoints.
 
 ---
 
 ## 3. Pharmacy & Controlled Substance Safety
 
-1. **Caseload-Only Visibility**:
-   - Pharmacists only see patients who have active prescriptions or historical dispenses.
+1. **Caseload & Candidate Scoping**:
+   - A pharmacist's personal caseload (`authorized_patient_queryset`) is strictly limited to patients to whom they have recorded a dispense (`stock_movements__recorded_by=user`).
+   - The dispense candidate dropdown (`StockDispenseForm`) allows dispensing only to active patients with active medication statements. Once dispensed, the patient enters that pharmacist's historical dispense record.
 2. **Dispense Audit Integrity**:
-   - Every stock dispense must bind both `patient_id` and `medication_statement_id` ForeignKeys.
+   - Stock dispenses require both `patient_id` and `medication_statement_id` ForeignKeys, enforced both at the service layer (`record_stock_movement`) and at the model layer (`StockMovement.clean()` / `full_clean()`).
    - Pharmacists cannot create new medication prescriptions via Web or API (`MEDICATION_RECORDER_ROLES` is restricted to prescribers and nurses).
+3. **Dedicated Operational Dashboard**:
+   - Pharmacist dashboard displays medication KPIs, controlled substance registries, and user-scoped total dispenses, omitting clinical pain/encounter widgets.
 
 ---
 
 ## 4. Authentication, Session & Transport Security
 
 1. **Multi-Factor Authentication (MFA)**:
-   - TOTP secrets are encrypted at rest using AES-128-CBC / Fernet with HMAC authentication (`FERNET_SECRET_KEY`).
-   - Privileged roles (Manager, Administrator, Clinicians) require MFA enrollment.
+   - TOTP secrets are encrypted at rest with AES-128-CBC / Fernet (key derived via SHA-256 from Django `SECRET_KEY`).
+   - Privileged management roles require MFA verification when `MFA_REQUIRED_FOR_PRIVILEGED` is active.
 2. **Open Redirect Protection**:
    - All `next=` redirect parameters are validated via `url_has_allowed_host_and_scheme`.
 3. **Malware Defense**:
-   - All file uploads (documents and patient photos) undergo malware inspection via `clamscan`.
-   - Production setting `PCMS_REQUIRE_MALWARE_SCAN=True` enforces fail-closed rejection if scanner is unavailable.
+   - File uploads (documents and patient photos) undergo malware inspection via `clamscan`.
+   - In production (`PCMS_REQUIRE_MALWARE_SCAN=True`), uploads fail-closed if scanner is unavailable.

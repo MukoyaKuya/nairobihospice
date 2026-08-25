@@ -52,6 +52,7 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')
 
+        clinical_search = bool(getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user))
         all_appointments = search_appointments(
             query=query,
             status=status,
@@ -59,6 +60,7 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
             appointment_type=appt_type,
             date_from=date_from,
             date_to=date_to,
+            is_clinical=clinical_search,
         ).filter(pk__in=visible_appointments.values('pk'))
 
         active_staff = get_active_staff()

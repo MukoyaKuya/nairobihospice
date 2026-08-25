@@ -44,21 +44,21 @@
             </div>
         </div>
 
-        <!-- KPI 3: Severe Distress Pain Spikes -->
+        <!-- KPI 3: Pharmacy Dispenses -->
         <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
             <div class="flex items-start justify-between">
                 <div>
-                    <span class="text-xs font-bold text-slate-600 block">Pain Distress Spikes</span>
-                    <span class="text-3xl font-black text-amber-600 mt-1.5 block tracking-tight">{{ pain_spikes_count }}</span>
-                    <span class="text-[11px] text-slate-400 mt-0.5 block">Patients with pain score &ge; 7/10</span>
+                    <span class="text-xs font-bold text-slate-600 block">Total Dispenses</span>
+                    <span class="text-3xl font-black text-amber-600 mt-1.5 block tracking-tight">{{ total_dispenses_count }}</span>
+                    <span class="text-[11px] text-slate-400 mt-0.5 block">Recorded drug dispenses</span>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <i data-lucide="package-check" class="w-5 h-5"></i>
                 </div>
             </div>
             <div class="mt-4 pt-3 border-t border-slate-100">
-                <a href="{% url 'assessments:assessment_list' %}?filter=pain_spikes" class="inline-flex items-center text-xs font-bold text-amber-700 hover:text-amber-800 space-x-1">
-                    <span>Review pain scores</span>
+                <a href="{% url 'operations:inventory_list' %}" class="inline-flex items-center text-xs font-bold text-amber-700 hover:text-amber-800 space-x-1">
+                    <span>Pharmacy inventory</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </a>
             </div>
@@ -228,14 +228,14 @@
                 <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
             </a>
 
-            <a href="{% url 'encounters:encounter_list' %}" class="p-3 rounded-xl border border-slate-200 hover:border-teal-600 hover:bg-slate-50 transition flex items-center justify-between group">
+            <a href="{% url 'operations:pharmacy_dispense' %}" class="p-3 rounded-xl border border-slate-200 hover:border-emerald-600 hover:bg-slate-50 transition flex items-center justify-between group">
                 <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center">
-                        <i data-lucide="stethoscope" class="w-4 h-4"></i>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                        <i data-lucide="package-plus" class="w-4 h-4"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-bold text-slate-900 group-hover:text-teal-700 block">Clinical Encounters</span>
-                        <span class="text-[10px] text-slate-500">Review doctor/nurse notes</span>
+                        <span class="text-xs font-bold text-slate-900 group-hover:text-emerald-700 block">Record Dispense</span>
+                        <span class="text-[10px] text-slate-500">Dispense prescription medication</span>
                     </div>
                 </div>
                 <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>

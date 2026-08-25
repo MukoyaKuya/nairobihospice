@@ -240,6 +240,7 @@ class TestAPISecurityAndAuthorization:
         """Pharmacist dashboard active medications only includes patients with pharmacist dispenses."""
         from apps.reporting.selectors import get_clinical_dashboard_data
         from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        from apps.patients.access import authorized_patient_queryset
 
         pharmacist = create_staff_user(
             email='pharm_dash_test@nairobihospice.or.ke',
@@ -249,7 +250,10 @@ class TestAPISecurityAndAuthorization:
             password='Pass!',
             role=RoleChoices.PHARMACIST,
         )
-        MedicationStatement.objects.create(
+        from apps.operations.models import StockItem, MovementTypeChoices
+        from apps.operations.services import record_stock_movement
+
+        med = MedicationStatement.objects.create(
             patient=self.patient,
             medication_name="Oral Morphine 10mg/5ml",
             dosage="5mg",
@@ -258,9 +262,30 @@ class TestAPISecurityAndAuthorization:
             status=MedicationStatusChoices.ACTIVE,
             prescriber=self.doctor,
         )
-        # Without any stock movement by this pharmacist, active_medications should be empty
-        data = get_clinical_dashboard_data(pharmacist)
-        assert len(data['active_medications']) == 0
+
+        # Before any dispense, pharmacist has no patients on caseload
+        data_before = get_clinical_dashboard_data(pharmacist)
+        assert len(data_before['active_medications']) == 0
+        assert self.patient not in list(authorized_patient_queryset(pharmacist))
+
+        # After dispensing, patient enters pharmacist's authorized caseload
+        stock_item = StockItem.objects.create(
+            name="Oral Morphine 10mg/5ml",
+            item_code="STK-MORPH-DASH",
+            quantity_on_hand=50,
+            unit_of_measure="bottle",
+        )
+        record_stock_movement(
+            stock_item=stock_item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=1,
+            patient=self.patient,
+            medication_statement=med,
+            user=pharmacist,
+        )
+        data_after = get_clinical_dashboard_data(pharmacist)
+        assert len(data_after['active_medications']) == 1
+        assert self.patient in list(authorized_patient_queryset(pharmacist))
 
     def test_receptionist_dashboard_and_drf_search_strip_diagnosis(self):
         """Reception dashboard and DRF patient search strip primary diagnosis."""
@@ -354,12 +379,23 @@ class TestAPISecurityAndAuthorization:
             password='Pass!',
             role=RoleChoices.PHARMACIST,
         )
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        med1 = MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Morphine 10mg",
+            dosage="5mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
         mov1 = record_stock_movement(
             stock_item=item,
             movement_type=MovementTypeChoices.DISPENSE,
             quantity=2,
             reference_document="Ref 1",
             patient=self.patient,
+            medication_statement=med1,
             user=pharm1,
         )
 
@@ -572,6 +608,129 @@ class TestAPISecurityAndAuthorization:
         item_doc = [r for r in data_doc['results'] if r['id'] == str(self.patient.id)][0]
         assert item_doc['primary_diagnosis'] == "Advanced Cervical Carcinoma"
 
+    def test_typeahead_search_excludes_unassigned_patient_for_clinician_and_pharmacist(self):
+        """Clinician and Pharmacist typeahead search strictly excludes unassigned patients."""
+        from django.test import Client
+        unassigned_doc = create_staff_user(
+            email='other_doc@nairobihospice.or.ke',
+            username='other_doc',
+            first_name='Other',
+            last_name='Doc',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        unassigned_pharm = create_staff_user(
+            email='other_pharm@nairobihospice.or.ke',
+            username='other_pharm',
+            first_name='Other',
+            last_name='Pharm',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+
+        client = Client()
+        # Other doctor has no care episode for self.patient -> search returns empty
+        client.force_login(unassigned_doc)
+        res_doc = client.get(f'/patients/api/search/?q={self.patient.first_name}')
+        assert res_doc.status_code == 200
+        assert res_doc.json()['results'] == []
+
+        # Other pharmacist has no active prescription or dispense for self.patient -> search returns empty
+        client.force_login(unassigned_pharm)
+        res_pharm = client.get(f'/patients/api/search/?q={self.patient.first_name}')
+        assert res_pharm.status_code == 200
+        assert res_pharm.json()['results'] == []
+
+    def test_calendar_view_excludes_diagnosis_and_clinical_reason_for_receptionist(self):
+        """Calendar strips patient diagnosis and clinical focus reason for receptionists."""
+        from django.test import Client
+        from apps.appointments.models import Appointment, AppointmentTypeChoices, AppointmentStatusChoices
+        from django.utils import timezone
+        
+        self.patient.primary_diagnosis = "Renal Cell Carcinoma Stage IV"
+        self.patient.save()
+
+        Appointment.objects.create(
+            patient=self.patient,
+            staff_member=self.doctor.staff_profile,
+            appointment_type=AppointmentTypeChoices.CLINIC_VISIT,
+            scheduled_date=timezone.now().date(),
+            scheduled_time=timezone.now().time(),
+            status=AppointmentStatusChoices.SCHEDULED,
+            reason="Acute breakthrough flank pain flare evaluation",
+            created_by=self.doctor,
+        )
+
+        client = Client()
+        client.force_login(self.receptionist)
+        res = client.get('/appointments/')
+        assert res.status_code == 200
+        assert b'Renal Cell Carcinoma Stage IV' not in res.content
+        assert b'Acute breakthrough flank pain flare evaluation' not in res.content
+
+    def test_receptionist_referral_post_does_not_persist_diagnosis(self):
+        """Referrals created by receptionists scrub clinical fields and default primary_diagnosis to 'Pending Clinical Review'."""
+        from django.test import Client
+        from apps.referrals.models import Referral
+
+        client = Client()
+        client.force_login(self.receptionist)
+        res = client.post('/referrals/create/', {
+            'patient_name': 'Mary Achieng',
+            'approximate_age': 45,
+            'sex': 'F',
+            'phone_number': '0711223344',
+            'county': 'Nairobi',
+            'referral_source': 'HOSPITAL',
+            'referring_facility': 'Kenyatta National Hospital',
+            'referral_date': '2026-08-25',
+            'priority': 'ROUTINE',
+            'primary_diagnosis': 'Unauthorized Injected Diagnosis',
+            'reason_for_referral': 'Palliative intake requested by KNH oncology',
+            'clinical_summary': 'Unauthorized chemo history notes',
+            'current_medications': 'Unauthorized opioid list',
+        })
+        assert res.status_code == 302
+        ref = Referral.objects.filter(patient_name='Mary Achieng').latest('created_at')
+        assert ref.primary_diagnosis == 'Pending Clinical Review'
+        assert ref.clinical_summary == ''
+        assert ref.current_medications == ''
+        assert ref.reason_for_referral == 'Palliative intake requested by KNH oncology'
+
+    def test_dispense_without_prescription_fk_raises_validation_error(self):
+        """Service layer record_stock_movement and model clean() strictly require medication_statement on patient dispenses."""
+        from django.core.exceptions import ValidationError
+        from apps.operations.models import StockItem, StockMovement, MovementTypeChoices
+        from apps.operations.services import record_stock_movement
+
+        stock_item = StockItem.objects.create(
+            name="Oral Morphine Solution 10mg/5ml",
+            item_code="STK-TEST-VAL-FK",
+            quantity_on_hand=30,
+            unit_of_measure="bottle",
+        )
+        # Service layer validation
+        with pytest.raises(ValidationError, match="A linked active medication statement is required"):
+            record_stock_movement(
+                stock_item=stock_item,
+                movement_type=MovementTypeChoices.DISPENSE,
+                quantity=1,
+                patient=self.patient,
+                medication_statement=None,
+                user=self.doctor,
+            )
+
+        # Model-level create validation
+        with pytest.raises(ValidationError):
+            StockMovement.objects.create(
+                stock_item=stock_item,
+                movement_type=MovementTypeChoices.DISPENSE,
+                quantity=-1,
+                balance_after=29,
+                patient=self.patient,
+                medication_statement=None,
+            )
+
     def test_medication_list_scoped_to_authorized_caseload(self):
         """Medication list view scopes statements to clinician authorized caseload."""
         from django.test import Client
@@ -749,6 +908,12 @@ class TestAPISecurityAndAuthorization:
         med_for_patient_a = MedicationStatement.objects.create(
             patient=self.patient,
             medication_name="Morphine Sulfate 10mg",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        med_for_patient_b = MedicationStatement.objects.create(
+            patient=patient_b,
+            medication_name="Paracetamol 500mg",
             status=MedicationStatusChoices.ACTIVE,
             prescriber=self.doctor,
         )

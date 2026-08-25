@@ -112,6 +112,15 @@ def get_clinical_dashboard_data(user):
         bereavement_cases = bereavement_cases.filter(pk__in=auth_patients.values('pk'))
     bereavement_cases = bereavement_cases[:6]
 
+    # Pharmacy Metrics
+    from apps.operations.models import MovementTypeChoices, StockMovement
+    if is_admin_or_mgr:
+        total_dispenses_count = StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).count()
+    elif is_pharm:
+        total_dispenses_count = StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE, recorded_by=user).count()
+    else:
+        total_dispenses_count = 0
+
     return {
         'today': today,
         'today_appts': today_appts,
@@ -132,6 +141,7 @@ def get_clinical_dashboard_data(user):
         'new_registrations_month': new_registrations_month,
         'active_cohort_count': active_cohort_count,
         'bereavement_cases': bereavement_cases,
+        'total_dispenses_count': total_dispenses_count,
         # Role flags for template partial selection
         'is_receptionist': is_rec,
         'is_nurse': is_nurse,

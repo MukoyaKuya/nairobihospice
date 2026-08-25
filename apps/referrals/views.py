@@ -59,8 +59,8 @@ class ReferralCreateView(LoginRequiredMixin, View):
             from django.core.exceptions import PermissionDenied
             raise PermissionDenied('Pharmacists are not authorized to create referrals.')
         from apps.patients.constants import HOSPICE_DIAGNOSES
-        form = ReferralForm()
         clinical_access = bool(request.user.is_clinical or request.user.is_manager or request.user.is_superuser)
+        form = ReferralForm(clinical_access=clinical_access)
         return render(request, 'referrals/referral_form.html', {
             'form': form, 
             'is_create': True,
@@ -74,7 +74,7 @@ class ReferralCreateView(LoginRequiredMixin, View):
             raise PermissionDenied('Pharmacists are not authorized to create referrals.')
         from apps.patients.constants import HOSPICE_DIAGNOSES
         clinical_access = bool(request.user.is_clinical or request.user.is_manager or request.user.is_superuser)
-        form = ReferralForm(request.POST)
+        form = ReferralForm(request.POST, clinical_access=clinical_access)
         if form.is_valid():
             cd = form.cleaned_data
             primary_diag = cd['primary_diagnosis'] if clinical_access else 'Pending Clinical Review'

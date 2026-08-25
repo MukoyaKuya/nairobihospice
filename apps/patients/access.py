@@ -25,7 +25,7 @@ def authorized_patient_queryset(user):
     if can_manage_all_patients(user):
         return Patient.objects.all()
     if user.role == RoleChoices.PHARMACIST:
-        return Patient.objects.filter(stock_movements__recorded_by=user).distinct()
+        return Patient.objects.filter(stock_movements__recorded_by=user, status='ACTIVE').distinct()
     if not user.is_clinical:
         return Patient.objects.none()
 

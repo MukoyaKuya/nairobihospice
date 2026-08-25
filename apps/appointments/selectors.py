@@ -42,18 +42,21 @@ def search_appointments(
     appointment_type: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    is_clinical: bool = True,
 ) -> QuerySet[Appointment]:
     qs = Appointment.objects.select_related('patient', 'staff_member__user').order_by('-scheduled_date', '-scheduled_time')
 
     if query:
         q_clean = query.strip()
-        qs = qs.filter(
+        q_filter = (
             Q(patient__first_name__icontains=q_clean) |
             Q(patient__last_name__icontains=q_clean) |
             Q(patient__hospice_number__icontains=q_clean) |
-            Q(reason__icontains=q_clean) |
             Q(location__icontains=q_clean)
         )
+        if is_clinical:
+            q_filter |= Q(reason__icontains=q_clean)
+        qs = qs.filter(q_filter)
 
     if status and status in AppointmentStatusChoices.values:
         qs = qs.filter(status=status)

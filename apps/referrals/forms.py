@@ -22,6 +22,20 @@ class ReferralForm(forms.ModelForm):
             'current_medications': forms.Textarea(attrs={'rows': 2}),
         }
 
+    def __init__(self, *args, clinical_access: bool = True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.clinical_access = clinical_access
+        if not clinical_access:
+            self.fields['primary_diagnosis'].required = False
+            self.fields['clinical_summary'].required = False
+            self.fields['current_medications'].required = False
+
+    def clean_primary_diagnosis(self):
+        diag = self.cleaned_data.get('primary_diagnosis', '').strip()
+        if not getattr(self, 'clinical_access', True) or not diag:
+            return 'Pending Clinical Review'
+        return diag
+
 
 class ReferralReviewForm(forms.ModelForm):
     class Meta:

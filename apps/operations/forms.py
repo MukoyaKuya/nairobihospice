@@ -120,23 +120,24 @@ class StockDispenseForm(forms.Form):
         from apps.patients.models import Patient
 
         if user and can_manage_all_patients(user):
-            self.fields['patient'].queryset = Patient.objects.filter(status='ACTIVE').order_by('first_name', 'last_name')
+            scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
+            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
             self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
         elif user and getattr(user, 'role', '') == RoleChoices.PHARMACIST:
-            # Pharmacists dispense only for patients with active prescriptions
             scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
             self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
             self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(
                 status='ACTIVE', patient__in=scoped_patients
             ).select_related('patient').order_by('patient__first_name')
         elif user:
-            scoped_patients = authorized_patient_queryset(user).filter(status='ACTIVE')
+            scoped_patients = authorized_patient_queryset(user).filter(status='ACTIVE', medications__status='ACTIVE').distinct()
             self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
             self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(
                 status='ACTIVE', patient__in=scoped_patients
             ).select_related('patient').order_by('patient__first_name')
         else:
-            self.fields['patient'].queryset = Patient.objects.filter(status='ACTIVE').order_by('first_name', 'last_name')
+            scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
+            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
             self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
 
     def clean(self):
