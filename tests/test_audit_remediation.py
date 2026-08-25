@@ -284,6 +284,7 @@ def test_referral_create_via_view_uses_service_and_audits():
 @pytest.mark.django_db
 def test_referral_conversion_is_idempotent():
     doctor = make_staff('ref_conv@nairobihospice.or.ke', RoleChoices.DOCTOR)
+    nurse = make_staff('ref_conv_nurse@nairobihospice.or.ke', RoleChoices.NURSE)
     referral = create_referral(
         patient_name='Idem Empotent',
         referring_facility='KNH',
@@ -294,8 +295,18 @@ def test_referral_conversion_is_idempotent():
     referral.status = 'ACCEPTED'
     referral.save()
 
-    first = convert_referral_to_patient(referral=referral, user=doctor)
-    second = convert_referral_to_patient(referral=referral, user=doctor)
+    first = convert_referral_to_patient(
+        referral=referral,
+        user=doctor,
+        primary_nurse=nurse.staff_profile,
+        primary_doctor=doctor.staff_profile,
+    )
+    second = convert_referral_to_patient(
+        referral=referral,
+        user=doctor,
+        primary_nurse=nurse.staff_profile,
+        primary_doctor=doctor.staff_profile,
+    )
     assert first.pk == second.pk
     assert Patient.objects.filter(originating_referrals=referral).count() == 1
 

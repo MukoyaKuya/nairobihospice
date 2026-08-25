@@ -54,6 +54,14 @@ class PatientViewSet(viewsets.ModelViewSet):
             return PatientSerializer
         return PatientSummarySerializer
 
+    def filter_queryset(self, queryset):
+        user = self.request.user
+        if not (getattr(user, 'is_clinical', False) or can_manage_all_patients(user)):
+            self.search_fields = ['hospice_number', 'first_name', 'last_name', 'phone_number', 'identification_number']
+        else:
+            self.search_fields = ['hospice_number', 'first_name', 'last_name', 'phone_number', 'identification_number', 'primary_diagnosis']
+        return super().filter_queryset(queryset)
+
 
 class ReferralViewSet(viewsets.ModelViewSet):
     queryset = Referral.objects.all().order_by('-referral_date')

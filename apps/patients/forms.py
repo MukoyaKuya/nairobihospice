@@ -140,7 +140,6 @@ class ReceptionistPatientUpdateForm(forms.ModelForm):
             'phone_number', 'alternative_phone', 'email',
             'address', 'county', 'sub_county', 'ward', 'landmark',
             'preferred_language', 'marital_status', 'religion', 'occupation',
-            'status', 'special_remarks',
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),

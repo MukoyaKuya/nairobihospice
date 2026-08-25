@@ -213,10 +213,21 @@ class TestReferralAndConversion:
             priority=ReferralPriorityChoices.URGENT,
             created_by=doc,
         )
-        assert referral.status == ReferralStatusChoices.RECEIVED
-
+        nurse = create_staff_user(
+            email='conv_nurse1@nairobihospice.or.ke',
+            username='conv_nurse1',
+            first_name='Nurse',
+            last_name='One',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
         # Convert to patient
-        patient = convert_referral_to_patient(referral=referral, user=doc)
+        patient = convert_referral_to_patient(
+            referral=referral,
+            user=doc,
+            primary_nurse=nurse.staff_profile,
+            primary_doctor=doc.staff_profile,
+        )
         referral.refresh_from_db()
         assert referral.status == ReferralStatusChoices.CONVERTED
         assert referral.converted_patient == patient

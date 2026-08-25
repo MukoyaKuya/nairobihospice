@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -139,22 +140,23 @@ def convert_referral_to_patient(*, referral: Referral, user=None, primary_nurse=
         else None
     )
 
-    if assigned_nurse:
-        CareTeamMember.objects.create(
-            episode=episode,
-            staff_member=assigned_nurse,
-            role=CareTeamRoleChoices.PRIMARY_NURSE,
-            is_primary=True,
-            start_date=episode.start_date,
-        )
-    if assigned_doctor:
-        CareTeamMember.objects.create(
-            episode=episode,
-            staff_member=assigned_doctor,
-            role=CareTeamRoleChoices.PRIMARY_DOCTOR,
-            is_primary=True,
-            start_date=episode.start_date,
-        )
+    if not assigned_nurse or not assigned_doctor:
+        raise ValidationError("Both a primary nurse and primary doctor must be assigned to convert a referral into an active patient episode.")
+
+    CareTeamMember.objects.create(
+        episode=episode,
+        staff_member=assigned_nurse,
+        role=CareTeamRoleChoices.PRIMARY_NURSE,
+        is_primary=True,
+        start_date=episode.start_date,
+    )
+    CareTeamMember.objects.create(
+        episode=episode,
+        staff_member=assigned_doctor,
+        role=CareTeamRoleChoices.PRIMARY_DOCTOR,
+        is_primary=True,
+        start_date=episode.start_date,
+    )
 
     log_audit_event(
         action=AuditAction.CREATE,

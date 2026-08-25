@@ -180,12 +180,30 @@ class TestAPISecurityAndAuthorization:
         assert response.status_code == 200
         form = response.context['form']
         assert form.__class__.__name__ == 'ReceptionistPatientUpdateForm'
+        assert 'status' not in form.fields
+        assert 'special_remarks' not in form.fields
         assert 'primary_diagnosis' not in form.fields
         assert 'hiv_status' not in form.fields
         assert 'allergies' not in form.fields
         assert 'clinical_alerts' not in form.fields
         assert 'past_medical_history' not in form.fields
         assert 'present_medical_notes' not in form.fields
+
+        # Receptionist POST cannot change status to DECEASED or inject special remarks
+        self.patient.status = 'ACTIVE'
+        self.patient.special_remarks = 'Original Remarks'
+        self.patient.save()
+
+        client.post(f'/patients/{self.patient.id}/edit/', {
+            'first_name': self.patient.first_name,
+            'last_name': self.patient.last_name,
+            'sex': 'F',
+            'status': 'DECEASED',
+            'special_remarks': 'Tampered Remarks',
+        })
+        self.patient.refresh_from_db()
+        assert self.patient.status == 'ACTIVE'
+        assert self.patient.special_remarks == 'Original Remarks'
 
         # Clinician edit form retains clinical fields
         client.force_login(self.doctor)
@@ -195,6 +213,115 @@ class TestAPISecurityAndAuthorization:
         assert form_doc.__class__.__name__ == 'PatientUpdateForm'
         assert 'primary_diagnosis' in form_doc.fields
         assert 'hiv_status' in form_doc.fields
+        assert 'status' in form_doc.fields
+
+    def test_convert_referral_to_patient_raises_when_care_team_missing(self):
+        """convert_referral_to_patient raises ValidationError if nurse or doctor is missing."""
+        from django.core.exceptions import ValidationError
+        from apps.referrals.models import Referral, ReferralStatusChoices
+        from apps.referrals.services import convert_referral_to_patient
+
+        referral = Referral.objects.create(
+            referral_number="REF-2026-9999",
+            patient_name="CareTeam Test Patient",
+            primary_diagnosis="Advanced Cancer",
+            reason_for_referral="Palliative Symptom Control",
+            status=ReferralStatusChoices.ACCEPTED,
+        )
+        with pytest.raises(ValidationError):
+            convert_referral_to_patient(
+                referral=referral,
+                user=self.receptionist,
+                primary_nurse=None,
+                primary_doctor=None,
+            )
+
+    def test_pharmacist_dashboard_scoped_to_authorized_caseload(self):
+        """Pharmacist dashboard active medications only includes patients with pharmacist dispenses."""
+        from apps.reporting.selectors import get_clinical_dashboard_data
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        pharmacist = create_staff_user(
+            email='pharm_dash_test@nairobihospice.or.ke',
+            username='pharm_dash_test',
+            first_name='Pharm',
+            last_name='Dash',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Oral Morphine 10mg/5ml",
+            dosage="5mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        # Without any stock movement by this pharmacist, active_medications should be empty
+        data = get_clinical_dashboard_data(pharmacist)
+        assert len(data['active_medications']) == 0
+
+    def test_receptionist_dashboard_and_drf_search_strip_diagnosis(self):
+        """Reception dashboard and DRF patient search strip primary diagnosis."""
+        from django.test import Client
+        from apps.referrals.models import Referral, ReferralStatusChoices
+
+        Referral.objects.create(
+            referral_number="REF-2026-8888",
+            patient_name="Secret Dx Patient",
+            referring_facility="Kenyatta National Hospital",
+            primary_diagnosis="Sensitive Carcinoma Stage IV",
+            reason_for_referral="Pain Management",
+            status=ReferralStatusChoices.RECEIVED,
+        )
+        client = Client()
+        client.force_login(self.receptionist)
+
+        # 1. Reception dashboard template does not print primary diagnosis
+        response_dash = client.get('/reporting/clinical/')
+        assert response_dash.status_code == 200
+        assert b"Sensitive Carcinoma Stage IV" not in response_dash.content
+
+        # 2. DRF patient search ignores primary_diagnosis for receptionist
+        response_drf = client.get('/api/v1/patients/?search=Sensitive')
+        assert response_drf.status_code == 200
+        assert len(response_drf.json().get('results', [])) == 0
+
+    def test_dispense_form_dropdowns_scoped_for_pharmacist(self):
+        """StockDispenseForm scopes patient choices to patients with active meds for pharmacists."""
+        from apps.operations.forms import StockDispenseForm
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        patient_without_meds = register_patient(
+            first_name='NoMed',
+            last_name='Patient',
+            created_by=self.doctor,
+        )
+        patient_with_meds = register_patient(
+            first_name='WithMed',
+            last_name='Patient',
+            created_by=self.doctor,
+        )
+        MedicationStatement.objects.create(
+            patient=patient_with_meds,
+            medication_name="Oral Morphine 5mg",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+
+        pharmacist = create_staff_user(
+            email='pharm_form_test@nairobihospice.or.ke',
+            username='pharm_form_test',
+            first_name='Pharm',
+            last_name='Form',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        form = StockDispenseForm(user=pharmacist)
+        allowed_patients = list(form.fields['patient'].queryset)
+        assert patient_with_meds in allowed_patients
+        assert patient_without_meds not in allowed_patients
 
     def test_patient_search_api_strips_diagnosis_for_receptionist(self):
         """Patient search API returns blank primary_diagnosis for receptionists and scoped results."""

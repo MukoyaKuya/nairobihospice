@@ -75,7 +75,7 @@ def get_clinical_dashboard_data(user):
     active_medications_qs = MedicationStatement.objects.filter(
         status=MedicationStatusChoices.ACTIVE
     ).select_related('patient', 'prescriber').order_by('-start_date')
-    if not is_admin_or_mgr and not is_pharm:
+    if not is_admin_or_mgr:
         active_medications_qs = active_medications_qs.filter(patient__in=auth_patients)
 
     # Controlled substance / opioid statements

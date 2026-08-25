@@ -257,7 +257,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
         if patient_id:
             initial['patient'] = patient_id
 
-        form = StockDispenseForm(initial=initial)
+        form = StockDispenseForm(initial=initial, user=request.user)
         stock_items = list(StockItem.objects.all().order_by('name').values('id', 'name', 'item_code', 'quantity_on_hand', 'unit_of_measure', 'is_controlled_substance'))
         return render(request, 'operations/pharmacy_dispense.html', {
             'form': form,
@@ -274,7 +274,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
             raise PermissionDenied("Only pharmacy, clinical, and management staff may dispense stock.")
 
         import json
-        form = StockDispenseForm(request.POST)
+        form = StockDispenseForm(request.POST, user=request.user)
         if form.is_valid():
             stock_item = form.cleaned_data['stock_item']
             patient = form.cleaned_data['patient']
