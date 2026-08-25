@@ -560,8 +560,13 @@ def patient_search_api(request):
 class PatientReportPDFView(LoginRequiredMixin, View):
     """
     Renders and downloads a comprehensive, professionally styled Clinical Patient Report PDF.
+    Restricted to clinical care staff and administrators (hidden and blocked for receptionist-only role).
     """
     def get(self, request, pk):
+        if getattr(request.user, 'is_receptionist', False) and not (getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Clinical Patient Report PDF is restricted to clinical care staff and management.")
+
         patient = get_authorized_patient_or_404(request.user, pk)
         
         log_audit_event(

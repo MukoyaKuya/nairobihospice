@@ -110,14 +110,9 @@
                 <!-- Right: Quick Action Buttons -->
                 <div class="flex flex-wrap items-center gap-1.5 shrink-0">
                     {% if is_receptionist %}
-                    <a href="{% url 'patients:patient_download_report' patient.pk %}" target="_blank" 
-                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
-                        <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-300"></i>
-                        <span>Report PDF</span>
-                    </a>
                     <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
-                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
-                        <i data-lucide="printer" class="w-3.5 h-3.5 text-red-700"></i>
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-red-300"></i>
                         <span>Print ID</span>
                     </a>
                     <a href="{% url 'patients:patient_update' patient.pk %}" 

@@ -124,6 +124,7 @@ class TestAPISecurityAndAuthorization:
     def test_receptionist_patient_detail_view_strips_clinical_phi(self):
         """Receptionist view must strip clinical HTML, diagnoses, HIV status, meds, and encounters."""
         from django.test import Client
+        from django.urls import reverse
         from apps.medications.models import MedicationStatement, MedicationStatusChoices
 
         self.patient.primary_diagnosis = "Advanced Cervical Carcinoma"
@@ -154,6 +155,12 @@ class TestAPISecurityAndAuthorization:
         assert "Advanced Cervical Carcinoma" not in content
         assert "Penicillin Anaphylaxis" not in content
         assert "Oral Morphine Solution" not in content
+        assert "Report PDF" not in content
+        assert reverse('patients:patient_download_report', kwargs={'pk': self.patient.pk}) not in content
+
+        # Direct download attempt by receptionist is forbidden (403)
+        pdf_res = client.get(reverse('patients:patient_download_report', kwargs={'pk': self.patient.pk}))
+        assert pdf_res.status_code == 403
 
     def test_unassigned_clinician_cannot_view_unrelated_patient_detail(self):
         """Clinician not on the patient's care team receives 404 for unauthorized patient."""
