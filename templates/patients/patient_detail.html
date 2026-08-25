@@ -110,9 +110,14 @@
                 <!-- Right: Quick Action Buttons -->
                 <div class="flex flex-wrap items-center gap-1.5 shrink-0">
                     {% if is_receptionist %}
-                    <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
+                    <a href="{% url 'patients:patient_download_report' patient.pk %}" target="_blank" 
                        class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
-                        <i data-lucide="printer" class="w-3.5 h-3.5 text-red-300"></i>
+                        <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-300"></i>
+                        <span>Report PDF</span>
+                    </a>
+                    <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-red-700"></i>
                         <span>Print ID</span>
                     </a>
                     <a href="{% url 'patients:patient_update' patient.pk %}" 
@@ -126,15 +131,26 @@
                         <span>Schedule</span>
                     </a>
                     {% elif is_pharmacist %}
-                    <a href="{% url 'operations:pharmacy_dispense' %}" 
+                    <a href="{% url 'patients:patient_download_report' patient.pk %}" target="_blank" 
                        class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
-                        <i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-300"></i>
+                        <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-300"></i>
+                        <span>Report PDF</span>
+                    </a>
+                    <a href="{% url 'operations:pharmacy_dispense' %}" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-600"></i>
                         <span>Dispense Stock</span>
                     </a>
                     {% elif clinical_access %}
+                    <a href="{% url 'patients:patient_download_report' patient.pk %}" target="_blank" 
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1"
+                       title="Download Comprehensive Patient Clinical Dossier PDF">
+                        <i data-lucide="file-down" class="w-3.5 h-3.5 text-amber-300"></i>
+                        <span>Report PDF</span>
+                    </a>
                     <a href="{% url 'encounters:encounter_create' patient.pk %}" 
-                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
-                        <i data-lucide="stethoscope" class="w-3.5 h-3.5 text-red-300"></i>
+                       class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 rounded-lg shadow-2xs transition space-x-1">
+                        <i data-lucide="stethoscope" class="w-3.5 h-3.5 text-red-600"></i>
                         <span>+ Encounter</span>
                     </a>
                     <a href="{% url 'symptoms:symptom_create' patient.pk %}" 

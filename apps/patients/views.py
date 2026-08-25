@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import DetailView, ListView, UpdateView, View
 
 from apps.accounts.models import RoleChoices
@@ -24,6 +25,7 @@ from .constants import HOSPICE_DIAGNOSES
 from .forms import PatientRegistrationForm, PatientUpdateForm, ReceptionistPatientUpdateForm
 from .locations import KENYA_LOCATIONS
 from .models import Patient, PatientStatusChoices
+from .pdf_report import generate_patient_comprehensive_report_pdf
 from .selectors import search_patients
 from .services import (
     register_patient,
@@ -553,4 +555,30 @@ def patient_search_api(request):
         for p in patients
     ]
     return JsonResponse({'results': results, 'count': len(results)})
+
+
+class PatientReportPDFView(LoginRequiredMixin, View):
+    """
+    Renders and downloads a comprehensive, professionally styled Clinical Patient Report PDF.
+    """
+    def get(self, request, pk):
+        patient = get_authorized_patient_or_404(request.user, pk)
+        
+        log_audit_event(
+            action=AuditAction.VIEW,
+            resource_type='PatientClinicalReportPDF',
+            resource_id=str(patient.id),
+            summary=f"Downloaded comprehensive clinical PDF report for {patient.full_name} ({patient.hospice_number})",
+            user=request.user,
+        )
+
+        pdf_buffer = generate_patient_comprehensive_report_pdf(patient, requesting_user=request.user)
+        safe_hospice_no = patient.hospice_number.replace(' ', '_').replace('/', '_')
+        filename = f"Clinical_Report_{safe_hospice_no}_{timezone.now().strftime('%Y%m%d')}.pdf"
+        
+        response = FileResponse(pdf_buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
+        response['X-Content-Type-Options'] = 'nosniff'
+        return response
 

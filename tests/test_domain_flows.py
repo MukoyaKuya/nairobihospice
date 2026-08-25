@@ -326,6 +326,51 @@ class TestPatientDomain:
         assert patient_assigned in pts_caseload
         assert patient_unassigned not in pts_caseload
 
+    def test_patient_comprehensive_report_pdf_download(self):
+        doc = create_staff_user(
+            email='pdf_doc@nairobihospice.or.ke',
+            username='pdf_doc',
+            first_name='PDF',
+            last_name='Doctor',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        patient = register_patient(
+            first_name='Randy',
+            last_name='Muliro',
+            date_of_birth=date(2003, 5, 12),
+            sex=SexChoices.FEMALE,
+            county='Nairobi',
+            sub_county='Dagoretti North',
+            ward='Kilimani',
+            landmark='Prestige Stage',
+            primary_diagnosis='Anal Cancer',
+            created_by=doc,
+            primary_doctor=doc.staff_profile,
+            nok_name='Sarah Muliro',
+            nok_relationship='Mother',
+            nok_phone='+254711223344',
+            nok_county='Nairobi',
+            nok_nearest_stage='Yaya Stage',
+            caregiver_name='Grace Wambui',
+            caregiver_relationship='Family Caregiver',
+            caregiver_phone='+254722334455',
+            caregiver_county='Nairobi',
+            caregiver_nearest_stage='Adams Stage',
+        )
+
+        client = Client()
+        client.force_login(doc)
+
+        url = reverse('patients:patient_download_report', kwargs={'pk': patient.pk})
+        response = client.get(url)
+
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/pdf'
+        assert 'inline;' in response['Content-Disposition']
+        assert f'Clinical_Report_{patient.hospice_number.replace(" ", "_")}' in response['Content-Disposition']
+        assert len(response.getvalue()) > 1000
+
 
 @pytest.mark.django_db
 class TestReferralAndConversion:
