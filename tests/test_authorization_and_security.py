@@ -194,16 +194,44 @@ class TestAPISecurityAndAuthorization:
         self.patient.special_remarks = 'Original Remarks'
         self.patient.save()
 
-        client.post(f'/patients/{self.patient.id}/edit/', {
+        # Receptionist can edit contact details, Next of Kin, and Caregiver
+        assert 'nok_name' in form.fields
+        assert 'caregiver_name' in form.fields
+
+        post_res = client.post(f'/patients/{self.patient.id}/edit/', {
             'first_name': self.patient.first_name,
             'last_name': self.patient.last_name,
             'sex': 'F',
+            'identification_type': 'NATIONAL_ID',
+            'preferred_language': 'English',
+            'marital_status': 'MARRIED',
+            'phone_number': '+254700111222',
+            'county': 'Nairobi',
+            'nok_name': 'Mary Wanjiku Updated',
+            'nok_relationship': 'Mother',
+            'nok_phone': '+254711223344',
+            'caregiver_name': 'David Mwangi Caregiver',
+            'caregiver_relationship': 'Brother',
+            'caregiver_phone': '+254722334455',
             'status': 'DECEASED',
             'special_remarks': 'Tampered Remarks',
         })
+        assert post_res.status_code == 302
         self.patient.refresh_from_db()
         assert self.patient.status == 'ACTIVE'
         assert self.patient.special_remarks == 'Original Remarks'
+        assert self.patient.phone_number == '+254700111222'
+        
+        # Verify Next of Kin and Caregiver updated
+        nok = self.patient.next_of_kin.first()
+        assert nok is not None
+        assert nok.name == 'Mary Wanjiku Updated'
+        assert nok.phone_number == '+254711223344'
+        
+        cg = self.patient.caregivers.first()
+        assert cg is not None
+        assert cg.name == 'David Mwangi Caregiver'
+        assert cg.phone_number == '+254722334455'
 
         # Clinician edit form retains clinical fields
         client.force_login(self.doctor)

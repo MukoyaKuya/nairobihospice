@@ -34,14 +34,12 @@
         </button>
         {% endif %}
 
-        {% if is_create %}
         <button type="button" @click="activeFormTab = 'caregivers'"
                 :class="activeFormTab === 'caregivers' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
                 class="pb-3 border-b-2 transition flex items-center space-x-2 cursor-pointer">
             <i data-lucide="users" class="w-4 h-4 text-cyan-700"></i>
-            <span>3. Next of Kin & Caregivers Circle</span>
+            <span>{% if clinical_access %}3.{% else %}2.{% endif %} Next of Kin & Caregivers Circle</span>
         </button>
-        {% endif %}
     </div>
 
     <form method="POST" @submit="if(isSubmitting){ $event.preventDefault(); } else { isSubmitting = true; }" class="bg-white rounded-b-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
@@ -270,15 +268,10 @@
                     <span>Next: Medical History & Profile</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </button>
-                {% elif is_create %}
+                {% else %}
                 <button type="button" @click="activeFormTab = 'caregivers'" class="px-5 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-1.5 cursor-pointer">
                     <span>Next: Next of Kin & Caregivers</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
-                </button>
-                {% else %}
-                <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-2 cursor-pointer">
-                    <i data-lucide="check" class="w-4 h-4 text-emerald-300"></i>
-                    <span>Save Patient Demographics</span>
                 </button>
                 {% endif %}
             </div>
@@ -466,17 +459,14 @@
                     <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
                     <span>Back to General Data</span>
                 </button>
-                {% if is_create %}
                 <button type="button" @click="activeFormTab = 'caregivers'" class="px-5 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-1.5 cursor-pointer">
                     <span>Next: Next of Kin & Caregivers</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </button>
-                {% endif %}
             </div>
         </div>
         {% endif %}
 
-        {% if is_create %}
         <!-- TAB 3: Next of Kin & Caregivers Circle -->
         <div x-show="activeFormTab === 'caregivers'" class="space-y-6">
             
@@ -828,13 +818,12 @@
             </div>
 
             <div class="flex items-center justify-between pt-4">
-                <button type="button" @click="activeFormTab = 'medical'" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center space-x-1 cursor-pointer">
+                <button type="button" @click="activeFormTab = {% if clinical_access %}'medical'{% else %}'general'{% endif %}" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center space-x-1 cursor-pointer">
                     <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-                    <span>Back to Medical History</span>
+                    <span>Back to {% if clinical_access %}Medical History{% else %}General Patient Data{% endif %}</span>
                 </button>
             </div>
         </div>
-        {% endif %}
 
         <!-- Form Footer Actions -->
         <div class="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-slate-100">

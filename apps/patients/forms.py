@@ -157,7 +157,107 @@ class PatientRegistrationForm(forms.ModelForm):
         return photo
 
 
-class PatientUpdateForm(forms.ModelForm):
+class PatientContactUpdateFormMixin(forms.Form):
+    # Next of Kin fields
+    nok_name = forms.CharField(label="Next of Kin Full Name", required=False)
+    nok_relationship = forms.CharField(label="Relationship to Patient", required=False)
+    nok_phone = forms.CharField(label="Next of Kin Phone", required=False)
+    nok_age = forms.IntegerField(label="Next of Kin Age", required=False)
+    nok_gender = forms.CharField(label="Next of Kin Gender", required=False)
+    nok_county = forms.CharField(label="Next of Kin County", required=False)
+    nok_sub_county = forms.CharField(label="Next of Kin Sub-County", required=False)
+    nok_ward = forms.CharField(label="Next of Kin Ward", required=False)
+    nok_nearest_stage = forms.CharField(label="Next of Kin Nearest Bus Stop / Stage", required=False)
+    nok_address = forms.CharField(label="Next of Kin Residence / Estate", required=False)
+
+    # Caregiver fields
+    caregiver_name = forms.CharField(label="Primary Caregiver Name", required=False)
+    caregiver_relationship = forms.CharField(label="Caregiver Relationship", required=False)
+    caregiver_phone = forms.CharField(label="Caregiver Phone", required=False)
+    caregiver_age = forms.IntegerField(label="Caregiver Age", required=False)
+    caregiver_gender = forms.CharField(label="Caregiver Gender", required=False)
+    caregiver_county = forms.CharField(label="Caregiver County", required=False)
+    caregiver_sub_county = forms.CharField(label="Caregiver Sub-County", required=False)
+    caregiver_ward = forms.CharField(label="Caregiver Ward", required=False)
+    caregiver_nearest_stage = forms.CharField(label="Caregiver Nearest Bus Stop / Stage", required=False)
+    caregiver_address = forms.CharField(label="Caregiver Residence / Estate", required=False)
+    caregiver_notes = forms.CharField(label="Caregiver Notes", required=False, widget=forms.Textarea(attrs={'rows': 2}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            nok = self.instance.next_of_kin.first()
+            if nok:
+                self.fields['nok_name'].initial = nok.name
+                self.fields['nok_relationship'].initial = nok.relationship
+                self.fields['nok_phone'].initial = nok.phone_number
+                self.fields['nok_age'].initial = nok.age
+                self.fields['nok_gender'].initial = nok.gender
+                self.fields['nok_county'].initial = nok.county or 'Nairobi'
+                self.fields['nok_sub_county'].initial = nok.sub_county
+                self.fields['nok_ward'].initial = nok.ward
+                self.fields['nok_nearest_stage'].initial = nok.nearest_stage
+                self.fields['nok_address'].initial = nok.address
+
+            cg = self.instance.caregivers.first()
+            if cg:
+                self.fields['caregiver_name'].initial = cg.name
+                self.fields['caregiver_relationship'].initial = cg.relationship
+                self.fields['caregiver_phone'].initial = cg.phone_number
+                self.fields['caregiver_age'].initial = cg.age
+                self.fields['caregiver_gender'].initial = cg.gender
+                self.fields['caregiver_county'].initial = cg.county or 'Nairobi'
+                self.fields['caregiver_sub_county'].initial = cg.sub_county
+                self.fields['caregiver_ward'].initial = cg.ward
+                self.fields['caregiver_nearest_stage'].initial = cg.nearest_stage
+                self.fields['caregiver_address'].initial = cg.address
+                self.fields['caregiver_notes'].initial = cg.notes
+
+    def save(self, commit=True):
+        patient = super().save(commit=commit)
+        if commit:
+            self.save_contacts(patient)
+        return patient
+
+    def save_contacts(self, patient):
+        cd = self.cleaned_data
+        nok_name = (cd.get('nok_name') or '').strip()
+        if nok_name:
+            nok = patient.next_of_kin.first()
+            if not nok:
+                nok = NextOfKin(patient=patient, is_primary=True)
+            nok.name = nok_name
+            nok.relationship = cd.get('nok_relationship') or 'Next of Kin'
+            nok.phone_number = cd.get('nok_phone') or ''
+            nok.age = cd.get('nok_age')
+            nok.gender = cd.get('nok_gender') or ''
+            nok.county = cd.get('nok_county') or 'Nairobi'
+            nok.sub_county = cd.get('nok_sub_county') or ''
+            nok.ward = cd.get('nok_ward') or ''
+            nok.nearest_stage = cd.get('nok_nearest_stage') or ''
+            nok.address = cd.get('nok_address') or ''
+            nok.save()
+
+        cg_name = (cd.get('caregiver_name') or '').strip()
+        if cg_name:
+            cg = patient.caregivers.first()
+            if not cg:
+                cg = Caregiver(patient=patient, is_primary=True)
+            cg.name = cg_name
+            cg.relationship = cd.get('caregiver_relationship') or 'Caregiver'
+            cg.phone_number = cd.get('caregiver_phone') or ''
+            cg.age = cd.get('caregiver_age')
+            cg.gender = cd.get('caregiver_gender') or ''
+            cg.county = cd.get('caregiver_county') or 'Nairobi'
+            cg.sub_county = cd.get('caregiver_sub_county') or ''
+            cg.ward = cd.get('caregiver_ward') or ''
+            cg.nearest_stage = cd.get('caregiver_nearest_stage') or ''
+            cg.address = cd.get('caregiver_address') or ''
+            cg.notes = cd.get('caregiver_notes') or ''
+            cg.save()
+
+
+class PatientUpdateForm(PatientContactUpdateFormMixin, forms.ModelForm):
     class Meta:
         model = Patient
         fields = [
@@ -193,10 +293,11 @@ class PatientUpdateForm(forms.ModelForm):
         return photo
 
 
-class ReceptionistPatientUpdateForm(forms.ModelForm):
+class ReceptionistPatientUpdateForm(PatientContactUpdateFormMixin, forms.ModelForm):
     """
     Restricted demographic and contact update form for front-desk receptionists.
     Excludes all clinical diagnoses, HIV status, allergies, alerts, and clinical notes.
+    Allows editing next of kin and caregiver details.
     """
     class Meta:
         model = Patient
