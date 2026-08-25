@@ -72,8 +72,11 @@ class DocumentDownloadView(LoginRequiredMixin, View):
             summary=f"Downloaded clinical document '{document.title}' for {document.patient.full_name}",
             user=request.user,
         )
-        return FileResponse(
+        response = FileResponse(
             document.file.open('rb'),
             as_attachment=True,
             filename=Path(document.file.name).name,
         )
+        response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
+        response['X-Content-Type-Options'] = 'nosniff'
+        return response

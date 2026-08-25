@@ -839,6 +839,8 @@ class Command(BaseCommand):
                 'balance_after': 45,
                 'notes': 'Dispensed oral morphine solution courses to clinic patients',
                 'recorded_by': users['pharmacist@nairobihospice.or.ke'],
+                'patient': patients[0],
+                'medication_statement': patients[0].medications.first(),
             }
         )
 

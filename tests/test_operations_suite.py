@@ -111,12 +111,24 @@ class TestOperationsSuite:
             preferred_vendor=vendor
         )
 
+        from apps.patients.services import register_patient
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        patient = register_patient(first_name='Ledger', last_name='Patient', created_by=self.manager)
+        med = MedicationStatement.objects.create(
+            patient=patient,
+            medication_name='Test Gauze 10m',
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.manager,
+        )
+
         # Dispense 4 units
         mov = record_stock_movement(
             stock_item=item,
             movement_type=MovementTypeChoices.DISPENSE,
             quantity=4,
             reference_document='PATIENT-001',
+            patient=patient,
+            medication_statement=med,
             user=self.manager,
         )
         assert mov.balance_after == 6

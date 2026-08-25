@@ -40,13 +40,12 @@ def record_stock_movement(
                 f'{stock_item.quantity_on_hand} available, {quantity} requested.'
             )
         if movement_type == MovementTypeChoices.DISPENSE:
-            if patient is not None or medication_statement is not None or stock_item.is_controlled_substance:
-                if patient is None:
-                    raise ValidationError('A patient is required for all patient medication dispenses.')
-                if medication_statement is None:
-                    raise ValidationError('A linked active medication statement is required for all patient dispenses.')
-                if medication_statement.patient_id != patient.id:
-                    raise ValidationError('The selected prescription does not belong to the dispensed patient.')
+            if patient is None:
+                raise ValidationError('A patient is required for all medication dispenses.')
+            if medication_statement is None:
+                raise ValidationError('A linked active medication statement is required for all patient dispenses.')
+            if medication_statement.patient_id != patient.id:
+                raise ValidationError('The selected prescription does not belong to the dispensed patient.')
         stock_item.quantity_on_hand -= quantity
     elif movement_type == MovementTypeChoices.ADJUSTMENT:
         stock_item.quantity_on_hand = quantity

@@ -35,38 +35,47 @@ def get_clinical_dashboard_data(user):
         from django.db.models import Q
         today_appts = today_appts.filter(Q(patient__in=auth_patients) | Q(staff_member__user=user))
 
-    due_reviews = CarePlan.objects.filter(
-        status=CarePlanStatusChoices.ACTIVE,
-        review_date__lte=today + timedelta(days=7)
-    ).select_related('patient', 'created_by').order_by('review_date')
-    if not is_admin_or_mgr:
-        due_reviews = due_reviews.filter(patient__in=auth_patients)
-    due_reviews = due_reviews[:10]
-
     from apps.assessments.models import Assessment
-    pain_spikes_qs = Assessment.objects.filter(
-        pain_score__gte=7
-    ).select_related('patient', 'assessor').order_by('-assessment_date')
-    if not is_admin_or_mgr:
-        pain_spikes_qs = pain_spikes_qs.filter(patient__in=auth_patients)
-    pain_spikes_count = pain_spikes_qs.count()
 
-    recent_high_distress = SymptomAssessmentRecord.objects.filter(
-        total_distress_score__gte=30
-    ).select_related('patient', 'recorded_by').order_by('-total_distress_score')
-    if not is_admin_or_mgr:
-        recent_high_distress = recent_high_distress.filter(patient__in=auth_patients)
-    recent_high_distress = recent_high_distress[:8]
+    # Clinical Queries (skipped for Receptionist and Pharmacist)
+    if is_rec or is_pharm:
+        due_reviews = CarePlan.objects.none()
+        pain_spikes_qs = Assessment.objects.none()
+        pain_spikes_count = 0
+        recent_high_distress = SymptomAssessmentRecord.objects.none()
+        recent_encounters = Encounter.objects.none()
+    else:
+        due_reviews = CarePlan.objects.filter(
+            status=CarePlanStatusChoices.ACTIVE,
+            review_date__lte=today + timedelta(days=7)
+        ).select_related('patient', 'created_by').order_by('review_date')
+        if not is_admin_or_mgr:
+            due_reviews = due_reviews.filter(patient__in=auth_patients)
+        due_reviews = due_reviews[:10]
+
+        pain_spikes_qs = Assessment.objects.filter(
+            pain_score__gte=7
+        ).select_related('patient', 'assessor').order_by('-assessment_date')
+        if not is_admin_or_mgr:
+            pain_spikes_qs = pain_spikes_qs.filter(patient__in=auth_patients)
+        pain_spikes_count = pain_spikes_qs.count()
+
+        recent_high_distress = SymptomAssessmentRecord.objects.filter(
+            total_distress_score__gte=30
+        ).select_related('patient', 'recorded_by').order_by('-total_distress_score')
+        if not is_admin_or_mgr:
+            recent_high_distress = recent_high_distress.filter(patient__in=auth_patients)
+        recent_high_distress = recent_high_distress[:8]
+
+        recent_encounters = Encounter.objects.select_related('patient', 'recorded_by').order_by('-encounter_date', '-created_at')
+        if not is_admin_or_mgr:
+            recent_encounters = recent_encounters.filter(patient__in=auth_patients)
+        recent_encounters = recent_encounters[:8]
 
     from apps.referrals.access import referral_queryset_for_user
     pending_referrals = referral_queryset_for_user(user).filter(
         status__in=[ReferralStatusChoices.RECEIVED, ReferralStatusChoices.UNDER_REVIEW]
     ).order_by('priority', '-referral_date')[:6]
-
-    recent_encounters = Encounter.objects.select_related('patient', 'recorded_by').order_by('-encounter_date', '-created_at')
-    if not is_admin_or_mgr:
-        recent_encounters = recent_encounters.filter(patient__in=auth_patients)
-    recent_encounters = recent_encounters[:8]
 
     # Specific datasets
     from apps.communications.models import CommunicationRecord
@@ -104,13 +113,16 @@ def get_clinical_dashboard_data(user):
         active_cohort_count = auth_patients.filter(status=PatientStatusChoices.ACTIVE).count()
 
     # Bereavement cases (patients deceased in last 6 months for psychosocial follow-up)
-    bereavement_cases = Patient.objects.filter(
-        status=PatientStatusChoices.DECEASED,
-        date_of_death__gte=today - timedelta(days=180)
-    ).order_by('-date_of_death')
-    if not is_admin_or_mgr:
-        bereavement_cases = bereavement_cases.filter(pk__in=auth_patients.values('pk'))
-    bereavement_cases = bereavement_cases[:6]
+    if is_admin_or_mgr or is_psy:
+        bereavement_cases = Patient.objects.filter(
+            status=PatientStatusChoices.DECEASED,
+            date_of_death__gte=today - timedelta(days=180)
+        ).order_by('-date_of_death')
+        if not is_admin_or_mgr:
+            bereavement_cases = bereavement_cases.filter(pk__in=auth_patients.values('pk'))
+        bereavement_cases = bereavement_cases[:6]
+    else:
+        bereavement_cases = Patient.objects.none()
 
     # Pharmacy Metrics
     from apps.operations.models import MovementTypeChoices, StockMovement

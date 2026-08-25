@@ -76,7 +76,7 @@ def test_stock_movement_rejects_overdraw_and_preserves_balance():
     with pytest.raises(ValidationError, match='Insufficient stock'):
         record_stock_movement(
             stock_item=item,
-            movement_type=MovementTypeChoices.DISPENSE,
+            movement_type=MovementTypeChoices.WASTAGE,
             quantity=3,
         )
 

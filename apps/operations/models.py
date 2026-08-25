@@ -373,19 +373,24 @@ class StockMovement(models.Model):
         ordering = ['-created_at']
         constraints = [
             models.CheckConstraint(condition=~models.Q(quantity=0), name='movement_quantity_nonzero'),
+            models.CheckConstraint(
+                condition=~models.Q(movement_type='DISPENSE') | (
+                    models.Q(patient__isnull=False) & models.Q(medication_statement__isnull=False)
+                ),
+                name='dispense_requires_patient_and_rx'
+            ),
         ]
 
     def clean(self):
         super().clean()
         from django.core.exceptions import ValidationError
         if self.movement_type == MovementTypeChoices.DISPENSE:
-            if self.patient is not None or self.medication_statement is not None or (self.stock_item and self.stock_item.is_controlled_substance):
-                if self.patient is None:
-                    raise ValidationError({'patient': 'A patient is required for all patient medication dispenses.'})
-                if self.medication_statement is None:
-                    raise ValidationError({'medication_statement': 'A linked active medication statement is required for all patient dispenses.'})
-                if self.medication_statement.patient_id != self.patient_id:
-                    raise ValidationError({'medication_statement': 'The selected prescription does not belong to the dispensed patient.'})
+            if self.patient is None:
+                raise ValidationError({'patient': 'A patient is required for all medication dispenses.'})
+            if self.medication_statement is None:
+                raise ValidationError({'medication_statement': 'A linked active medication statement is required for all patient dispenses.'})
+            if self.medication_statement.patient_id != self.patient_id:
+                raise ValidationError({'medication_statement': 'The selected prescription does not belong to the dispensed patient.'})
 
     def save(self, *args, **kwargs):
         # The movement ledger is an append-only record (controlled substances

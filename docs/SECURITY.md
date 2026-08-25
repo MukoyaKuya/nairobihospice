@@ -49,16 +49,21 @@ The PCMS enforces strict separation between **Demographic Bio-Data** (Intake/Log
 
 2. **Calendar & Patient Lists**:
    - Diagnosis and clinical focus reasons on the appointment calendar are gated by `clinical_access`.
+   - Alpine.js `matchesFilter` client-side evaluation and search placeholders omit clinical text for non-clinical roles.
    - Appointment search by query `q` excludes clinical `reason` matching for non-clinical staff.
    - Patient directory tables render `Palliative Care` instead of actual clinical diagnoses for non-clinical users.
 
-3. **Referral Intake**:
+3. **Referral Intake & Scrubbing**:
    - Referral form conditionally hides diagnosis, clinical summary, and medication fields from receptionists.
-   - Submissions from non-clinical staff set `primary_diagnosis` to `'Pending Clinical Review'` and scrub clinical fields.
-   - Intake purpose / reason is validated as logistical request context.
+   - Submissions from non-clinical staff set `primary_diagnosis` to `'Pending Clinical Review'` and scrub clinical summary/medications.
+   - `reason_for_referral` automatically scrubs explicit clinical staging / oncology diagnostic terms upon non-clinical intake.
 
-4. **Media Access Controls**:
-   - Clinical documents and patient photos are protected behind role-authorized streaming endpoints.
+4. **Media Access Controls & Headers**:
+   - Clinical documents and patient photos are protected behind role-authorized streaming endpoints and served with headers:
+     ```http
+     Cache-Control: private, no-store, max-age=0, must-revalidate
+     X-Content-Type-Options: nosniff
+     ```
 
 ---
 
@@ -67,11 +72,12 @@ The PCMS enforces strict separation between **Demographic Bio-Data** (Intake/Log
 1. **Caseload & Candidate Scoping**:
    - A pharmacist's personal caseload (`authorized_patient_queryset`) is strictly limited to patients to whom they have recorded a dispense (`stock_movements__recorded_by=user`).
    - The dispense candidate dropdown (`StockDispenseForm`) allows dispensing only to active patients with active medication statements. Once dispensed, the patient enters that pharmacist's historical dispense record.
-2. **Dispense Audit Integrity**:
-   - Stock dispenses require both `patient_id` and `medication_statement_id` ForeignKeys, enforced both at the service layer (`record_stock_movement`) and at the model layer (`StockMovement.clean()` / `full_clean()`).
+2. **Dispense Audit Integrity & Database Constraints**:
+   - Stock dispenses require both `patient_id` and `medication_statement_id` ForeignKeys.
+   - Enforced at the database level via `CheckConstraint(dispense_requires_patient_and_rx)`, at the model layer via `StockMovement.clean()` / `full_clean()`, and in the service layer (`record_stock_movement`).
    - Pharmacists cannot create new medication prescriptions via Web or API (`MEDICATION_RECORDER_ROLES` is restricted to prescribers and nurses).
 3. **Dedicated Operational Dashboard**:
-   - Pharmacist dashboard displays medication KPIs, controlled substance registries, and user-scoped total dispenses, omitting clinical pain/encounter widgets.
+   - Pharmacist dashboard displays medication KPIs, controlled substance registries, and user-scoped total dispenses, completely skipping clinical pain/encounter database queries.
 
 ---
 

@@ -36,6 +36,22 @@ class ReferralForm(forms.ModelForm):
             return 'Pending Clinical Review'
         return diag
 
+    def clean_reason_for_referral(self):
+        reason = self.cleaned_data.get('reason_for_referral', '').strip()
+        if not reason:
+            raise forms.ValidationError('A reason for referral is required.')
+        if not getattr(self, 'clinical_access', True):
+            import re
+            # Scrub explicit clinical staging, histological types, and oncology staging from non-clinical intake notes
+            sanitized = re.sub(
+                r'\b(stage\s+[0-9ivx]+|metastat\w+|carcinoma|sarcoma|melanoma|leukemia|lymphoma|t\d+n\d+m\d+|ecog\s*\d+)\b',
+                '[redacted for clinical triage]',
+                reason,
+                flags=re.IGNORECASE
+            )
+            return sanitized.strip()
+        return reason
+
 
 class ReferralReviewForm(forms.ModelForm):
     class Meta:

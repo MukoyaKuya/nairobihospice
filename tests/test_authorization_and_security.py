@@ -720,7 +720,7 @@ class TestAPISecurityAndAuthorization:
                 user=self.doctor,
             )
 
-        # Model-level create validation
+        # Model-level create validation (full_clean in save)
         with pytest.raises(ValidationError):
             StockMovement.objects.create(
                 stock_item=stock_item,
@@ -730,6 +730,93 @@ class TestAPISecurityAndAuthorization:
                 patient=self.patient,
                 medication_statement=None,
             )
+
+        # Database CheckConstraint validation (bypassing model clean via bulk_create)
+        from django.db.utils import IntegrityError
+        with pytest.raises(IntegrityError):
+            StockMovement.objects.bulk_create([
+                StockMovement(
+                    stock_item=stock_item,
+                    movement_type=MovementTypeChoices.DISPENSE,
+                    quantity=-1,
+                    balance_after=29,
+                    patient=self.patient,
+                    medication_statement=None,
+                )
+            ])
+
+    def test_receptionist_referral_scrubs_clinical_terms_from_reason(self):
+        """Referral reason_for_referral from receptionists automatically redacts clinical staging and oncology terms."""
+        from django.test import Client
+        from apps.referrals.models import Referral
+
+        client = Client()
+        client.force_login(self.receptionist)
+        res = client.post('/referrals/create/', {
+            'patient_name': 'Grace Auma',
+            'approximate_age': 52,
+            'sex': 'F',
+            'phone_number': '0722334455',
+            'county': 'Nairobi',
+            'referral_source': 'HOSPITAL',
+            'referring_facility': 'Kenyatta National Hospital',
+            'referral_date': '2026-08-25',
+            'priority': 'ROUTINE',
+            'primary_diagnosis': 'Metastatic Breast Carcinoma Stage IV',
+            'reason_for_referral': 'Referral for Stage IV metastatic carcinoma palliative home care pain management',
+        })
+        assert res.status_code == 302
+        ref = Referral.objects.filter(patient_name='Grace Auma').latest('created_at')
+        assert ref.primary_diagnosis == 'Pending Clinical Review'
+        assert 'Stage IV' not in ref.reason_for_referral
+        assert 'metastatic' not in ref.reason_for_referral
+        assert 'carcinoma' not in ref.reason_for_referral
+        assert '[redacted for clinical triage]' in ref.reason_for_referral
+
+    def test_clinical_dashboard_skips_pain_and_encounter_queries_for_reception_and_pharmacy(self):
+        """Clinical dashboard selectors return empty querysets for pain, encounters, and care plans for non-clinical roles."""
+        from apps.reporting.selectors import get_clinical_dashboard_data
+
+        rec_data = get_clinical_dashboard_data(self.receptionist)
+        assert rec_data['pain_spikes_count'] == 0
+        assert len(rec_data['pain_spikes']) == 0
+        assert len(rec_data['recent_encounters']) == 0
+        assert len(rec_data['due_reviews']) == 0
+
+        pharm_user = create_staff_user(
+            email='pharm_query_skip@nairobihospice.or.ke',
+            username='pharm_query_skip',
+            first_name='Pharm',
+            last_name='Skip',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        pharm_data = get_clinical_dashboard_data(pharm_user)
+        assert pharm_data['pain_spikes_count'] == 0
+        assert len(pharm_data['pain_spikes']) == 0
+        assert len(pharm_data['recent_encounters']) == 0
+        assert len(pharm_data['due_reviews']) == 0
+
+    def test_document_and_photo_streaming_security_headers(self):
+        """Document and photo download responses set private, no-store, max-age=0, must-revalidate and nosniff headers."""
+        from django.test import Client
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from apps.documents.models import PatientDocument
+
+        doc = PatientDocument.objects.create(
+            patient=self.patient,
+            title="Biopsy Report",
+            category="HISTOLOGY",
+            file=SimpleUploadedFile("biopsy.pdf", b"%PDF-1.4 test biopsy file content"),
+            uploaded_by=self.doctor,
+        )
+
+        client = Client()
+        client.force_login(self.doctor)
+        doc_resp = client.get(f'/documents/{doc.pk}/download/')
+        assert doc_resp.status_code == 200
+        assert doc_resp['Cache-Control'] == 'private, no-store, max-age=0, must-revalidate'
+        assert doc_resp['X-Content-Type-Options'] == 'nosniff'
 
     def test_medication_list_scoped_to_authorized_caseload(self):
         """Medication list view scopes statements to clinician authorized caseload."""

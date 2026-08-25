@@ -32,7 +32,7 @@ class Command(BaseCommand):
             try:
                 record_stock_movement(
                     stock_item=item,
-                    movement_type=MovementTypeChoices.DISPENSE,
+                    movement_type=MovementTypeChoices.TRANSFER,
                     quantity=quantity,
                 )
                 return True

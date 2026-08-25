@@ -417,7 +417,8 @@ class PatientPhotoView(LoginRequiredMixin, View):
 
         content_type = guess_type(patient.photo.name)[0] or 'application/octet-stream'
         response = FileResponse(patient.photo.open('rb'), content_type=content_type)
-        response['Cache-Control'] = 'private, no-store'
+        response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
+        response['X-Content-Type-Options'] = 'nosniff'
         return response
 
 
