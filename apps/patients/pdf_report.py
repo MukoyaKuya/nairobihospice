@@ -166,7 +166,7 @@ def generate_patient_comprehensive_report_pdf(patient, requesting_user=None) -> 
     ]
     patient_col2 = [
         [Paragraph("Primary Diagnosis:", label_style), Paragraph(patient.primary_diagnosis or "Palliative Care", value_bold)],
-        [Paragraph("HIV Status:", label_style), Paragraph((patient.hiv_status or "Unknown").upper(), value_style)],
+        [Paragraph("HIV Status:", label_style), Paragraph("[REDACTED]", value_style)],
         [Paragraph("Primary Phone:", label_style), Paragraph(patient.phone_number or "N/A", value_style)],
         [Paragraph("Residence / County:", label_style), Paragraph(f"{patient.county or 'Nairobi'}{f' / {patient.sub_county}' if patient.sub_county else ''}", value_style)],
         [Paragraph("Ward & Area:", label_style), Paragraph(f"{patient.ward or '-'}{f', {patient.address}' if patient.address else ''}", value_style)],
