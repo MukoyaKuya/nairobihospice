@@ -3,7 +3,7 @@
 {% block title %}{% if is_create %}Register New Patient{% else %}Edit Patient {{ form.instance.full_name }}{% endif %} - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6" x-data="{ activeFormTab: 'general', showDeleteModal: false }">
+<div class="max-w-4xl mx-auto space-y-6" x-data="{ activeFormTab: 'general', showDeleteModal: false, isSubmitting: false }">
     <div class="flex items-center justify-between">
         <div>
             <a href="{% if is_create %}{% url 'patients:patient_list' %}{% else %}{% url 'patients:patient_detail' form.instance.pk %}{% endif %}" class="text-xs font-semibold text-[#002D62] hover:text-[#0B2545] flex items-center mb-1">
@@ -44,7 +44,7 @@
         {% endif %}
     </div>
 
-    <form method="POST" class="bg-white rounded-b-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
+    <form method="POST" @submit="if(isSubmitting){ $event.preventDefault(); } else { isSubmitting = true; }" class="bg-white rounded-b-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
         {% csrf_token %}
 
         {% if form.errors %}
@@ -573,9 +573,18 @@
                 {% endif %}
             </div>
 
-            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition cursor-pointer flex items-center space-x-1.5">
-                <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
-                <span>{% if is_create %}Register Patient & Generate Hospice File{% else %}Save Patient Demographics{% endif %}</span>
+            <button type="submit" 
+                    :disabled="isSubmitting"
+                    :class="isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'"
+                    class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition flex items-center space-x-1.5">
+                <span x-show="!isSubmitting" class="flex items-center space-x-1.5">
+                    <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+                    <span>{% if is_create %}Register Patient & Generate Hospice File{% else %}Save Patient Demographics{% endif %}</span>
+                </span>
+                <span x-show="isSubmitting" class="flex items-center space-x-1.5" style="display: none;">
+                    <i data-lucide="loader" class="w-4 h-4 animate-spin text-amber-300"></i>
+                    <span>Processing Registration...</span>
+                </span>
             </button>
         </div>
     </form>

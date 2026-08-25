@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 import pytest
+from django.core.exceptions import ValidationError
 from django.test import Client
 from django.urls import reverse
 
@@ -140,6 +141,55 @@ class TestPatientDomain:
         audit = AuditEvent.objects.filter(resource_type='Patient', resource_id=str(patient.id)).first()
         assert audit is not None
         assert audit.action == AuditAction.CREATE
+
+    def test_duplicate_patient_registration_rejected(self):
+        user = create_staff_user(
+            email='dup_check_nurse@nairobihospice.or.ke',
+            username='dup_check_nurse',
+            first_name='Dup',
+            last_name='Nurse',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
+        # Register original
+        register_patient(
+            first_name='Salome',
+            last_name='Nyokabi',
+            phone_number='+254711999888',
+            identification_number='ID-99988877',
+            ip_op_number='099/26',
+            created_by=user,
+        )
+
+        # Attempt 1: Duplicate ID number
+        with pytest.raises(ValidationError) as exc1:
+            register_patient(
+                first_name='Other',
+                last_name='Name',
+                identification_number='ID-99988877',
+                created_by=user,
+            )
+        assert 'already registered' in str(exc1.value)
+
+        # Attempt 2: Duplicate IP/OP Number
+        with pytest.raises(ValidationError) as exc2:
+            register_patient(
+                first_name='Different',
+                last_name='Person',
+                ip_op_number='099/26',
+                created_by=user,
+            )
+        assert 'already registered' in str(exc2.value)
+
+        # Attempt 3: Duplicate Name + Phone
+        with pytest.raises(ValidationError) as exc3:
+            register_patient(
+                first_name='Salome',
+                last_name='Nyokabi',
+                phone_number='+254711999888',
+                created_by=user,
+            )
+        assert 'Duplicate registration detected' in str(exc3.value)
 
     def test_search_patients_with_filters(self):
         from apps.patients.selectors import search_patients

@@ -44,6 +44,35 @@ class PatientRegistrationForm(forms.ModelForm):
             self.add_error('primary_nurse', 'A primary palliative nurse must be assigned upon patient registration.')
         if doctors_exist and not cleaned_data.get('primary_doctor'):
             self.add_error('primary_doctor', 'A primary doctor or clinical officer must be assigned upon patient registration.')
+
+        # Duplicate registration guard
+        first_name = (cleaned_data.get('first_name') or '').strip()
+        last_name = (cleaned_data.get('last_name') or '').strip()
+        id_number = (cleaned_data.get('identification_number') or '').strip()
+        ip_op_number = (cleaned_data.get('ip_op_number') or '').strip()
+        phone_number = (cleaned_data.get('phone_number') or '').strip()
+        date_of_birth = cleaned_data.get('date_of_birth')
+
+        if id_number:
+            existing = Patient.objects.filter(identification_number__iexact=id_number).first()
+            if existing:
+                self.add_error('identification_number', f"A patient with Identification Number '{id_number}' is already registered: {existing.full_name} ({existing.hospice_number}).")
+
+        if ip_op_number:
+            existing = Patient.objects.filter(ip_op_number__iexact=ip_op_number).first()
+            if existing:
+                self.add_error('ip_op_number', f"A patient with Hospital IP/OP Number '{ip_op_number}' is already registered: {existing.full_name} ({existing.hospice_number}).")
+
+        if first_name and last_name:
+            if phone_number:
+                existing = Patient.objects.filter(first_name__iexact=first_name, last_name__iexact=last_name, phone_number__iexact=phone_number).first()
+                if existing:
+                    raise forms.ValidationError(f"Duplicate registration detected: '{first_name} {last_name}' with phone '{phone_number}' is already registered under Hospice ID {existing.hospice_number}.")
+            if date_of_birth:
+                existing = Patient.objects.filter(first_name__iexact=first_name, last_name__iexact=last_name, date_of_birth=date_of_birth).first()
+                if existing:
+                    raise forms.ValidationError(f"Duplicate registration detected: '{first_name} {last_name}' born {date_of_birth} is already registered under Hospice ID {existing.hospice_number}.")
+
         return cleaned_data
     # Additional Next of Kin fields
     nok_name = forms.CharField(label="Next of Kin Full Name", required=False)

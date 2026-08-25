@@ -88,6 +88,34 @@ def register_patient(
     """
     if require_care_team and (not primary_nurse or not primary_doctor):
         raise ValidationError("Both a primary palliative nurse and doctor must be assigned to open an active care episode.")
+
+    # Duplicate registration guard
+    fn_clean = (first_name or '').strip()
+    ln_clean = (last_name or '').strip()
+    id_clean = (identification_number or '').strip()
+    ip_clean = (ip_op_number or '').strip()
+    phone_clean = (phone_number or '').strip()
+
+    if id_clean:
+        existing_id = Patient.objects.filter(identification_number__iexact=id_clean).first()
+        if existing_id:
+            raise ValidationError(f"A patient with Identification Number '{id_clean}' is already registered: {existing_id.full_name} ({existing_id.hospice_number}).")
+
+    if ip_clean:
+        existing_ip = Patient.objects.filter(ip_op_number__iexact=ip_clean).first()
+        if existing_ip:
+            raise ValidationError(f"A patient with Hospital IP/OP Number '{ip_clean}' is already registered: {existing_ip.full_name} ({existing_ip.hospice_number}).")
+
+    if fn_clean and ln_clean:
+        if phone_clean:
+            existing_phone = Patient.objects.filter(first_name__iexact=fn_clean, last_name__iexact=ln_clean, phone_number__iexact=phone_clean).first()
+            if existing_phone:
+                raise ValidationError(f"Duplicate registration detected: '{fn_clean} {ln_clean}' with phone '{phone_clean}' is already registered with Hospice ID {existing_phone.hospice_number}.")
+        if date_of_birth:
+            existing_dob = Patient.objects.filter(first_name__iexact=fn_clean, last_name__iexact=ln_clean, date_of_birth=date_of_birth).first()
+            if existing_dob:
+                raise ValidationError(f"Duplicate registration detected: '{fn_clean} {ln_clean}' born {date_of_birth} is already registered with Hospice ID {existing_dob.hospice_number}.")
+
     patient_fields = {
         'first_name': first_name,
         'middle_name': middle_name,
