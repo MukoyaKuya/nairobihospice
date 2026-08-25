@@ -37,7 +37,9 @@ class PatientListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        tab = self.request.GET.get('tab', 'master')
+        user = self.request.user
+        default_tab = 'caseload' if (getattr(user, 'is_clinical', False) or getattr(user, 'is_pharmacist', False)) else 'master'
+        tab = self.request.GET.get('tab', default_tab)
         query = self.request.GET.get('q', '')
         status = self.request.GET.get('status', '')
         county = self.request.GET.get('county', '')
@@ -46,7 +48,6 @@ class PatientListView(LoginRequiredMixin, ListView):
         date_to = self.request.GET.get('date_to', '') or None
         year = self.request.GET.get('year', '')
         age_group = self.request.GET.get('age_group', '')
-        user = self.request.user
         clinical_search = (getattr(user, 'is_clinical', False) and not getattr(user, 'is_receptionist', False) and not getattr(user, 'is_pharmacist', False)) or can_manage_all_patients(user)
         queryset = search_patients(
             query=query,
@@ -71,7 +72,8 @@ class PatientListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        tab = self.request.GET.get('tab', 'master')
+        default_tab = 'caseload' if (getattr(user, 'is_clinical', False) or getattr(user, 'is_pharmacist', False)) else 'master'
+        tab = self.request.GET.get('tab', default_tab)
         context['selected_tab'] = tab
         context['search_query'] = self.request.GET.get('q', '')
         context['selected_status'] = self.request.GET.get('status', '')

@@ -24,23 +24,23 @@
         </div>
     </div>
 
-    <!-- Tab Navigation: Master Registry vs Assigned Caseload -->
+    <!-- Tab Navigation: Assigned Caseload (This Week) First, Master Registry Second -->
     <div class="flex items-center space-x-2 border-b border-slate-200 px-1">
-        <a href="{% url 'patients:patient_list' %}?tab=master" 
-           class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold border-b-2 transition duration-150 {% if selected_tab != 'caseload' %}border-[#002D62] text-[#002D62] bg-blue-50/50 rounded-t-lg{% else %}border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300{% endif %}">
-            <i data-lucide="database" class="w-4 h-4"></i>
-            <span>Master Registry</span>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if selected_tab != 'caseload' %}bg-[#002D62] text-white{% else %}bg-slate-100 text-slate-600{% endif %}">
-                {{ master_total_count }}
-            </span>
-        </a>
-
         <a href="{% url 'patients:patient_list' %}?tab=caseload" 
            class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold border-b-2 transition duration-150 {% if selected_tab == 'caseload' %}border-[#002D62] text-[#002D62] bg-blue-50/50 rounded-t-lg{% else %}border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300{% endif %}">
             <i data-lucide="calendar-check-2" class="w-4 h-4"></i>
             <span>Assigned Caseload (This Week)</span>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if selected_tab == 'caseload' %}bg-[#002D62] text-white{% else %}bg-slate-100 text-slate-600{% endif %}">
                 {{ caseload_count }}
+            </span>
+        </a>
+
+        <a href="{% url 'patients:patient_list' %}?tab=master" 
+           class="inline-flex items-center space-x-2 px-4 py-2.5 text-xs font-bold border-b-2 transition duration-150 {% if selected_tab == 'master' %}border-[#002D62] text-[#002D62] bg-blue-50/50 rounded-t-lg{% else %}border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300{% endif %}">
+            <i data-lucide="database" class="w-4 h-4"></i>
+            <span>Master Registry</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold {% if selected_tab == 'master' %}bg-[#002D62] text-white{% else %}bg-slate-100 text-slate-600{% endif %}">
+                {{ master_total_count }}
             </span>
         </a>
     </div>
