@@ -11,9 +11,9 @@ from .models import RoleChoices
 PRESCRIBER_ROLES = {RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER}
 
 # Roles that may create or update medication statements: prescribers plus the
-# nurses who administer/document doses in home care and the pharmacists who
-# dispense. This is the single policy shared by the web views and the API.
-MEDICATION_RECORDER_ROLES = PRESCRIBER_ROLES | {RoleChoices.NURSE, RoleChoices.PHARMACIST}
+# nurses who administer/document doses in home care. This is the single policy shared
+# by the web views and the API.
+MEDICATION_RECORDER_ROLES = PRESCRIBER_ROLES | {RoleChoices.NURSE}
 
 
 def _has_role(user, roles):
@@ -30,7 +30,7 @@ def can_prescribe(user) -> bool:
 
 
 def can_record_medications(user) -> bool:
-    """Prescribers, nurses, and pharmacists may record or update medication statements."""
+    """Prescribers and nurses may record or update medication statements."""
     return _has_role(user, MEDICATION_RECORDER_ROLES)
 
 

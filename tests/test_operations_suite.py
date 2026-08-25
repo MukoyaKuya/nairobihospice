@@ -141,10 +141,21 @@ class TestOperationsSuite:
             county='Nairobi',
             created_by=self.manager,
         )
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        med = MedicationStatement.objects.create(
+            patient=patient,
+            medication_name='Oral Morphine Solution 10mg/5ml',
+            dosage='5mg',
+            route='ORAL',
+            frequency='q4h',
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.manager,
+        )
 
         response = self.client_manager.post('/operations/pharmacy/dispense/', {
             'stock_item': str(morphine.id),
             'patient': str(patient.id),
+            'medication_statement': str(med.id),
             'quantity': 3,
             'notes': 'Severe pain flare protocol',
         })
@@ -156,6 +167,7 @@ class TestOperationsSuite:
         assert mov is not None
         assert mov.quantity == 3
         assert mov.patient == patient
+        assert mov.medication_statement == med
         assert mov.recorded_by == self.manager
         assert 'Faith Wambui' in mov.reference_document
 

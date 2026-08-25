@@ -20,7 +20,8 @@ class ReferralListView(LoginRequiredMixin, ListView):
         q = self.request.GET.get('q', '')
         status = self.request.GET.get('status', '')
         priority = self.request.GET.get('priority', '')
-        return filter_referrals(query=q, status=status, priority=priority).filter(
+        clinical_access = bool(self.request.user.is_clinical or self.request.user.is_manager or self.request.user.is_superuser)
+        return filter_referrals(query=q, status=status, priority=priority, is_clinical=clinical_access).filter(
             pk__in=referral_queryset_for_user(self.request.user).values('pk')
         )
 
@@ -54,31 +55,46 @@ class ReferralDetailView(LoginRequiredMixin, DetailView):
 
 class ReferralCreateView(LoginRequiredMixin, View):
     def get(self, request):
+        if getattr(request.user, 'is_pharmacist', False):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied('Pharmacists are not authorized to create referrals.')
         from apps.patients.constants import HOSPICE_DIAGNOSES
         form = ReferralForm()
+        clinical_access = bool(request.user.is_clinical or request.user.is_manager or request.user.is_superuser)
         return render(request, 'referrals/referral_form.html', {
             'form': form, 
             'is_create': True,
+            'clinical_access': clinical_access,
             'hospice_diagnoses': HOSPICE_DIAGNOSES,
         })
 
     def post(self, request):
+        if getattr(request.user, 'is_pharmacist', False):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied('Pharmacists are not authorized to create referrals.')
         from apps.patients.constants import HOSPICE_DIAGNOSES
+        clinical_access = bool(request.user.is_clinical or request.user.is_manager or request.user.is_superuser)
         form = ReferralForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
-            handled = {'patient_name', 'referring_facility', 'primary_diagnosis', 'reason_for_referral'}
+            primary_diag = cd['primary_diagnosis'] if clinical_access else 'Pending Clinical Review'
+            clinical_sum = cd.get('clinical_summary', '') if clinical_access else ''
+            current_meds = cd.get('current_medications', '') if clinical_access else ''
+
+            handled = {'patient_name', 'referring_facility', 'primary_diagnosis', 'reason_for_referral', 'clinical_summary', 'current_medications'}
             referral = create_referral(
                 patient_name=cd['patient_name'],
                 referring_facility=cd['referring_facility'],
-                primary_diagnosis=cd['primary_diagnosis'],
+                primary_diagnosis=primary_diag,
                 reason_for_referral=cd['reason_for_referral'],
+                clinical_summary=clinical_sum,
+                current_medications=current_meds,
                 created_by=request.user,
                 **{key: value for key, value in cd.items() if key not in handled},
             )
             messages.success(request, f"Referral {referral.referral_number} registered successfully.")
             return redirect('referrals:referral_detail', pk=referral.pk)
-        return render(request, 'referrals/referral_form.html', {'form': form, 'is_create': True})
+        return render(request, 'referrals/referral_form.html', {'form': form, 'is_create': True, 'clinical_access': clinical_access})
 
 
 class ReferralReviewView(LoginRequiredMixin, View):

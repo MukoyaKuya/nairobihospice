@@ -78,7 +78,7 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
             })
 
         recent_patients = Patient.objects.filter(status='ACTIVE')
-        if request.user.is_clinical and not can_manage_all_patients(request.user):
+        if not (getattr(request.user, 'is_receptionist', False) or can_manage_all_patients(request.user)):
             recent_patients = recent_patients.filter(pk__in=authorized_patient_queryset(request.user).values('pk'))
         recent_patients = recent_patients.order_by('-registration_date', 'last_name')[:40]
 
@@ -107,6 +107,8 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
             'selected_type': appt_type,
             'selected_date_from': date_from,
             'selected_date_to': date_to,
+            'clinical_access': bool(getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)),
+            'is_pharmacist': getattr(request.user, 'is_pharmacist', False),
         })
 
 

@@ -213,6 +213,9 @@ def kenya_locations_api(request):
 
 class PatientCreateView(LoginRequiredMixin, View):
     def get(self, request):
+        if getattr(request.user, 'is_pharmacist', False):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Pharmacists are not authorized to register new patients.")
         form = PatientRegistrationForm()
         clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
         return render(request, 'patients/patient_form.html', {
@@ -224,6 +227,9 @@ class PatientCreateView(LoginRequiredMixin, View):
         })
 
     def post(self, request):
+        if getattr(request.user, 'is_pharmacist', False):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Pharmacists are not authorized to register new patients.")
         clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
         form = PatientRegistrationForm(request.POST)
         if form.is_valid():
@@ -474,13 +480,14 @@ def patient_search_api(request):
     if not request.user.is_authenticated:
         return JsonResponse({'results': []}, status=401)
 
-    is_clinical = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
+    is_clinical = (getattr(request.user, 'is_clinical', False) and not getattr(request.user, 'is_pharmacist', False)) or can_manage_all_patients(request.user)
+    is_receptionist_or_manager = getattr(request.user, 'is_receptionist', False) or can_manage_all_patients(request.user)
     q = request.GET.get('q', '').strip()
 
-    if is_clinical:
-        base_qs = authorized_patient_queryset(request.user)
-    else:
+    if is_receptionist_or_manager:
         base_qs = Patient.objects.all()
+    else:
+        base_qs = authorized_patient_queryset(request.user)
 
     if not q:
         patients = base_qs.order_by('-registration_date', '-created_at')[:20]

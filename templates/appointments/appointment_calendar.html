@@ -268,7 +268,7 @@
                                             {{ appt.get_appointment_type_display }}
                                         </span>
 
-                                        {% if not request.user.is_receptionist and appt.patient.primary_diagnosis %}
+                                        {% if clinical_access and appt.patient.primary_diagnosis %}
                                         <span class="text-[11px] text-slate-500 font-medium truncate max-w-xs block">
                                             &bull; {{ appt.patient.primary_diagnosis }}
                                         </span>
@@ -276,7 +276,7 @@
                                     </div>
 
                                     <!-- Row 2: Clinical Focus & Reason Block -->
-                                    {% if not request.user.is_receptionist and appt.reason %}
+                                    {% if clinical_access and appt.reason %}
                                     <div class="p-2 bg-slate-50/90 rounded-lg border border-slate-100 text-xs text-slate-700 leading-relaxed font-normal">
                                         <span class="text-slate-400 font-bold text-[10.5px] uppercase tracking-wider block">Clinical Focus</span>
                                         {{ appt.reason }}

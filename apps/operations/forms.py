@@ -99,8 +99,8 @@ class StockDispenseForm(forms.Form):
     )
     medication_statement = forms.ModelChoiceField(
         queryset=None,
-        required=False,
-        empty_label="-- Optional: Linked Active Medication Prescription --",
+        required=True,
+        empty_label="-- Select Linked Active Prescription --",
         widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white'})
     )
     quantity = forms.IntegerField(

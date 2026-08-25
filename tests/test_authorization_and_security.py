@@ -502,6 +502,28 @@ class TestAPISecurityAndAuthorization:
         assert detail_resp.context['is_pharmacist'] is True
         assert b'Metastatic Breast Cancer' not in detail_resp.content
 
+        # 10. Patient Registration -> 403 Forbidden
+        assert client.get('/patients/register/').status_code == 403
+        assert client.post('/patients/register/', {'first_name': 'Test'}).status_code == 403
+
+        # 11. Referral Registration -> 403 Forbidden
+        assert client.get('/referrals/create/').status_code == 403
+        assert client.post('/referrals/create/', {'patient_name': 'Ref'}).status_code == 403
+
+        # 12. DRF API Medication Writes -> 403 Forbidden
+        med_write_resp = self.api_client.post(
+            '/api/v1/medications/',
+            {'patient': str(self.patient.id), 'medication_name': 'Paracetamol', 'dosage': '500mg', 'route': 'ORAL', 'frequency': 'tds', 'status': 'ACTIVE'},
+            format='json',
+        )
+        assert med_write_resp.status_code == 403
+
+        # 13. Calendar recent_patients is scoped to authorized caseload only
+        cal_resp = client.get('/appointments/')
+        assert cal_resp.status_code == 200
+        recent_pks = [p.pk for p in cal_resp.context['recent_patients']]
+        assert self.patient.pk in recent_pks
+
     def test_receptionist_cannot_access_home_routes_logistics(self):
         """Receptionist is forbidden from accessing field route dispatch workspace."""
         from django.test import Client
