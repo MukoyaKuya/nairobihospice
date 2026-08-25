@@ -1,69 +1,168 @@
 {% extends 'base.html' %}
 
-{% block title %}Schedule Visit - Nairobi Hospice PCMS{% endblock %}
+{% block title %}Schedule Visit: {{ patient.full_name }} - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto space-y-6">
-    <div>
-        <a href="{% url 'patients:patient_detail' patient.pk %}" class="text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center mb-1">
-            <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Patient
-        </a>
-        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Schedule Visit / Appointment</h1>
-        <p class="text-xs text-slate-500 mt-0.5">Patient: <strong>{{ patient.full_name }}</strong> ({{ patient.hospice_number }})</p>
+<div class="max-w-3xl mx-auto space-y-4" x-data="{ isSubmitting: false, reasonVal: '{{ form.reason.value|default:""|escapejs }}' }">
+    
+    <!-- Top Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <a href="{% url 'patients:patient_detail' patient.pk %}" class="text-xs font-semibold text-[#002D62] hover:underline inline-flex items-center gap-1 mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Patient Dossier
+            </a>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Schedule Visit / Clinical Appointment</h1>
+        </div>
+        <div class="text-right">
+            <span class="inline-block px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 text-slate-700 rounded-md border border-slate-200">
+                {{ patient.hospice_number }}
+            </span>
+        </div>
     </div>
 
-    <form method="POST" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
-        {% csrf_token %}
+    <!-- Main Card with Integrated Patient Strip -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+        
+        <!-- Compact Clinical Strip -->
+        <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-900">{{ patient.full_name }}</span>
+                <span class="text-slate-400">&bull;</span>
+                <span class="text-slate-600">{% if patient.age %}{{ patient.age }}y{% endif %} {{ patient.get_sex_display }}</span>
+                {% if patient.ip_op_number %}
+                <span class="text-slate-400">&bull;</span>
+                <span class="font-mono text-slate-600">OP: {{ patient.ip_op_number }}</span>
+                {% endif %}
+                <span class="text-slate-400">&bull;</span>
+                <span class="text-slate-700 font-medium">{{ patient.primary_diagnosis|default:"Palliative Care" }}</span>
+            </div>
+            <div>
+                {% if patient.phone_number %}
+                <span class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                    <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i> {{ patient.phone_number }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
 
-        <div class="space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Form Body -->
+        <form method="POST" 
+              @submit="if(isSubmitting){ $event.preventDefault(); } else { isSubmitting = true; }" 
+              class="p-5 space-y-4">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                <p class="font-bold mb-1">Please correct the following errors:</p>
+                <ul class="list-disc pl-4 space-y-0.5">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Modality & Assigned Clinician -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Appointment Modality *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                        Appointment Modality <span class="text-rose-600">*</span>
+                    </label>
                     {{ form.appointment_type }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Assigned Clinician *</label>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                        Assigned Clinician / Care Team <span class="text-rose-600">*</span>
+                    </label>
                     {{ form.staff_member }}
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <!-- Date, Time, Duration -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Scheduled Date *</label>
-                    <input type="date" name="scheduled_date" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                        Scheduled Date <span class="text-rose-600">*</span>
+                    </label>
+                    {{ form.scheduled_date }}
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Scheduled Time *</label>
-                    <input type="time" name="scheduled_time" value="09:00" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                        Scheduled Time <span class="text-rose-600">*</span>
+                    </label>
+                    {{ form.scheduled_time }}
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Duration (Minutes)</label>
-                    <input type="number" name="duration_minutes" value="45" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    {{ form.duration_minutes }}
                 </div>
             </div>
 
+            <!-- Location / Venue -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Location / Venue *</label>
-                <input type="text" name="location" value="Nairobi Hospice Clinic" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Location / Venue <span class="text-rose-600">*</span>
+                </label>
+                {{ form.location }}
             </div>
 
+            <!-- Reason for Visit (Full Width with Quick Presets) -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Reason for Visit *</label>
-                {{ form.reason }}
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Reason for Visit / Clinical Objective <span class="text-rose-600">*</span>
+                </label>
+                <input type="text" 
+                       id="id_reason"
+                       name="reason" 
+                       x-model="reasonVal"
+                       required
+                       placeholder="e.g. Monthly pain medication review, home wound dressing, caregiver counselling, symptom check"
+                       class="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+                
+                <!-- Quick Reason Suggestion Chips -->
+                <div class="flex flex-wrap items-center gap-1.5 pt-1.5">
+                    <span class="text-[10px] font-bold text-slate-400 mr-0.5">Quick:</span>
+                    <button type="button" @click="reasonVal = 'Monthly pain medication review & morphine refill'" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-700 transition">+ Pain Medication Review</button>
+                    <button type="button" @click="reasonVal = 'Wound dressing & local ulceration care'" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-700 transition">+ Wound Care</button>
+                    <button type="button" @click="reasonVal = 'Palliative home assessment & family counselling'" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-700 transition">+ Home Visit</button>
+                    <button type="button" @click="reasonVal = 'ESAS symptom score re-evaluation'" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-700 transition">+ Symptom Re-eval</button>
+                </div>
             </div>
 
+            <!-- Notes -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Notes</label>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Special Visit Notes / Instructions (Optional)
+                </label>
                 {{ form.notes }}
             </div>
-        </div>
 
-        <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
-            <a href="{% url 'patients:patient_detail' patient.pk %}" class="px-5 py-2.5 text-xs font-bold text-slate-600">Cancel</a>
-            <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white rounded-xl shadow-md transition">
-                Schedule Appointment
-            </button>
-        </div>
-    </form>
+            <!-- Footer Actions -->
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <a href="{% url 'patients:patient_detail' patient.pk %}" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        :disabled="isSubmitting"
+                        :class="isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'"
+                        class="px-5 py-2 text-xs font-semibold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg transition inline-flex items-center gap-1.5">
+                    <span x-show="!isSubmitting" class="inline-flex items-center gap-1.5">
+                        <i data-lucide="calendar-check" class="w-3.5 h-3.5"></i>
+                        <span>Schedule Appointment</span>
+                    </span>
+                    <span x-show="isSubmitting" class="inline-flex items-center gap-1.5" style="display: none;">
+                        <i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>
+                        <span>Scheduling...</span>
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+
 </div>
 {% endblock %}
