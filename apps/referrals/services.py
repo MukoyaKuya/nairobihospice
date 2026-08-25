@@ -75,7 +75,7 @@ def review_referral(*, referral: Referral, reviewer, status: ReferralStatusChoic
 
 
 @transaction.atomic
-def convert_referral_to_patient(*, referral: Referral, user=None) -> Patient:
+def convert_referral_to_patient(*, referral: Referral, user=None, primary_nurse=None, primary_doctor=None) -> Patient:
     """
     Seamlessly converts an accepted referral into a registered patient without duplicate manual entry.
     """
@@ -118,15 +118,43 @@ def convert_referral_to_patient(*, referral: Referral, user=None) -> Patient:
     referral.status = ReferralStatusChoices.CONVERTED
     referral.save()
 
-    # Automatically create initial EpisodeOfCare from care app
-    from apps.care.models import EpisodeOfCare, EpisodeStatusChoices
-    EpisodeOfCare.objects.create(
+    # Automatically create initial EpisodeOfCare from care app and assign care team
+    from apps.accounts.models import RoleChoices, StaffProfile
+    from apps.care.models import CareTeamMember, CareTeamRoleChoices, EpisodeOfCare, EpisodeStatusChoices
+    episode = EpisodeOfCare.objects.create(
         patient=patient,
         start_date=timezone.now().date(),
         reason_for_admission=referral.reason_for_referral,
         status=EpisodeStatusChoices.ACTIVE,
         created_by=user,
     )
+
+    # Resolve primary nurse & doctor
+    assigned_nurse = primary_nurse or (
+        user.staff_profile if (user and hasattr(user, 'staff_profile') and user.staff_profile and user.staff_profile.role == RoleChoices.NURSE)
+        else StaffProfile.objects.filter(role=RoleChoices.NURSE, is_active_staff=True).first()
+    )
+    assigned_doctor = primary_doctor or (
+        user.staff_profile if (user and hasattr(user, 'staff_profile') and user.staff_profile and user.staff_profile.role in [RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER])
+        else StaffProfile.objects.filter(role__in=[RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER], is_active_staff=True).first()
+    )
+
+    if assigned_nurse:
+        CareTeamMember.objects.create(
+            episode=episode,
+            staff_member=assigned_nurse,
+            role=CareTeamRoleChoices.PRIMARY_NURSE,
+            is_primary=True,
+            start_date=episode.start_date,
+        )
+    if assigned_doctor:
+        CareTeamMember.objects.create(
+            episode=episode,
+            staff_member=assigned_doctor,
+            role=CareTeamRoleChoices.PRIMARY_DOCTOR,
+            is_primary=True,
+            start_date=episode.start_date,
+        )
 
     log_audit_event(
         action=AuditAction.CREATE,

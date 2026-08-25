@@ -52,7 +52,7 @@ test.describe('PCMS staging browser flows', () => {
 
   test('4. patient registration and appointment scheduling pages are reachable', async ({ page }) => {
     await login(page);
-    await page.goto('/patients/new/');
+    await page.goto('/patients/register/');
     await expect(page.locator('form')).toBeVisible();
     await page.goto('/appointments/');
     await expect(page).toHaveURL(/\/appointments\//);

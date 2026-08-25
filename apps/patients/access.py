@@ -27,16 +27,16 @@ def authorized_patient_queryset(user):
     today = timezone.localdate()
     return Patient.objects.filter(
         Q(created_by=user)
-        | Q(created_by__staff_profile__role__in=[RoleChoices.ADMINISTRATOR, RoleChoices.MANAGER])
-        | Q(created_by__isnull=True)
-        | Q(
-            episodes__status='ACTIVE',
-            episodes__team_members__staff_member__user=user,
-            episodes__team_members__start_date__lte=today,
-        )
-        & Q(
-            Q(episodes__team_members__end_date__isnull=True)
-            | Q(episodes__team_members__end_date__gte=today)
+        | (
+            Q(
+                episodes__status='ACTIVE',
+                episodes__team_members__staff_member__user=user,
+                episodes__team_members__start_date__lte=today,
+            )
+            & Q(
+                Q(episodes__team_members__end_date__isnull=True)
+                | Q(episodes__team_members__end_date__gte=today)
+            )
         )
         | Q(appointments__staff_member__user=user),
     ).distinct()

@@ -121,6 +121,71 @@ class TestAPISecurityAndAuthorization:
         response = client.get(f'/patients/{self.patient.id}/card/')
         assert response.status_code == 403
 
+    def test_receptionist_patient_detail_view_strips_clinical_phi(self):
+        """Receptionist view must strip clinical HTML, diagnoses, HIV status, meds, and encounters."""
+        from django.test import Client
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        self.patient.primary_diagnosis = "Advanced Cervical Carcinoma"
+        self.patient.hiv_status = "POSITIVE"
+        self.patient.allergies = "Penicillin Anaphylaxis"
+        self.patient.save()
+
+        MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Oral Morphine Solution",
+            dosage="10mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+
+        client = Client()
+        client.force_login(self.receptionist)
+        response = client.get(f'/patients/{self.patient.id}/')
+        assert response.status_code == 200
+        assert response.context['clinical_access'] is False
+        assert response.context['medications'] == []
+        assert response.context['encounters'] == []
+        assert response.context['assessments'] == []
+
+        content = response.content.decode('utf-8')
+        assert "Advanced Cervical Carcinoma" not in content
+        assert "Penicillin Anaphylaxis" not in content
+        assert "Oral Morphine Solution" not in content
+
+    def test_unassigned_clinician_cannot_view_unrelated_patient_detail(self):
+        """Clinician not on the patient's care team receives 404 for unauthorized patient."""
+        from django.test import Client
+        clinician_b = create_staff_user(
+            email='unassigned_doc@nairobihospice.or.ke',
+            username='unassigned_doc',
+            first_name='Unassigned',
+            last_name='Doc',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        client = Client()
+        client.force_login(clinician_b)
+        response = client.get(f'/patients/{self.patient.id}/')
+        assert response.status_code == 404
+
+    def test_clinical_dashboard_scoped_to_authorized_caseload(self):
+        """Clinical dashboards only display metrics and patients for assigned clinicians."""
+        from apps.reporting.selectors import get_clinical_dashboard_data
+        clinician_b = create_staff_user(
+            email='dash_doc@nairobihospice.or.ke',
+            username='dash_doc',
+            first_name='Dash',
+            last_name='Doc',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        data = get_clinical_dashboard_data(clinician_b)
+        assert data['today_appts_count'] == 0
+        assert len(data['active_medications']) == 0
+
 
 @pytest.mark.django_db
 class TestInputValidationAndAuditIntegrity:

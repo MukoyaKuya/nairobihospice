@@ -70,7 +70,7 @@ def test_receptionist_can_submit_deletion_request(receptionist_user, test_patien
 
 
 @pytest.mark.django_db
-def test_manager_can_approve_deletion_and_purges_patient(manager_user, receptionist_user, test_patient):
+def test_manager_can_approve_deletion_and_closes_patient(manager_user, receptionist_user, test_patient):
     # Submit request first
     deletion_req = PatientDeletionRequest.objects.create(
         patient=test_patient,
@@ -87,7 +87,7 @@ def test_manager_can_approve_deletion_and_purges_patient(manager_user, reception
 
     approve_url = reverse('operations:deletion_request_approve', kwargs={'pk': deletion_req.pk})
     response = client.post(approve_url, {
-        'review_notes': 'Verified duplicate with NH-2021-0081. Approved for purge.'
+        'review_notes': 'Verified duplicate with NH-2021-0081. Approved for closure.'
     }, follow=True)
 
     assert response.status_code == 200
@@ -98,8 +98,11 @@ def test_manager_can_approve_deletion_and_purges_patient(manager_user, reception
     assert deletion_req.reviewed_by == manager_user
     assert 'Verified duplicate' in deletion_req.review_notes
 
-    # Patient is permanently purged from DB
-    assert not Patient.objects.filter(pk=test_patient.pk).exists()
+    # Patient is preserved in DB for clinical governance but status is CLOSED
+    test_patient.refresh_from_db()
+    assert test_patient.status == 'CLOSED'
+    assert test_patient.file_closed == 'Yes'
+    assert test_patient.closure_date is not None
 
     # Audit log created
     audit = AuditEvent.objects.filter(action=AuditAction.DELETE, resource_type='Patient').first()
@@ -173,7 +176,7 @@ def test_clinician_can_submit_appointment_deletion_request(receptionist_user, te
 
 
 @pytest.mark.django_db
-def test_manager_can_approve_appointment_deletion_and_purges_appointment(manager_user, receptionist_user, test_patient):
+def test_manager_can_approve_appointment_deletion_and_cancels_appointment(manager_user, receptionist_user, test_patient):
     from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
     from apps.operations.models import AppointmentDeletionRequest
     
@@ -213,7 +216,8 @@ def test_manager_can_approve_appointment_deletion_and_purges_appointment(manager
     deletion_req.refresh_from_db()
     assert deletion_req.status == DeletionRequestStatusChoices.APPROVED
     assert deletion_req.reviewed_by == manager_user
-    assert not Appointment.objects.filter(pk=appt.pk).exists()
+    appt.refresh_from_db()
+    assert appt.status == AppointmentStatusChoices.CANCELLED
 
 
 @pytest.mark.django_db

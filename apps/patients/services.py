@@ -75,6 +75,8 @@ def register_patient(
     past_medical_history: str = '',
     family_history: str = '',
     drug_history: str = '',
+    primary_nurse=None,
+    primary_doctor=None,
 ) -> Patient:
     """
     Registers a new patient, generates unique identifier, and records next of kin / caregiver.
@@ -168,15 +170,32 @@ def register_patient(
             assessor=created_by,
         )
 
-    # Automatically initialize active Episode of Care
-    from apps.care.models import EpisodeOfCare, EpisodeStatusChoices
-    EpisodeOfCare.objects.create(
+    # Automatically initialize active Episode of Care and multidisciplinary care team
+    from apps.care.models import CareTeamMember, CareTeamRoleChoices, EpisodeOfCare, EpisodeStatusChoices
+    episode = EpisodeOfCare.objects.create(
         patient=patient,
         start_date=patient.registration_date or timezone.now().date(),
         reason_for_admission=primary_diagnosis or 'Initial Palliative Registration',
         status=EpisodeStatusChoices.ACTIVE,
         created_by=created_by,
     )
+
+    if primary_nurse:
+        CareTeamMember.objects.create(
+            episode=episode,
+            staff_member=primary_nurse,
+            role=CareTeamRoleChoices.PRIMARY_NURSE,
+            is_primary=True,
+            start_date=episode.start_date,
+        )
+    if primary_doctor:
+        CareTeamMember.objects.create(
+            episode=episode,
+            staff_member=primary_doctor,
+            role=CareTeamRoleChoices.PRIMARY_DOCTOR,
+            is_primary=True,
+            start_date=episode.start_date,
+        )
 
     log_audit_event(
         action=AuditAction.CREATE,

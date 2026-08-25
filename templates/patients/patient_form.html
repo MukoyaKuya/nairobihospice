@@ -227,6 +227,32 @@
                         <input type="text" name="occupation" value="{{ form.occupation.value|default:'' }}" placeholder="e.g. Retired Teacher" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#002D62] focus:outline-none">
                     </div>
                 </div>
+
+                {% if is_create %}
+                <!-- Assigned Primary Care Team -->
+                <div class="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
+                    <h3 class="text-xs font-bold uppercase tracking-wide text-[#002D62] flex items-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-indigo-700"></i> Assigned Primary Care Team *
+                    </h3>
+                    <p class="text-[11px] text-slate-500">Assign the primary palliative care nurse and physician responsible for this patient's active episode.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Primary Nurse *</label>
+                            {{ form.primary_nurse }}
+                            {% if form.primary_nurse.errors %}
+                            <p class="text-rose-600 text-[11px] mt-1">{{ form.primary_nurse.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Primary Doctor / Clinical Officer *</label>
+                            {{ form.primary_doctor }}
+                            {% if form.primary_doctor.errors %}
+                            <p class="text-rose-600 text-[11px] mt-1">{{ form.primary_doctor.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <div class="flex justify-end pt-4">

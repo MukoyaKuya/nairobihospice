@@ -1,5 +1,7 @@
 from django import forms
 
+from apps.accounts.models import RoleChoices, StaffProfile
+
 from .models import (
     Caregiver,
     NextOfKin,
@@ -8,6 +10,41 @@ from .models import (
 
 
 class PatientRegistrationForm(forms.ModelForm):
+    # Mandatory Primary Care Team
+    primary_nurse = forms.ModelChoiceField(
+        queryset=StaffProfile.objects.none(),
+        label="Primary Assigned Nurse",
+        required=False,
+        empty_label="-- Select Primary Nurse --",
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white'})
+    )
+    primary_doctor = forms.ModelChoiceField(
+        queryset=StaffProfile.objects.none(),
+        label="Primary Assigned Doctor / CO",
+        required=False,
+        empty_label="-- Select Primary Doctor --",
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['primary_nurse'].queryset = StaffProfile.objects.filter(
+            role=RoleChoices.NURSE, is_active_staff=True
+        ).select_related('user')
+        self.fields['primary_doctor'].queryset = StaffProfile.objects.filter(
+            role__in=[RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER], is_active_staff=True
+        ).select_related('user')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        nurses_exist = StaffProfile.objects.filter(role=RoleChoices.NURSE, is_active_staff=True).exists()
+        doctors_exist = StaffProfile.objects.filter(role__in=[RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER], is_active_staff=True).exists()
+
+        if nurses_exist and not cleaned_data.get('primary_nurse'):
+            self.add_error('primary_nurse', 'A primary palliative nurse must be assigned upon patient registration.')
+        if doctors_exist and not cleaned_data.get('primary_doctor'):
+            self.add_error('primary_doctor', 'A primary doctor or clinical officer must be assigned upon patient registration.')
+        return cleaned_data
     # Additional Next of Kin fields
     nok_name = forms.CharField(label="Next of Kin Full Name", required=False)
     nok_relationship = forms.CharField(label="Relationship to Patient", required=False, initial="Spouse")

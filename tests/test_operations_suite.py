@@ -10,6 +10,7 @@ from apps.operations.models import (
     PaymentMethodChoices,
     PaymentStatusChoices,
     StockItem,
+    StockMovement,
     Vendor,
 )
 from apps.operations.services import record_stock_movement
@@ -121,6 +122,41 @@ class TestOperationsSuite:
         assert mov.balance_after == 6
         item.refresh_from_db()
         assert item.quantity_on_hand == 6
+
+    def test_pharmacy_dispense_screen_creates_movement_and_audit(self):
+        vendor = Vendor.objects.create(name='Pharma V', code='VND-P1', contact_person='C', phone_number='0700')
+        morphine = StockItem.objects.create(
+            item_code='STK-MPH-10',
+            name='Oral Morphine Solution 10mg/5ml',
+            unit_of_measure='Bottles',
+            quantity_on_hand=25,
+            minimum_reorder_level=5,
+            unit_cost_kes=650.00,
+            preferred_vendor=vendor,
+            is_controlled_substance=True,
+        )
+        patient = register_patient(
+            first_name='Faith',
+            last_name='Wambui',
+            county='Nairobi',
+            created_by=self.manager,
+        )
+
+        response = self.client_manager.post('/operations/pharmacy/dispense/', {
+            'stock_item': str(morphine.id),
+            'patient': str(patient.id),
+            'quantity': 3,
+            'medication_statement': 'Rx #9021',
+            'notes': 'Severe pain flare protocol',
+        })
+        assert response.status_code == 302
+        morphine.refresh_from_db()
+        assert morphine.quantity_on_hand == 22
+
+        mov = StockMovement.objects.filter(stock_item=morphine, movement_type=MovementTypeChoices.DISPENSE).first()
+        assert mov is not None
+        assert mov.quantity == 3
+        assert 'Faith Wambui' in mov.reference_document
 
     def test_disease_analytics_view_aggregates_data(self):
         register_patient(

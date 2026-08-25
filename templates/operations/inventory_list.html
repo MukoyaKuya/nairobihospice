@@ -21,6 +21,11 @@
         </div>
 
         <div class="flex items-center flex-wrap gap-2">
+            <a href="{% url 'operations:pharmacy_dispense' %}" 
+               class="inline-flex items-center px-3.5 py-2 text-xs font-bold bg-[#991B1B] hover:bg-[#7F1D1D] text-white rounded-lg shadow-2xs transition space-x-1.5">
+                <i data-lucide="pill" class="w-4 h-4 text-rose-200"></i>
+                <span>Dispense Stock</span>
+            </a>
             <a href="{% url 'operations:stock_movements' %}" 
                class="inline-flex items-center px-3 py-2 text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg shadow-2xs transition space-x-1.5">
                 <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>

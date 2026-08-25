@@ -95,7 +95,7 @@
                             <span>&bull;</span>
                             <span class="font-mono text-amber-900 font-semibold">IP/OP: {{ patient.ip_op_number }}</span>
                             {% endif %}
-                            {% if patient.hiv_status %}
+                            {% if patient.hiv_status and clinical_access %}
                             <span>&bull;</span>
                             <span class="text-slate-700 font-semibold">HIV: <strong class="uppercase text-slate-900">{{ patient.hiv_status }}</strong></span>
                             {% endif %}
@@ -185,7 +185,7 @@
                 </div>
             </div>
 
-            {% if patient.primary_diagnosis and not is_receptionist %}
+            {% if clinical_access and patient.primary_diagnosis %}
             <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-2 text-xs">
                 <span class="text-[9.5px] font-bold uppercase tracking-wider text-slate-400">Diagnosis:</span>
                 <span class="font-semibold text-slate-800 text-xs">{{ patient.primary_diagnosis }}</span>
@@ -193,7 +193,7 @@
             {% endif %}
 
             <!-- Clinical Alerts / Allergies Inline Strip if present -->
-            {% if not is_receptionist and patient.allergies or not is_receptionist and patient.clinical_alerts %}
+            {% if clinical_access and patient.allergies or clinical_access and patient.clinical_alerts %}
             <div class="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap gap-2 text-[11px]">
                 {% if patient.allergies %}
                 <div class="px-2.5 py-1 bg-red-50 text-red-800 rounded-lg border border-red-200 flex items-center space-x-1.5">
@@ -232,6 +232,7 @@
                 <span>Caregivers ({{ patient.caregivers.count }})</span>
             </button>
 
+            {% if clinical_access %}
             <button @click="activeTab = 'timeline'" 
                     :class="activeTab === 'timeline' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
                     class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
@@ -266,6 +267,8 @@
                 <i data-lucide="target" class="w-3.5 h-3.5"></i>
                 <span>Care Plan</span>
             </button>
+            {% endif %}
+        </div>
         </div>
 
         <div class="p-4 sm:p-6">
@@ -477,6 +480,7 @@
                 </div>
             </div>
 
+            {% if clinical_access %}
             <!-- TAB 3: Clinical Timeline & Encounters -->
             <div x-cloak x-show="activeTab === 'timeline'" class="space-y-4">
                 <div class="flex items-center justify-between">
@@ -752,6 +756,7 @@
                 </div>
                 {% endif %}
             </div>
+            {% endif %}
 
         </div>
     </div>

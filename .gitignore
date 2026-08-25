@@ -5,6 +5,9 @@ __pycache__/
 .ruff_cache/
 *.sqlite3
 production_db.sqlite3
+*.accdb
+*.mdb
+*.csv
 media/
 private_media/
 backups/

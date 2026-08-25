@@ -87,6 +87,35 @@ class StockReceiveForm(forms.Form):
     )
 
 
+class StockDispenseForm(forms.Form):
+    stock_item = forms.ModelChoiceField(
+        queryset=StockItem.objects.all().order_by('name'),
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white', 'id': 'id_dispense_stock_item'})
+    )
+    patient = forms.ModelChoiceField(
+        queryset=None,
+        required=True,
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white'})
+    )
+    quantity = forms.IntegerField(
+        min_value=1,
+        widget=forms.NumberInput(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none', 'placeholder': 'Units / Doses to dispense'})
+    )
+    medication_statement = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none', 'placeholder': 'Optional: Medication Statement Ref / Prescription #'})
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 2, 'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none', 'placeholder': 'Dispensing remarks, dosage instructions, or opioid register entry...'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.patients.models import Patient
+        self.fields['patient'].queryset = Patient.objects.filter(status='ACTIVE').order_by('first_name', 'last_name')
+
+
 class InvoiceForm(forms.ModelForm):
     invoice_number = forms.CharField(
         required=False,

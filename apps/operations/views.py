@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction
 from django.db.models import F, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,6 +18,7 @@ from .forms import (
     InvoiceLineItemForm,
     InvoicePaymentForm,
     ProcurementOrderForm,
+    StockDispenseForm,
     StockItemForm,
     StockReceiveForm,
     VendorForm,
@@ -233,6 +235,95 @@ class StockReceiveView(ManagerRequiredMixin, View):
             messages.success(request, f"Received {qty} {stock_item.unit_of_measure} of {stock_item.name}. New Balance: {movement.balance_after}.")
             return redirect('operations:inventory_list')
         return render(request, 'operations/stock_receive_form.html', {'form': form})
+
+
+class PharmacyDispenseView(LoginRequiredMixin, View):
+    """
+    Day-One Pharmacy Slice: Dispense stock directly to an active patient / medication statement,
+    with controlled substance / opioid register highlighting and immutable stock movement logging.
+    """
+    def get(self, request):
+        from apps.patients.access import can_manage_all_patients
+        if not (request.user.is_pharmacist or request.user.is_clinical or can_manage_all_patients(request.user)):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Only pharmacy, clinical, and management staff may dispense stock.")
+
+        import json
+        stock_item_id = request.GET.get('stock_item')
+        patient_id = request.GET.get('patient')
+        initial = {}
+        if stock_item_id:
+            initial['stock_item'] = stock_item_id
+        if patient_id:
+            initial['patient'] = patient_id
+
+        form = StockDispenseForm(initial=initial)
+        stock_items = list(StockItem.objects.all().order_by('name').values('id', 'name', 'item_code', 'quantity_on_hand', 'unit_of_measure', 'is_controlled_substance'))
+        return render(request, 'operations/pharmacy_dispense.html', {
+            'form': form,
+            'stock_items_json': json.dumps([
+                {**item, 'id': str(item['id'])} for item in stock_items
+            ]),
+            'recent_dispenses': StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related('stock_item', 'recorded_by')[:15],
+        })
+
+    def post(self, request):
+        from apps.patients.access import can_manage_all_patients
+        if not (request.user.is_pharmacist or request.user.is_clinical or can_manage_all_patients(request.user)):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Only pharmacy, clinical, and management staff may dispense stock.")
+
+        import json
+        form = StockDispenseForm(request.POST)
+        if form.is_valid():
+            stock_item = form.cleaned_data['stock_item']
+            patient = form.cleaned_data['patient']
+            quantity = form.cleaned_data['quantity']
+            medication_statement = form.cleaned_data.get('medication_statement', '')
+            notes = form.cleaned_data.get('notes', '')
+
+            ref = f"Patient: {patient.full_name} ({patient.hospice_number})"
+            if medication_statement:
+                ref += f" | Med: {medication_statement}"
+
+            try:
+                movement = record_stock_movement(
+                    stock_item=stock_item,
+                    movement_type=MovementTypeChoices.DISPENSE,
+                    quantity=quantity,
+                    reference_document=ref,
+                    notes=notes,
+                    user=request.user,
+                )
+                log_audit_event(
+                    action=AuditAction.CREATE,
+                    resource_type='StockDispense',
+                    resource_id=str(movement.id),
+                    summary=f"Dispensed {quantity} {stock_item.unit_of_measure} of {stock_item.name} to {patient.full_name} ({patient.hospice_number})",
+                    user=request.user,
+                    metadata={
+                        'stock_item': stock_item.name,
+                        'is_controlled_substance': stock_item.is_controlled_substance,
+                        'patient': patient.hospice_number,
+                        'quantity': quantity,
+                    }
+                )
+                messages.success(
+                    request,
+                    f"Successfully dispensed {quantity} {stock_item.unit_of_measure} of {stock_item.name} to {patient.full_name} ({patient.hospice_number})."
+                )
+                return redirect('operations:pharmacy_dispense')
+            except Exception as e:
+                form.add_error(None, str(e))
+
+        stock_items = list(StockItem.objects.all().order_by('name').values('id', 'name', 'item_code', 'quantity_on_hand', 'unit_of_measure', 'is_controlled_substance'))
+        return render(request, 'operations/pharmacy_dispense.html', {
+            'form': form,
+            'stock_items_json': json.dumps([
+                {**item, 'id': str(item['id'])} for item in stock_items
+            ]),
+            'recent_dispenses': StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related('stock_item', 'recorded_by')[:15],
+        })
 
 
 class StockMovementListView(ManagerRequiredMixin, ListView):
@@ -532,23 +623,29 @@ class PatientDeletionRequestApproveView(ManagerRequiredMixin, View):
             deletion_req.reviewed_by = request.user
             deletion_req.reviewed_at = timezone.now()
             deletion_req.review_notes = review_notes
-            deletion_req.patient = None  # Detach FK before deleting patient record
             deletion_req.save()
 
             if patient:
+                from apps.patients.models import PatientStatusChoices
+                patient.status = PatientStatusChoices.CLOSED
+                closure_note = f"File closed and archived via approved deletion request. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}"
+                patient.notes = f"{patient.notes}\n\n{closure_note}".strip() if patient.notes else closure_note
+                patient.file_closed = "Yes"
+                patient.closure_date = timezone.now().date()
+                patient.save(update_fields=['status', 'notes', 'file_closed', 'closure_date', 'updated_at'])
+
                 # Log audit trail
                 log_audit_event(
                     action=AuditAction.DELETE,
                     resource_type='Patient',
                     resource_id=str(patient.id),
-                    summary=f"Approved deletion and permanently purged patient {patient_name} ({hospice_number}). Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
+                    summary=f"Approved deletion request and closed/archived patient file for {patient_name} ({hospice_number}). Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
                     user=request.user,
                 )
-                patient.delete()
 
         messages.success(
             request,
-            f"Patient record for {patient_name} ({hospice_number}) has been permanently deleted and archived in audit records."
+            f"Patient record for {patient_name} ({hospice_number}) has been closed, archived, and updated in audit records."
         )
         return redirect('operations:deletion_requests')
 
@@ -603,23 +700,27 @@ class AppointmentDeletionRequestApproveView(ManagerRequiredMixin, View):
             deletion_req.reviewed_by = request.user
             deletion_req.reviewed_at = timezone.now()
             deletion_req.review_notes = review_notes
-            deletion_req.appointment = None  # Detach FK before deleting appointment record
             deletion_req.save()
 
             if appt:
+                from apps.appointments.models import AppointmentStatusChoices
+                appt.status = AppointmentStatusChoices.CANCELLED
+                cancellation_note = f"Cancelled via approved deletion request. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}"
+                appt.notes = f"{appt.notes}\n\n{cancellation_note}".strip() if appt.notes else cancellation_note
+                appt.save(update_fields=['status', 'notes', 'updated_at'])
+
                 # Log audit trail
                 log_audit_event(
                     action=AuditAction.DELETE,
                     resource_type='Appointment',
                     resource_id=str(appt.id),
-                    summary=f"Approved deletion and permanently purged appointment for {patient_name} scheduled on {sched_date}. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
+                    summary=f"Approved deletion request and cancelled appointment for {patient_name} scheduled on {sched_date}. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
                     user=request.user,
                 )
-                appt.delete()
 
         messages.success(
             request,
-            f"Appointment for {patient_name} on {sched_date} has been permanently deleted and purged from schedule."
+            f"Appointment for {patient_name} on {sched_date} has been cancelled and archived in audit records."
         )
         return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")
 

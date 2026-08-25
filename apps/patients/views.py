@@ -96,7 +96,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'patient'
 
     def get_object(self):
-        obj = get_object_or_404(Patient, pk=self.kwargs['pk'])
+        obj = get_operational_patient_or_404(self.request.user, self.kwargs['pk'])
         # Audit log record access
         log_audit_event(
             action=AuditAction.VIEW,
@@ -110,7 +110,31 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         patient = self.object
-        context['clinical_access'] = not self.request.user.is_receptionist
+        clinical_access = not self.request.user.is_receptionist and (
+            self.request.user.is_clinical or can_manage_all_patients(self.request.user) or self.request.user.role == 'PHARMACIST'
+        )
+        context['clinical_access'] = clinical_access
+
+        if not clinical_access:
+            context['assessments'] = []
+            context['recent_assessments'] = []
+            context['encounters'] = []
+            context['recent_encounters'] = []
+            context['medications'] = []
+            context['active_medications'] = []
+            context['active_care_plan'] = None
+            context['care_plan'] = None
+            context['care_plans'] = []
+            context['active_episode'] = None
+            context['care_team'] = []
+            context['recent_symptoms'] = []
+            context['symptom_trends_json'] = '{}'
+            context['upcoming_appointments'] = patient.appointments.filter(
+                status__in=['SCHEDULED', 'CONFIRMED']
+            ).select_related('staff_member').order_by('scheduled_date', 'scheduled_time')[:5]
+            context['documents'] = []
+            context['communications'] = []
+            return context
 
         # Structured Assessments (Available for full Access-parity clinical dossier)
         assessments = list(patient.assessments.select_related('assessor').order_by('-assessment_date', '-created_at')[:100])
@@ -137,27 +161,6 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         active_episode = patient.episodes.filter(status='ACTIVE').order_by('-start_date').first()
         context['active_episode'] = active_episode
         context['care_team'] = active_episode.team_members.select_related('staff_member__user') if active_episode else []
-
-        # Active Care Plan
-        active_care_plan = patient.care_plans.filter(status='ACTIVE').first()
-        context['active_care_plan'] = active_care_plan
-        context['care_plan'] = active_care_plan
-        context['care_plans'] = list(patient.care_plans.order_by('-created_at')[:50])
-
-        # Encounters (Full list & recent)
-        encounters = list(patient.encounters.select_related('recorded_by').order_by('-encounter_date', '-created_at')[:100])
-        context['encounters'] = encounters
-        context['recent_encounters'] = encounters[:10]
-
-        # Structured Assessments
-        assessments = list(patient.assessments.select_related('assessor').order_by('-assessment_date', '-created_at')[:100])
-        context['assessments'] = assessments
-        context['recent_assessments'] = assessments[:10]
-
-        # Medications
-        medications = list(patient.medications.select_related('prescriber').order_by('-status', '-start_date')[:100])
-        context['medications'] = medications
-        context['active_medications'] = [m for m in medications if m.status == 'ACTIVE']
 
         # Longitudinal Symptoms (Last 10 ESAS records)
         symptoms = list(patient.symptom_records.prefetch_related('scores').order_by('-recorded_at')[:100])
@@ -253,6 +256,8 @@ class PatientCreateView(LoginRequiredMixin, View):
                 past_medical_history=cd.get('past_medical_history', ''),
                 family_history=cd.get('family_history', ''),
                 drug_history=cd.get('drug_history', ''),
+                primary_nurse=cd.get('primary_nurse'),
+                primary_doctor=cd.get('primary_doctor'),
             )
             messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.")
             return redirect('patients:patient_detail', pk=patient.pk)
