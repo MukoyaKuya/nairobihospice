@@ -45,7 +45,7 @@ class PatientViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if can_manage_all_patients(user) or user.is_receptionist:
             return self.queryset
-        if user.is_clinical:
+        if user.is_clinical or getattr(user, 'is_pharmacist', False):
             return self.queryset.filter(pk__in=authorized_patient_queryset(user).values('pk'))
         return self.queryset.none()
 

@@ -75,7 +75,6 @@ class ClinicalStaffRequiredMixin(RoleRequiredMixin):
         RoleChoices.CLINICAL_OFFICER,
         RoleChoices.SOCIAL_WORKER,
         RoleChoices.COUNSELLOR,
-        RoleChoices.PHARMACIST,
     ]
 
 
@@ -93,7 +92,7 @@ class ManagerRequiredMixin(RoleRequiredMixin):
 
 # DRF Permissions
 class IsClinicalStaffPermission(permissions.BasePermission):
-    """Restricts access to clinical staff members (Doctor, Nurse, CO, Social Worker, Counsellor, Pharmacist)."""
+    """Restricts access to clinical staff members (Doctor, Nurse, CO, Social Worker, Counsellor)."""
     def has_permission(self, request, view):
         return bool(request.user and request.user.is_authenticated and (request.user.is_clinical or request.user.is_superuser))
 
@@ -111,12 +110,12 @@ class IsClinicalOrManagerPermission(permissions.BasePermission):
 
 
 class IsPharmacistOrClinicalPermission(permissions.BasePermission):
-    """Medication reads for clinical staff; writes follow the shared medication-recording policy."""
+    """Medication reads for clinical staff and pharmacists; writes follow the shared medication-recording policy."""
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
         if request.method in permissions.SAFE_METHODS:
-            return bool(request.user.is_clinical or request.user.is_superuser)
+            return bool(request.user.is_clinical or getattr(request.user, 'is_pharmacist', False) or request.user.is_superuser)
         return can_record_medications(request.user)
 
 
@@ -135,7 +134,6 @@ class IsAuthenticatedApiPermission(permissions.BasePermission):
         RoleChoices.CLINICAL_OFFICER,
         RoleChoices.SOCIAL_WORKER,
         RoleChoices.COUNSELLOR,
-        RoleChoices.PHARMACIST,
         RoleChoices.MANAGER,
         RoleChoices.ADMINISTRATOR,
     }

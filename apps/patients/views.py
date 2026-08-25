@@ -60,7 +60,7 @@ class PatientListView(LoginRequiredMixin, ListView):
         )
         if can_manage_all_patients(user) or user.is_receptionist:
             return queryset
-        if user.is_clinical:
+        if user.is_clinical or getattr(user, 'is_pharmacist', False):
             return queryset.filter(pk__in=authorized_patient_queryset(user).values('pk'))
         return queryset.none()
 
@@ -74,6 +74,8 @@ class PatientListView(LoginRequiredMixin, ListView):
         context['selected_date_to'] = self.request.GET.get('date_to', '')
         context['selected_year'] = self.request.GET.get('year', '')
         context['selected_age_group'] = self.request.GET.get('age_group', '')
+        context['is_pharmacist'] = getattr(self.request.user, 'is_pharmacist', False)
+        context['is_receptionist'] = getattr(self.request.user, 'is_receptionist', False)
         context['status_choices'] = PatientStatusChoices.choices
         context['sex_choices'] = [
             ('F', 'Female'),

@@ -403,9 +403,104 @@ class TestAPISecurityAndAuthorization:
             {'primary_diagnosis': 'Hacked Carcinoma', 'status': 'DECEASED'},
             format='json',
         )
+        assert response.status_code == 403
         self.patient.refresh_from_db()
         assert self.patient.primary_diagnosis == "Original Carcinoma"
         assert self.patient.status == "ACTIVE"
+
+    def test_pharmacist_with_dispense_caseload_is_denied_all_clinical_and_editing_actions(self):
+        """Even after dispensing to a patient, pharmacist cannot edit patient, create encounters/ESAS/docs, access routes, or see diagnosis."""
+        from django.test import Client
+        from apps.operations.models import StockItem, StockMovement, MovementTypeChoices
+        from apps.operations.services import record_stock_movement
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        from apps.patients.access import authorized_patient_queryset
+
+        pharm = create_staff_user(
+            email='pharm_caseload@nairobihospice.or.ke',
+            username='pharm_caseload',
+            first_name='Pharm',
+            last_name='Caseload',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        self.patient.primary_diagnosis = "Metastatic Breast Cancer"
+        self.patient.save()
+
+        # Create medication and dispense to put patient on pharmacist's caseload
+        med = MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Oral Morphine 10mg/5ml",
+            dosage="5mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        stock_item = StockItem.objects.create(
+            name="Oral Morphine 10mg/5ml",
+            item_code="STK-MORPH-10-TEST-CASELOAD",
+            quantity_on_hand=50,
+            unit_of_measure="bottle",
+        )
+        record_stock_movement(
+            stock_item=stock_item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=1,
+            patient=self.patient,
+            medication_statement=med,
+            user=pharm,
+        )
+
+        # Confirm patient is now on pharmacist's caseload
+        assert self.patient in list(authorized_patient_queryset(pharm))
+
+        client = Client()
+        client.force_login(pharm)
+
+        # 1. Edit patient web form -> 403 Forbidden
+        assert client.get(f'/patients/{self.patient.pk}/edit/').status_code == 403
+        assert client.post(f'/patients/{self.patient.pk}/edit/', {'first_name': 'Hacked'}).status_code == 403
+
+        # 2. DRF API PATCH -> 403 Forbidden
+        self.api_client.force_authenticate(user=pharm)
+        api_resp = self.api_client.patch(
+            f'/api/v1/patients/{self.patient.pk}/',
+            {'first_name': 'Hacked API'},
+            format='json',
+        )
+        assert api_resp.status_code == 403
+
+        # 3. Create Encounter -> 403 Forbidden
+        assert client.get(f'/encounters/patient/{self.patient.pk}/create/').status_code == 403
+        assert client.post(f'/encounters/patient/{self.patient.pk}/create/', {'reason': 'check'}).status_code == 403
+
+        # 4. Create ESAS Symptom Assessment -> 403 Forbidden
+        assert client.get(f'/symptoms/patient/{self.patient.pk}/create/').status_code == 403
+
+        # 5. Upload Clinical Document -> 403 Forbidden
+        assert client.get(f'/documents/patient/{self.patient.pk}/upload/').status_code == 403
+
+        # 6. Access Field Route Logistics -> 403 Forbidden
+        assert client.get('/appointments/routes/').status_code == 403
+
+        # 7. Search API -> primary_diagnosis is stripped / blank
+        search_resp = client.get(f'/patients/api/search/?q={self.patient.first_name}')
+        assert search_resp.status_code == 200
+        item = [r for r in search_resp.json()['results'] if r['id'] == str(self.patient.id)][0]
+        assert item['primary_diagnosis'] == ''
+
+        # 8. Patient List table -> primary_diagnosis shows 'Palliative Care', not actual diagnosis
+        list_resp = client.get('/patients/')
+        assert list_resp.status_code == 200
+        assert b'Metastatic Breast Cancer' not in list_resp.content
+
+        # 9. Patient detail -> no encounters/assessments/careplan/symptoms tabs
+        detail_resp = client.get(f'/patients/{self.patient.pk}/')
+        assert detail_resp.status_code == 200
+        assert detail_resp.context['clinical_access'] is False
+        assert detail_resp.context['is_pharmacist'] is True
+        assert b'Metastatic Breast Cancer' not in detail_resp.content
 
     def test_receptionist_cannot_access_home_routes_logistics(self):
         """Receptionist is forbidden from accessing field route dispatch workspace."""

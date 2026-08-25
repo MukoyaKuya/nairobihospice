@@ -54,9 +54,9 @@
                 </td>
 
                 <!-- Primary Diagnosis -->
-                <td class="px-3 py-2 max-w-[220px] text-slate-800 font-medium" title="{% if not is_receptionist %}{{ patient.primary_diagnosis }}{% endif %}">
+                <td class="px-3 py-2 max-w-[220px] text-slate-800 font-medium" title="{% if not is_receptionist and not is_pharmacist %}{{ patient.primary_diagnosis }}{% endif %}">
                     <div class="truncate text-[11px]">
-                        {% if is_receptionist %}Palliative Care{% else %}{{ patient.primary_diagnosis|default:"Palliative Care" }}{% endif %}
+                        {% if is_receptionist or is_pharmacist %}Palliative Care{% else %}{{ patient.primary_diagnosis|default:"Palliative Care" }}{% endif %}
                     </div>
                 </td>
 

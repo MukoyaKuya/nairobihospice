@@ -65,7 +65,6 @@ class User(AbstractUser):
             RoleChoices.CLINICAL_OFFICER,
             RoleChoices.SOCIAL_WORKER,
             RoleChoices.COUNSELLOR,
-            RoleChoices.PHARMACIST,
         ]
 
     @property
