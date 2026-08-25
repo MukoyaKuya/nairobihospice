@@ -73,3 +73,16 @@ Production restore is **not** done until a HostPinnacle backup is restored onto 
 Before each production release, record the latest successful backup timestamp, database engine, private-media location, restore owner, and restore-test result. The release is not approved if the database backup exists without the matching private-media archive.
 
 ---
+
+## Local restore attempt — 2026-08-25 21:49 EAT
+
+Operator: Delton Mukoya Kuya. Working tree at `a51e3b7` (tag `preprod-security-20260825`). Engine: sqlite (`DB_ENGINE` unset; live file `db.sqlite3`).
+
+- `scripts/backup.ps1` and `scripts/restore.ps1` exist.
+- Windows PowerShell 5.x cannot parse `backup.ps1` (null-coalescing `??`).
+- `pwsh` 7 ran `scripts/backup.ps1 -OutputDirectory backups`.
+- Result: threw `DB_ENGINE must be postgresql or mysql for production backups.`
+- The script created empty directory `backups/20260825-214912` before the throw. 0 files. No archive. No SHA-256.
+- Restore was **not** run. `restore.ps1` has no artifact to restore; its sqlite branch copies to `production_db.sqlite3` in the working directory with `-Force` and was not invoked. `db.sqlite3` was not overwritten. No patient COUNT.
+
+This is not production restore evidence and is not a successful local restore. Next required drill remains a HostPinnacle PostgreSQL/MySQL backup restored onto isolated staging, with encryption, off-site copy, and a full SHA-256 of the transferred bundle.
