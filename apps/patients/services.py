@@ -1,10 +1,14 @@
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.accounts.models import RoleChoices
+from apps.assessments.models import Assessment, AssessmentTypeChoices
 from apps.audit.models import AuditAction
 from apps.audit.services import log_audit_event
+from apps.care.models import CareTeamMember, CareTeamRoleChoices, EpisodeOfCare, EpisodeStatusChoices
 from apps.notifications.services import notify_clinical_team_of_new_patient
 
 from .models import Caregiver, NextOfKin, Patient, PatientStatusChoices
@@ -164,7 +168,6 @@ def register_patient(
         med_hist_parts.append(f"Drug History: {drug_history}")
 
     if med_hist_parts:
-        from apps.assessments.models import Assessment, AssessmentTypeChoices
         Assessment.objects.create(
             patient=patient,
             assessment_type=AssessmentTypeChoices.INITIAL,
@@ -174,8 +177,6 @@ def register_patient(
         )
 
     # Automatically initialize active Episode of Care and multidisciplinary care team
-    from apps.accounts.models import RoleChoices
-    from apps.care.models import CareTeamMember, CareTeamRoleChoices, EpisodeOfCare, EpisodeStatusChoices
     episode = EpisodeOfCare.objects.create(
         patient=patient,
         start_date=patient.registration_date or timezone.now().date(),
