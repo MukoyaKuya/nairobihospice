@@ -1,176 +1,128 @@
 {% extends 'base.html' %}
 
-{% block title %}Record Medication: {{ patient.full_name }} - Nairobi Hospice PCMS{% endblock %}
+{% block title %}Prescribe Medication - {{ patient.full_name }} - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-5" x-data="medicationFormHandler()">
+<div class="max-w-3xl mx-auto space-y-4" x-data="medicationFormHandler()">
     
-    <!-- Top Navigation & Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200 shadow-xs">
-        <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#002D62] flex items-center justify-center border border-blue-200">
-                <i data-lucide="pill" class="w-5 h-5"></i>
-            </div>
-            <div>
-                <a href="{% url 'patients:patient_detail' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline flex items-center mb-0.5">
-                    <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back to Patient Dossier
-                </a>
-                <h1 class="text-lg font-black text-slate-900 tracking-tight">Record Palliative Prescription &amp; Medication</h1>
-            </div>
-        </div>
+    <!-- Top Header -->
+    <div class="flex items-center justify-between">
         <div>
-            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+            <a href="{% url 'patients:patient_detail' patient.pk %}" class="text-xs font-semibold text-[#002D62] hover:underline inline-flex items-center gap-1 mb-1">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Patient Dossier
+            </a>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Record Palliative Prescription</h1>
+        </div>
+        <div class="text-right">
+            <span class="inline-block px-2.5 py-1 text-xs font-mono font-bold bg-slate-100 text-slate-700 rounded-md border border-slate-200">
                 {{ patient.hospice_number }}
             </span>
         </div>
     </div>
 
-    <!-- Patient Clinical Safety Bar -->
-    <div class="bg-gradient-to-r from-slate-900 to-[#002D62] text-white p-4 rounded-2xl shadow-sm space-y-2">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2.5">
-            <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-lg bg-white/10 text-white font-bold text-xs flex items-center justify-center border border-white/20">
-                    {{ patient.first_name|first }}{{ patient.last_name|first }}
-                </div>
-                <div>
-                    <h2 class="text-sm font-bold text-white leading-none">{{ patient.full_name }}</h2>
-                    <p class="text-[11px] text-blue-200 mt-0.5 font-medium">
-                        {% if patient.age %}{{ patient.age }} yrs{% endif %}
-                        {% if patient.sex and patient.sex != 'U' %}&bull; {{ patient.get_sex_display }}{% endif %}
-                        {% if patient.county %}&bull; {{ patient.county }}{% endif %}
-                        {% if patient.ip_op_number %}&bull; <span class="font-mono text-amber-300">OP: {{ patient.ip_op_number }}</span>{% endif %}
-                    </p>
-                </div>
+    <!-- Main Card with Integrated Patient Summary Header -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+        
+        <!-- Compact Clinical Strip -->
+        <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+                <span class="font-bold text-slate-900">{{ patient.full_name }}</span>
+                <span class="text-slate-400">&bull;</span>
+                <span class="text-slate-600">{% if patient.age %}{{ patient.age }}y{% endif %} {{ patient.get_sex_display }}</span>
+                {% if patient.ip_op_number %}
+                <span class="text-slate-400">&bull;</span>
+                <span class="font-mono text-slate-600">OP: {{ patient.ip_op_number }}</span>
+                {% endif %}
+                <span class="text-slate-400">&bull;</span>
+                <span class="text-slate-700 font-medium">{{ patient.primary_diagnosis|default:"Palliative Care" }}</span>
             </div>
-
-            <!-- Allergy Alert Badge -->
             <div>
                 {% if patient.allergies %}
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-200 border border-rose-400/40">
-                    <i data-lucide="shield-alert" class="w-3.5 h-3.5 mr-1.5 text-rose-300"></i>
-                    Allergies: {{ patient.allergies }}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                    <i data-lucide="alert-circle" class="w-3 h-3 text-rose-600"></i> Allergies: {{ patient.allergies }}
                 </span>
                 {% else %}
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                    <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1.5 text-emerald-300"></i>
-                    No Known Drug Allergies Reported
-                </span>
+                <span class="text-[11px] text-slate-500 font-medium">No Known Allergies</span>
                 {% endif %}
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-blue-100/90 pt-0.5">
-            <div class="flex items-center space-x-1.5">
-                <span class="text-blue-300 font-semibold">Primary Diagnosis:</span>
-                <span class="font-bold text-white">{{ patient.primary_diagnosis|default:"Palliative Care Cohort" }}</span>
-            </div>
-            {% if patient.clinical_alerts %}
-            <div class="flex items-center space-x-1.5 text-amber-200 font-medium">
-                <i data-lucide="alert-triangle" class="w-3 h-3 text-amber-300"></i>
-                <span>Alert: {{ patient.clinical_alerts }}</span>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Main Medication Form Card -->
-    <form method="POST" 
-          @submit="if(isSubmitting){ $event.preventDefault(); } else { isSubmitting = true; }" 
-          class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
-        {% csrf_token %}
-
-        {% if form.errors %}
-        <div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
-            <p class="font-bold mb-1">Please review the following errors:</p>
-            <ul class="list-disc pl-5 space-y-0.5">
-                {% for field in form %}
-                    {% for error in field.errors %}
-                        <li>{{ field.label }}: {{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
+        {% if patient.clinical_alerts %}
+        <div class="bg-amber-50/70 border-b border-amber-200/80 px-5 py-2 text-[11px] text-amber-900 flex items-center gap-1.5 font-medium">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-600 shrink-0"></i>
+            <span>{{ patient.clinical_alerts }}</span>
         </div>
         {% endif %}
 
-        <div class="space-y-5">
-            
-            <!-- 1. Medication Name with Custom Searchable Combobox Dropdown -->
-            <div class="relative" @click.outside="drugDropdownOpen = false">
-                <label class="block text-xs font-bold text-slate-800 mb-1.5">
+        <!-- Form Body -->
+        <form method="POST" 
+              @submit="if(isSubmitting){ $event.preventDefault(); } else { isSubmitting = true; }" 
+              class="p-5 space-y-4">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+                <p class="font-bold mb-1">Please fix the errors below:</p>
+                <ul class="list-disc pl-4 space-y-0.5">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Medication Autocomplete Field -->
+            <div class="relative" @click.outside="dropdownOpen = false">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
                     Medication Name &amp; Formulation <span class="text-rose-600">*</span>
                 </label>
-                
                 <div class="relative">
                     <input type="text" 
                            id="id_medication_name"
                            name="medication_name" 
                            x-model="searchMed"
-                           @focus="drugDropdownOpen = true"
-                           @input="drugDropdownOpen = true"
-                           @keydown.escape="drugDropdownOpen = false"
+                           @focus="dropdownOpen = true"
+                           @input="dropdownOpen = true"
+                           @keydown.escape="dropdownOpen = false"
                            required
-                           placeholder="Type to search hospice formulary (e.g. Morphine, Paracetamol, Diclofenac, Ciprolab) or enter custom..."
-                           class="w-full pl-9 pr-10 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
-                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
-                    
+                           placeholder="Search hospital formulary or type medication..."
+                           class="w-full pl-3 pr-8 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
                     <button type="button" 
-                            @click="drugDropdownOpen = !drugDropdownOpen"
-                            class="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-700 p-0.5 rounded transition">
-                        <i data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200" :class="drugDropdownOpen ? 'rotate-180' : ''"></i>
+                            @click="dropdownOpen = !dropdownOpen"
+                            class="absolute right-2 top-2 text-slate-400 hover:text-slate-600">
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
                     </button>
                 </div>
 
-                <!-- Custom In-Place Dropdown Menu (Directly Underneath the Input) -->
-                <div x-show="drugDropdownOpen" 
+                <!-- Clean Formulary Dropdown -->
+                <div x-show="dropdownOpen" 
                      x-cloak
-                     x-transition:enter="transition ease-out duration-100"
-                     x-transition:enter-start="transform opacity-0 scale-95"
-                     x-transition:enter-end="transform opacity-100 scale-100"
-                     x-transition:leave="transition ease-in duration-75"
-                     x-transition:leave-start="transform opacity-100 scale-100"
-                     x-transition:leave-end="transform opacity-0 scale-95"
-                     class="absolute z-50 left-0 right-0 mt-1.5 max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl divide-y divide-slate-100 text-xs">
-                    
+                     class="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg text-xs divide-y divide-slate-100">
                     <template x-for="(item, idx) in filteredDrugs" :key="idx">
                         <div @click="selectDrug(item)"
-                             class="px-3.5 py-2.5 hover:bg-blue-50/70 cursor-pointer transition flex items-center justify-between group">
-                            <div class="space-y-0.5">
-                                <div class="font-bold text-slate-900 group-hover:text-[#002D62]" x-text="item.name"></div>
-                                <div class="text-[11px] text-slate-500 font-medium" x-text="item.desc"></div>
+                             class="px-3 py-2 hover:bg-slate-50 cursor-pointer flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold text-slate-900" x-text="item.name"></span>
+                                <span class="text-[11px] text-slate-500 ml-1.5" x-text="'(' + item.desc + ')'"></span>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider"
-                                      :class="{
-                                          'bg-rose-50 text-rose-700 border border-rose-200': item.cat === 'Opioid',
-                                          'bg-blue-50 text-[#002D62] border border-blue-200': item.cat === 'Antibiotic',
-                                          'bg-emerald-50 text-emerald-800 border border-emerald-200': item.cat === 'Analgesic',
-                                          'bg-amber-50 text-amber-800 border border-amber-200': item.cat === 'GI / Bowel',
-                                          'bg-purple-50 text-purple-700 border border-purple-200': item.cat === 'Oral / Topical',
-                                          'bg-slate-100 text-slate-700 border border-slate-200': !['Opioid','Antibiotic','Analgesic','GI / Bowel','Oral / Topical'].includes(item.cat)
-                                      }"
-                                      x-text="item.cat">
-                                </span>
-                                <i data-lucide="plus-circle" class="w-4 h-4 text-slate-300 group-hover:text-[#002D62] transition"></i>
-                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600" x-text="item.cat"></span>
                         </div>
                     </template>
-
-                    <div x-show="filteredDrugs.length === 0" class="px-4 py-6 text-center text-slate-400">
-                        <p class="font-medium">No catalog item matches "<span class="font-bold text-slate-700" x-text="searchMed"></span>"</p>
-                        <p class="text-[11px] text-slate-400 mt-1">You can proceed with this custom medication entry.</p>
+                    <div x-show="filteredDrugs.length === 0" class="px-3 py-3 text-center text-slate-400 text-[11px]">
+                        No matching formulary item. Press tab or enter to keep custom text.
                     </div>
                 </div>
             </div>
 
-            <!-- 2. Dosage, Route, Frequency (Grid) -->
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                
-                <!-- Dosage -->
-                <div class="sm:col-span-5 space-y-1">
-                    <label class="block text-xs font-bold text-slate-800">
+            <!-- Dosage, Route, Frequency (Compact Grid) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
                         Dosage <span class="text-rose-600">*</span>
                     </label>
                     <input type="text" 
@@ -178,45 +130,31 @@
                            name="dosage" 
                            x-model="dosageVal"
                            required
-                           placeholder="e.g. 10 mg (10 ml), 1+1+1..."
-                           class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
-                    
-                    <!-- Quick Dosage Preset Chips -->
-                    <div class="flex flex-wrap items-center gap-1 pt-1">
-                        <span class="text-[10px] font-bold text-slate-400 mr-0.5">Quick:</span>
-                        <button type="button" @click="dosageVal = '1+1+1 (TDS)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">1+1+1</button>
-                        <button type="button" @click="dosageVal = '1+0+1 (BD)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">1+0+1</button>
-                        <button type="button" @click="dosageVal = '0+0+1 (ON)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">0+0+1</button>
-                        <button type="button" @click="dosageVal = '1+0+0 (OM)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">1+0+0</button>
-                        <button type="button" @click="dosageVal = '5 mg (5 ml)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">5mg/5ml</button>
-                        <button type="button" @click="dosageVal = '10 mg (10 ml)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">10mg/10ml</button>
-                        <button type="button" @click="dosageVal = 'PRN (If pain >= 5/10)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 rounded transition">PRN (Breakthrough)</button>
-                    </div>
+                           placeholder="e.g. 10 mg (10 ml), 1+1+1"
+                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
                 </div>
 
-                <!-- Route -->
-                <div class="sm:col-span-3 space-y-1">
-                    <label class="block text-xs font-bold text-slate-800">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
                         Route <span class="text-rose-600">*</span>
                     </label>
                     <select name="route" 
                             id="id_route"
                             x-model="routeVal"
-                            class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
                         <option value="ORAL">Oral (PO)</option>
                         <option value="SUBLINGUAL">Sublingual (SL)</option>
                         <option value="SUBCUTANEOUS">Subcutaneous (SC)</option>
                         <option value="INTRAVENOUS">Intravenous (IV)</option>
                         <option value="TRANSDERMAL">Transdermal Patch</option>
                         <option value="RECTAL">Rectal (PR)</option>
-                        <option value="TOPICAL">Topical / Wound</option>
+                        <option value="TOPICAL">Topical</option>
                         <option value="INHALED">Inhalation / Nebulized</option>
                     </select>
                 </div>
 
-                <!-- Frequency -->
-                <div class="sm:col-span-4 space-y-1">
-                    <label class="block text-xs font-bold text-slate-800">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">
                         Frequency <span class="text-rose-600">*</span>
                     </label>
                     <input type="text" 
@@ -224,94 +162,67 @@
                            name="frequency" 
                            x-model="frequencyVal"
                            required
-                           placeholder="e.g. Every 4 hours (q4h) round the clock..."
-                           class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
-                    
-                    <!-- Quick Frequency Presets -->
-                    <div class="flex flex-wrap items-center gap-1 pt-1">
-                        <button type="button" @click="frequencyVal = 'Every 4 hours (q4h)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">q4h</button>
-                        <button type="button" @click="frequencyVal = 'Every 8 hours (q8h / TDS)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">q8h (TDS)</button>
-                        <button type="button" @click="frequencyVal = 'Every 12 hours (q12h / BD)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">q12h (BD)</button>
-                        <button type="button" @click="frequencyVal = 'Once daily at bedtime (ON)'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">Once Daily</button>
-                    </div>
+                           placeholder="e.g. q4h, BD, TDS, ON"
+                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
                 </div>
             </div>
 
-            <!-- 3. Clinical Indication & Start Date -->
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                <div class="sm:col-span-8 space-y-1">
-                    <label class="block text-xs font-bold text-slate-800">Clinical Indication</label>
+            <!-- Indication & Start Date (Compact Grid) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Clinical Indication</label>
                     <input type="text" 
                            id="id_indication"
                            name="indication" 
                            x-model="indicationVal"
-                           placeholder="e.g. Severe somatic & visceral cancer pain, dyspnea, nausea control..."
-                           class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-semibold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
-                    
-                    <div class="flex flex-wrap items-center gap-1 pt-1">
-                        <span class="text-[10px] font-bold text-slate-400 mr-0.5">Indications:</span>
-                        <button type="button" @click="indicationVal = 'Somatic and visceral cancer pain'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">Cancer Pain</button>
-                        <button type="button" @click="indicationVal = 'Neuropathic pain & distress'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">Neuropathic</button>
-                        <button type="button" @click="indicationVal = 'Dyspnea & respiratory distress'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">Dyspnea</button>
-                        <button type="button" @click="indicationVal = 'Nausea & vomiting control'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">Nausea</button>
-                        <button type="button" @click="indicationVal = 'Constipation prophylaxis / bowel care'" class="px-1.5 py-0.5 text-[10px] font-semibold bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded text-slate-600 transition">Bowel Care</button>
-                    </div>
+                           placeholder="e.g. Somatic cancer pain, dyspnea, nausea"
+                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
                 </div>
 
-                <div class="sm:col-span-4 space-y-1">
-                    <label class="block text-xs font-bold text-slate-800">Prescription Start Date</label>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Start Date</label>
                     <input type="date" 
                            id="id_start_date"
                            name="start_date" 
                            x-model="startDateVal"
-                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-bold focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
+                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
                 </div>
             </div>
 
-            <!-- 4. Caregiver & Administration Instructions -->
-            <div class="space-y-1">
-                <label class="block text-xs font-bold text-slate-800">
-                    Caregiver &amp; Patient Administration Instructions
+            <!-- Caregiver Instructions -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    Administration &amp; Caregiver Instructions
                 </label>
                 <textarea name="instructions_for_caregiver" 
                           id="id_instructions_for_caregiver"
                           x-model="instructionsVal"
-                          rows="3" 
-                          placeholder="e.g. Take with water; do not skip doses; give breakthrough dose if pain >= 5/10; avoid crushing extended-release tablets..."
-                          class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition"></textarea>
-                
-                <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                    <span class="text-[10px] font-bold text-slate-400 mr-0.5">Quick Guide:</span>
-                    <button type="button" @click="addInstruction('Take with a full glass of water.')" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded-md text-slate-700 transition">+ Take with water</button>
-                    <button type="button" @click="addInstruction('Administer 30 minutes before meals.')" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded-md text-slate-700 transition">+ 30 mins before meals</button>
-                    <button type="button" @click="addInstruction('Give breakthrough dose if pain score >= 5/10.')" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded-md text-slate-700 transition">+ Breakthrough if pain &gt;= 5</button>
-                    <button type="button" @click="addInstruction('Do not crush or chew capsules.')" class="px-2 py-0.5 text-[10px] font-medium bg-slate-100 hover:bg-blue-100 hover:text-[#002D62] rounded-md text-slate-700 transition">+ Do not crush</button>
-                </div>
+                          rows="2" 
+                          placeholder="e.g. Take with water; give breakthrough dose if pain >= 5/10; do not crush..."
+                          class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none"></textarea>
             </div>
 
-        </div>
-
-        <!-- Form Actions -->
-        <div class="flex items-center justify-between pt-6 border-t border-slate-100">
-            <a href="{% url 'patients:patient_detail' patient.pk %}" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition">
-                Cancel
-            </a>
-            
-            <button type="submit" 
-                    :disabled="isSubmitting"
-                    :class="isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'"
-                    class="px-6 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition flex items-center space-x-2">
-                <span x-show="!isSubmitting" class="flex items-center space-x-1.5">
-                    <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
-                    <span>Save Medication Record</span>
-                </span>
-                <span x-show="isSubmitting" class="flex items-center space-x-1.5" style="display: none;">
-                    <i data-lucide="loader" class="w-4 h-4 animate-spin text-amber-300"></i>
-                    <span>Recording Prescription...</span>
-                </span>
-            </button>
-        </div>
-    </form>
+            <!-- Actions Footer -->
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <a href="{% url 'patients:patient_detail' patient.pk %}" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        :disabled="isSubmitting"
+                        :class="isSubmitting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'"
+                        class="px-5 py-2 text-xs font-semibold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg transition inline-flex items-center gap-1.5">
+                    <span x-show="!isSubmitting" class="inline-flex items-center gap-1.5">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span>Save Prescription</span>
+                    </span>
+                    <span x-show="isSubmitting" class="inline-flex items-center gap-1.5" style="display: none;">
+                        <i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>
+                        <span>Saving...</span>
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
 
 </div>
 
@@ -319,7 +230,7 @@
 function medicationFormHandler() {
     return {
         isSubmitting: false,
-        drugDropdownOpen: false,
+        dropdownOpen: false,
         searchMed: '{{ form.medication_name.value|default:""|escapejs }}',
         dosageVal: '{{ form.dosage.value|default:""|escapejs }}',
         routeVal: '{{ form.route.value|default:"ORAL"|escapejs }}',
@@ -329,37 +240,37 @@ function medicationFormHandler() {
         instructionsVal: '{{ form.instructions_for_caregiver.value|default:""|escapejs }}',
 
         catalog: [
-            { name: "Oral Morphine Solution 5mg/5ml", desc: "Palliative Opioid Analgesic", cat: "Opioid", route: "ORAL", freq: "Every 4 hours (q4h)", ind: "Severe somatic and visceral cancer pain" },
-            { name: "Morphine 10Mg Capsules", desc: "Controlled Extended-Release Opioid", cat: "Opioid", route: "ORAL", freq: "Every 12 hours (q12h)", ind: "Continuous baseline cancer pain" },
-            { name: "TAB-RIVOTRIL 0.5", desc: "Clonazepam 0.5mg (Anxiolytic & Anticonvulsant)", cat: "Opioid", route: "ORAL", freq: "Once daily at bedtime (ON)", ind: "Severe anxiety & nocturnal distress" },
-            { name: "TAB-VOLATLIN FORTE/CLOFENAC 50", desc: "Diclofenac Sodium 50mg", cat: "Analgesic", route: "ORAL", freq: "Twice daily after meals (BD)", ind: "Bone pain & inflammatory swelling" },
-            { name: "TAB-PURIFEN/XFLAM 200/300/400", desc: "Ibuprofen Anti-inflammatory", cat: "Analgesic", route: "ORAL", freq: "Every 8 hours with food (TDS)", ind: "Musculoskeletal pain" },
-            { name: "TAB-TORY 90/120", desc: "Etoricoxib 90/120mg (COX-2 Inhibitor)", cat: "Analgesic", route: "ORAL", freq: "Once daily (OM)", ind: "Severe localized inflammatory pain" },
-            { name: "TAB-ROLAC/TORAMAX 10", desc: "Ketorolac 10mg", cat: "Analgesic", route: "ORAL", freq: "Every 6-8 hours (short-course)", ind: "Acute moderate-to-severe pain flare" },
-            { name: "TAB-NAPA 500", desc: "Paracetamol 500mg", cat: "Analgesic", route: "ORAL", freq: "Every 6-8 hours (q6h)", ind: "Mild pain and fever management" },
-            { name: "CAP-MOXACIL 250/500", desc: "Amoxicillin 500mg", cat: "Antibiotic", route: "ORAL", freq: "Every 8 hours (TDS)", ind: "Secondary bacterial infection" },
+            { name: "Oral Morphine Solution 5mg/5ml", desc: "Opioid Analgesic", cat: "Opioid", route: "ORAL", freq: "Every 4 hours (q4h)", ind: "Severe somatic and visceral cancer pain" },
+            { name: "Morphine 10Mg Capsules", desc: "Extended-Release Opioid", cat: "Opioid", route: "ORAL", freq: "Every 12 hours (q12h)", ind: "Continuous baseline cancer pain" },
+            { name: "TAB-RIVOTRIL 0.5", desc: "Clonazepam 0.5mg", cat: "Anxiolytic", route: "ORAL", freq: "Once daily at bedtime (ON)", ind: "Anxiety & nocturnal distress" },
+            { name: "TAB-VOLATLIN FORTE/CLOFENAC 50", desc: "Diclofenac Sodium 50mg", cat: "NSAID", route: "ORAL", freq: "Twice daily after meals (BD)", ind: "Bone pain & inflammatory swelling" },
+            { name: "TAB-PURIFEN/XFLAM 200/300/400", desc: "Ibuprofen", cat: "NSAID", route: "ORAL", freq: "Every 8 hours with food (TDS)", ind: "Musculoskeletal pain" },
+            { name: "TAB-TORY 90/120", desc: "Etoricoxib 90/120mg", cat: "NSAID", route: "ORAL", freq: "Once daily (OM)", ind: "Localized inflammatory pain" },
+            { name: "TAB-ROLAC/TORAMAX 10", desc: "Ketorolac 10mg", cat: "NSAID", route: "ORAL", freq: "Every 6-8 hours (short-course)", ind: "Acute pain flare" },
+            { name: "TAB-NAPA 500", desc: "Paracetamol 500mg", cat: "Analgesic", route: "ORAL", freq: "Every 6-8 hours (q6h)", ind: "Mild pain and fever" },
+            { name: "CAP-MOXACIL 250/500", desc: "Amoxicillin 500mg", cat: "Antibiotic", route: "ORAL", freq: "Every 8 hours (TDS)", ind: "Bacterial infection" },
             { name: "TAB-MOXACLAV 375/625", desc: "Amoxicillin / Clavulanate", cat: "Antibiotic", route: "ORAL", freq: "Twice daily (BD)", ind: "Respiratory / soft tissue infection" },
             { name: "TAB-FUROTIL 125/250/500", desc: "Cefuroxime Axetil", cat: "Antibiotic", route: "ORAL", freq: "Twice daily after meals (BD)", ind: "Bacterial infection" },
-            { name: "Ciprolab / Ciprofloxacin 500mg", desc: "Broad Spectrum Quinolone", cat: "Antibiotic", route: "ORAL", freq: "Twice daily (BD)", ind: "Urinary / systemic bacterial infection" },
-            { name: "TAB-AMODIS/FILMET 400", desc: "Metronidazole 400mg", cat: "Antibiotic", route: "ORAL", freq: "Every 8 hours (TDS)", ind: "Anaerobic infection / malodorous fungating wound" },
-            { name: "ORAL SUSPENSION-CANDEX", desc: "Antifungal Oral Suspension", cat: "Antibiotic", route: "ORAL", freq: "Four times daily after food", ind: "Oral candidiasis / thrush" },
-            { name: "ORAL SUSPENSION-NYSTAT", desc: "Nystatin Oral Suspension 100,000 IU/ml", cat: "Antibiotic", route: "ORAL", freq: "Four times daily (Swish & Swallow)", ind: "Oral thrush / stomatitis" },
-            { name: "Fluconazole 200mg", desc: "Systemic Antifungal", cat: "Antibiotic", route: "ORAL", freq: "Once daily (q24h)", ind: "Esophageal / systemic candidiasis" },
-            { name: "CAP-SECLO 20/40", desc: "Omeprazole 20mg / 40mg (PPI)", cat: "GI / Bowel", route: "ORAL", freq: "Once daily before breakfast (OM)", ind: "Gastric acid suppression / ulcer prophylaxis" },
-            { name: "CAP-SERGEL 20/40", desc: "Esomeprazole 20/40mg", cat: "GI / Bowel", route: "ORAL", freq: "Once daily before breakfast", ind: "Gastroprotection with NSAIDs" },
-            { name: "SYP-ENTACYD/GAVIFLUX", desc: "Antacid Oral Suspension", cat: "GI / Bowel", route: "ORAL", freq: "After meals and at bedtime (PRN)", ind: "Dyspepsia & reflux symptoms" },
-            { name: "Senna 7.5 mgs", desc: "Stimulant Laxative", cat: "GI / Bowel", route: "ORAL", freq: "1-2 tablets at bedtime (ON)", ind: "Opioid-induced constipation prophylaxis" },
-            { name: "Prednisolone 5mg", desc: "Systemic Corticosteroid", cat: "Analgesic", route: "ORAL", freq: "Morning dose with food", ind: "Appetite stimulation, anti-inflammatory & nerve compression" },
-            { name: "OINTMENT-KENALOG IN ORABASE", desc: "Triamcinolone in Orabase (0.1%)", cat: "Oral / Topical", route: "TOPICAL", freq: "Apply to affected oral lesion 2-3 times daily", ind: "Painful oral mucosal ulceration" },
-            { name: "OINTMENT-TRIALON", desc: "Triamcinolone Ointment", cat: "Oral / Topical", route: "TOPICAL", freq: "Apply sparingly twice daily", ind: "Localized skin inflammation" },
-            { name: "TOOTHPASTE-MEDIPLUS", desc: "Oral Hygiene & Mucosal Care", cat: "Oral / Topical", route: "TOPICAL", freq: "Brush gently twice daily", ind: "Palliative oral hygiene" },
-            { name: "TAB-CORALCAL D", desc: "Calcium Carbonate & Vitamin D3", cat: "Supplements", route: "ORAL", freq: "Once daily after food", ind: "Bone support & calcium supplement" },
-            { name: "CAP-D RISE 40000IU", desc: "Vitamin D3 40,000 IU", cat: "Supplements", route: "ORAL", freq: "Once weekly", ind: "Vitamin D deficiency" }
+            { name: "Ciprolab / Ciprofloxacin 500mg", desc: "Ciprofloxacin 500mg", cat: "Antibiotic", route: "ORAL", freq: "Twice daily (BD)", ind: "Urinary / systemic bacterial infection" },
+            { name: "TAB-AMODIS/FILMET 400", desc: "Metronidazole 400mg", cat: "Antibacterial", route: "ORAL", freq: "Every 8 hours (TDS)", ind: "Anaerobic infection / fungating wound" },
+            { name: "ORAL SUSPENSION-CANDEX", desc: "Antifungal Suspension", cat: "Antifungal", route: "ORAL", freq: "Four times daily after food", ind: "Oral candidiasis / thrush" },
+            { name: "ORAL SUSPENSION-NYSTAT", desc: "Nystatin Suspension", cat: "Antifungal", route: "ORAL", freq: "Four times daily (Swish & Swallow)", ind: "Oral thrush" },
+            { name: "Fluconazole 200mg", desc: "Fluconazole 200mg", cat: "Antifungal", route: "ORAL", freq: "Once daily", ind: "Esophageal / systemic candidiasis" },
+            { name: "CAP-SECLO 20/40", desc: "Omeprazole 20mg", cat: "Gastro", route: "ORAL", freq: "Once daily before breakfast", ind: "Gastric acid suppression" },
+            { name: "CAP-SERGEL 20/40", desc: "Esomeprazole 20mg", cat: "Gastro", route: "ORAL", freq: "Once daily before breakfast", ind: "Gastroprotection" },
+            { name: "SYP-ENTACYD/GAVIFLUX", desc: "Antacid Liquid", cat: "Gastro", route: "ORAL", freq: "After meals and at bedtime (PRN)", ind: "Dyspepsia & reflux" },
+            { name: "Senna 7.5 mgs", desc: "Senna Laxative", cat: "Laxative", route: "ORAL", freq: "1-2 tablets at bedtime (ON)", ind: "Opioid constipation prophylaxis" },
+            { name: "Prednisolone 5mg", desc: "Prednisolone 5mg", cat: "Steroid", route: "ORAL", freq: "Morning dose with food", ind: "Anti-inflammatory & nerve compression" },
+            { name: "OINTMENT-KENALOG IN ORABASE", desc: "Triamcinolone Orabase", cat: "Topical", route: "TOPICAL", freq: "Apply to lesion 2-3 times daily", ind: "Oral mucosal ulceration" },
+            { name: "OINTMENT-TRIALON", desc: "Triamcinolone Ointment", cat: "Topical", route: "TOPICAL", freq: "Apply sparingly twice daily", ind: "Skin inflammation" },
+            { name: "TOOTHPASTE-MEDIPLUS", desc: "Oral Compound", cat: "Oral Care", route: "TOPICAL", freq: "Brush gently twice daily", ind: "Oral hygiene" },
+            { name: "TAB-CORALCAL D", desc: "Calcium & Vit D3", cat: "Supplement", route: "ORAL", freq: "Once daily after food", ind: "Bone support" },
+            { name: "CAP-D RISE 40000IU", desc: "Vitamin D3 40,000 IU", cat: "Supplement", route: "ORAL", freq: "Once weekly", ind: "Vitamin D deficiency" }
         ],
 
         get filteredDrugs() {
             if (!this.searchMed || !this.searchMed.trim()) {
-                return this.catalog.slice(0, 15);
+                return this.catalog.slice(0, 10);
             }
             const q = this.searchMed.toLowerCase().trim();
             return this.catalog.filter(d => 
@@ -374,15 +285,7 @@ function medicationFormHandler() {
             if (item.route) this.routeVal = item.route;
             if (item.freq && !this.frequencyVal) this.frequencyVal = item.freq;
             if (item.ind && !this.indicationVal) this.indicationVal = item.ind;
-            this.drugDropdownOpen = false;
-        },
-
-        addInstruction(text) {
-            if (!this.instructionsVal) {
-                this.instructionsVal = text;
-            } else if (!this.instructionsVal.includes(text)) {
-                this.instructionsVal = this.instructionsVal.trim() + ' ' + text;
-            }
+            this.dropdownOpen = false;
         }
     }
 }
