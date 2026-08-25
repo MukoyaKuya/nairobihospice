@@ -95,17 +95,25 @@ class PatientRegistrationForm(forms.ModelForm):
     nok_name = forms.CharField(label="Next of Kin Full Name", required=False)
     nok_relationship = forms.CharField(label="Relationship to Patient", required=False, initial="Spouse")
     nok_phone = forms.CharField(label="Next of Kin Phone", required=False)
-    nok_address = forms.CharField(label="Next of Kin Residence", required=False)
     nok_age = forms.IntegerField(label="Next of Kin Age", required=False)
     nok_gender = forms.CharField(label="Next of Kin Gender", required=False)
+    nok_county = forms.CharField(label="Next of Kin County", required=False, initial="Nairobi")
+    nok_sub_county = forms.CharField(label="Next of Kin Sub-County", required=False)
+    nok_ward = forms.CharField(label="Next of Kin Ward", required=False)
+    nok_nearest_stage = forms.CharField(label="Next of Kin Nearest Bus Stop / Stage", required=False)
+    nok_address = forms.CharField(label="Next of Kin Residence / Estate", required=False)
 
     # Caregiver fields
     caregiver_name = forms.CharField(label="Primary Caregiver Name", required=False)
     caregiver_relationship = forms.CharField(label="Caregiver Relationship", required=False, initial="Family Caregiver")
     caregiver_phone = forms.CharField(label="Caregiver Phone", required=False)
-    caregiver_address = forms.CharField(label="Caregiver Residence", required=False)
     caregiver_age = forms.IntegerField(label="Caregiver Age", required=False)
     caregiver_gender = forms.CharField(label="Caregiver Gender", required=False)
+    caregiver_county = forms.CharField(label="Caregiver County", required=False, initial="Nairobi")
+    caregiver_sub_county = forms.CharField(label="Caregiver Sub-County", required=False)
+    caregiver_ward = forms.CharField(label="Caregiver Ward", required=False)
+    caregiver_nearest_stage = forms.CharField(label="Caregiver Nearest Bus Stop / Stage", required=False)
+    caregiver_address = forms.CharField(label="Caregiver Residence / Estate", required=False)
     caregiver_notes = forms.CharField(label="Caregiver Notes", required=False, widget=forms.Textarea(attrs={'rows': 2}))
 
     # Detailed Medical History Fields

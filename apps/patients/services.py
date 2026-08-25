@@ -90,12 +90,20 @@ def register_patient(
     nok_relationship: str = '',
     nok_phone: str = '',
     nok_address: str = '',
+    nok_county: str = 'Nairobi',
+    nok_sub_county: str = '',
+    nok_ward: str = '',
+    nok_nearest_stage: str = '',
     nok_age: int = None,
     nok_gender: str = '',
     caregiver_name: str = '',
     caregiver_relationship: str = '',
     caregiver_phone: str = '',
     caregiver_address: str = '',
+    caregiver_county: str = 'Nairobi',
+    caregiver_sub_county: str = '',
+    caregiver_ward: str = '',
+    caregiver_nearest_stage: str = '',
     caregiver_age: int = None,
     caregiver_gender: str = '',
     caregiver_notes: str = '',
@@ -185,24 +193,32 @@ def register_patient(
             if attempt == 4:
                 raise
 
-    if nok_name and (nok_phone or nok_address):
+    if nok_name and (nok_phone or nok_address or nok_county or nok_nearest_stage):
         NextOfKin.objects.create(
             patient=patient,
             name=nok_name,
             relationship=nok_relationship or 'Next of Kin',
             phone_number=nok_phone,
+            county=nok_county or 'Nairobi',
+            sub_county=nok_sub_county,
+            ward=nok_ward,
+            nearest_stage=nok_nearest_stage,
             address=nok_address,
             age=nok_age,
             gender=nok_gender,
             is_primary=True,
         )
 
-    if caregiver_name and (caregiver_phone or caregiver_address):
+    if caregiver_name and (caregiver_phone or caregiver_address or caregiver_county or caregiver_nearest_stage):
         Caregiver.objects.create(
             patient=patient,
             name=caregiver_name,
             relationship=caregiver_relationship or 'Primary Caregiver',
             phone_number=caregiver_phone,
+            county=caregiver_county or 'Nairobi',
+            sub_county=caregiver_sub_county,
+            ward=caregiver_ward,
+            nearest_stage=caregiver_nearest_stage,
             address=caregiver_address,
             age=caregiver_age,
             gender=caregiver_gender,

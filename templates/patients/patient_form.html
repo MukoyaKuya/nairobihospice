@@ -481,79 +481,349 @@
         <div x-show="activeFormTab === 'caregivers'" class="space-y-6">
             
             <!-- Next of Kin Section -->
-            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                    <i data-lucide="users" class="w-4 h-4 text-[#991B1B]"></i> Next of Kin Information
-                </h3>
+            <div class="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-4" 
+                 x-data="kenyaLocationData('{{ form.nok_county.value|default:'Nairobi' }}', '{{ form.nok_sub_county.value|default:'' }}', '{{ form.nok_ward.value|default:'' }}')">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                        <i data-lucide="users" class="w-4 h-4 text-[#991B1B]"></i> Next of Kin Information
+                    </h3>
+                    <span class="text-[11px] text-slate-500 font-medium">Primary family contact for medical & home visit coordination</span>
+                </div>
+
+                <!-- NOK Name, Relationship, Phone -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Next of Kin Full Name</label>
-                        <input type="text" name="nok_name" placeholder="Full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <input type="text" name="nok_name" value="{{ form.nok_name.value|default:'' }}" placeholder="Full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
-                        <input type="text" name="nok_relationship" placeholder="e.g. Spouse / Daughter / Brother" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship to Patient</label>
+                        <select name="nok_relationship" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <option value="">-- Select Relationship --</option>
+                            <option value="Spouse" {% if form.nok_relationship.value == 'Spouse' or not form.nok_relationship.value %}selected{% endif %}>Spouse / Partner</option>
+                            <option value="Mother" {% if form.nok_relationship.value == 'Mother' %}selected{% endif %}>Mother</option>
+                            <option value="Father" {% if form.nok_relationship.value == 'Father' %}selected{% endif %}>Father</option>
+                            <option value="Son" {% if form.nok_relationship.value == 'Son' %}selected{% endif %}>Son</option>
+                            <option value="Daughter" {% if form.nok_relationship.value == 'Daughter' %}selected{% endif %}>Daughter</option>
+                            <option value="Brother" {% if form.nok_relationship.value == 'Brother' %}selected{% endif %}>Brother</option>
+                            <option value="Sister" {% if form.nok_relationship.value == 'Sister' %}selected{% endif %}>Sister</option>
+                            <option value="Grandmother" {% if form.nok_relationship.value == 'Grandmother' %}selected{% endif %}>Grandmother</option>
+                            <option value="Grandfather" {% if form.nok_relationship.value == 'Grandfather' %}selected{% endif %}>Grandfather</option>
+                            <option value="Grandchild" {% if form.nok_relationship.value == 'Grandchild' %}selected{% endif %}>Grandchild</option>
+                            <option value="Aunt" {% if form.nok_relationship.value == 'Aunt' %}selected{% endif %}>Aunt</option>
+                            <option value="Uncle" {% if form.nok_relationship.value == 'Uncle' %}selected{% endif %}>Uncle</option>
+                            <option value="Cousin" {% if form.nok_relationship.value == 'Cousin' %}selected{% endif %}>Cousin</option>
+                            <option value="In-law" {% if form.nok_relationship.value == 'In-law' %}selected{% endif %}>In-law</option>
+                            <option value="Guardian" {% if form.nok_relationship.value == 'Guardian' %}selected{% endif %}>Legal Guardian</option>
+                            <option value="Friend" {% if form.nok_relationship.value == 'Friend' %}selected{% endif %}>Friend</option>
+                            <option value="Neighbor" {% if form.nok_relationship.value == 'Neighbor' %}selected{% endif %}>Neighbor</option>
+                            <option value="Other" {% if form.nok_relationship.value == 'Other' %}selected{% endif %}>Other</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
-                        <input type="text" name="nok_phone" placeholder="e.g. +254 700 123 456" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <input type="text" name="nok_phone" value="{{ form.nok_phone.value|default:'' }}" placeholder="e.g. +254 700 123 456" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-mono">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- NOK Age & Gender Dropdowns -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Residence / Address</label>
-                        <input type="text" name="nok_address" placeholder="e.g. Dandora / Kayole" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Age</label>
-                        <input type="number" name="nok_age" placeholder="e.g. 45" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Age (Years)</label>
+                        <select name="nok_age" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <option value="">-- Select Age --</option>
+                            <option value="18" {% if form.nok_age.value == 18 or form.nok_age.value == '18' %}selected{% endif %}>18 years</option>
+                            <option value="19" {% if form.nok_age.value == 19 or form.nok_age.value == '19' %}selected{% endif %}>19 years</option>
+                            <option value="20" {% if form.nok_age.value == 20 or form.nok_age.value == '20' %}selected{% endif %}>20 years</option>
+                            <option value="21" {% if form.nok_age.value == 21 or form.nok_age.value == '21' %}selected{% endif %}>21 years</option>
+                            <option value="22" {% if form.nok_age.value == 22 or form.nok_age.value == '22' %}selected{% endif %}>22 years</option>
+                            <option value="23" {% if form.nok_age.value == 23 or form.nok_age.value == '23' %}selected{% endif %}>23 years</option>
+                            <option value="24" {% if form.nok_age.value == 24 or form.nok_age.value == '24' %}selected{% endif %}>24 years</option>
+                            <option value="25" {% if form.nok_age.value == 25 or form.nok_age.value == '25' %}selected{% endif %}>25 years</option>
+                            <option value="26" {% if form.nok_age.value == 26 or form.nok_age.value == '26' %}selected{% endif %}>26 years</option>
+                            <option value="27" {% if form.nok_age.value == 27 or form.nok_age.value == '27' %}selected{% endif %}>27 years</option>
+                            <option value="28" {% if form.nok_age.value == 28 or form.nok_age.value == '28' %}selected{% endif %}>28 years</option>
+                            <option value="29" {% if form.nok_age.value == 29 or form.nok_age.value == '29' %}selected{% endif %}>29 years</option>
+                            <option value="30" {% if form.nok_age.value == 30 or form.nok_age.value == '30' %}selected{% endif %}>30 years</option>
+                            <option value="31" {% if form.nok_age.value == 31 or form.nok_age.value == '31' %}selected{% endif %}>31 years</option>
+                            <option value="32" {% if form.nok_age.value == 32 or form.nok_age.value == '32' %}selected{% endif %}>32 years</option>
+                            <option value="33" {% if form.nok_age.value == 33 or form.nok_age.value == '33' %}selected{% endif %}>33 years</option>
+                            <option value="34" {% if form.nok_age.value == 34 or form.nok_age.value == '34' %}selected{% endif %}>34 years</option>
+                            <option value="35" {% if form.nok_age.value == 35 or form.nok_age.value == '35' %}selected{% endif %}>35 years</option>
+                            <option value="36" {% if form.nok_age.value == 36 or form.nok_age.value == '36' %}selected{% endif %}>36 years</option>
+                            <option value="37" {% if form.nok_age.value == 37 or form.nok_age.value == '37' %}selected{% endif %}>37 years</option>
+                            <option value="38" {% if form.nok_age.value == 38 or form.nok_age.value == '38' %}selected{% endif %}>38 years</option>
+                            <option value="39" {% if form.nok_age.value == 39 or form.nok_age.value == '39' %}selected{% endif %}>39 years</option>
+                            <option value="40" {% if form.nok_age.value == 40 or form.nok_age.value == '40' %}selected{% endif %}>40 years</option>
+                            <option value="41" {% if form.nok_age.value == 41 or form.nok_age.value == '41' %}selected{% endif %}>41 years</option>
+                            <option value="42" {% if form.nok_age.value == 42 or form.nok_age.value == '42' %}selected{% endif %}>42 years</option>
+                            <option value="43" {% if form.nok_age.value == 43 or form.nok_age.value == '43' %}selected{% endif %}>43 years</option>
+                            <option value="44" {% if form.nok_age.value == 44 or form.nok_age.value == '44' %}selected{% endif %}>44 years</option>
+                            <option value="45" {% if form.nok_age.value == 45 or form.nok_age.value == '45' %}selected{% endif %}>45 years</option>
+                            <option value="46" {% if form.nok_age.value == 46 or form.nok_age.value == '46' %}selected{% endif %}>46 years</option>
+                            <option value="47" {% if form.nok_age.value == 47 or form.nok_age.value == '47' %}selected{% endif %}>47 years</option>
+                            <option value="48" {% if form.nok_age.value == 48 or form.nok_age.value == '48' %}selected{% endif %}>48 years</option>
+                            <option value="49" {% if form.nok_age.value == 49 or form.nok_age.value == '49' %}selected{% endif %}>49 years</option>
+                            <option value="50" {% if form.nok_age.value == 50 or form.nok_age.value == '50' %}selected{% endif %}>50 years</option>
+                            <option value="51" {% if form.nok_age.value == 51 or form.nok_age.value == '51' %}selected{% endif %}>51 years</option>
+                            <option value="52" {% if form.nok_age.value == 52 or form.nok_age.value == '52' %}selected{% endif %}>52 years</option>
+                            <option value="53" {% if form.nok_age.value == 53 or form.nok_age.value == '53' %}selected{% endif %}>53 years</option>
+                            <option value="54" {% if form.nok_age.value == 54 or form.nok_age.value == '54' %}selected{% endif %}>54 years</option>
+                            <option value="55" {% if form.nok_age.value == 55 or form.nok_age.value == '55' %}selected{% endif %}>55 years</option>
+                            <option value="56" {% if form.nok_age.value == 56 or form.nok_age.value == '56' %}selected{% endif %}>56 years</option>
+                            <option value="57" {% if form.nok_age.value == 57 or form.nok_age.value == '57' %}selected{% endif %}>57 years</option>
+                            <option value="58" {% if form.nok_age.value == 58 or form.nok_age.value == '58' %}selected{% endif %}>58 years</option>
+                            <option value="59" {% if form.nok_age.value == 59 or form.nok_age.value == '59' %}selected{% endif %}>59 years</option>
+                            <option value="60" {% if form.nok_age.value == 60 or form.nok_age.value == '60' %}selected{% endif %}>60 years</option>
+                            <option value="61" {% if form.nok_age.value == 61 or form.nok_age.value == '61' %}selected{% endif %}>61 years</option>
+                            <option value="62" {% if form.nok_age.value == 62 or form.nok_age.value == '62' %}selected{% endif %}>62 years</option>
+                            <option value="63" {% if form.nok_age.value == 63 or form.nok_age.value == '63' %}selected{% endif %}>63 years</option>
+                            <option value="64" {% if form.nok_age.value == 64 or form.nok_age.value == '64' %}selected{% endif %}>64 years</option>
+                            <option value="65" {% if form.nok_age.value == 65 or form.nok_age.value == '65' %}selected{% endif %}>65 years</option>
+                            <option value="66" {% if form.nok_age.value == 66 or form.nok_age.value == '66' %}selected{% endif %}>66 years</option>
+                            <option value="67" {% if form.nok_age.value == 67 or form.nok_age.value == '67' %}selected{% endif %}>67 years</option>
+                            <option value="68" {% if form.nok_age.value == 68 or form.nok_age.value == '68' %}selected{% endif %}>68 years</option>
+                            <option value="69" {% if form.nok_age.value == 69 or form.nok_age.value == '69' %}selected{% endif %}>69 years</option>
+                            <option value="70" {% if form.nok_age.value == 70 or form.nok_age.value == '70' %}selected{% endif %}>70 years</option>
+                            <option value="71" {% if form.nok_age.value == 71 or form.nok_age.value == '71' %}selected{% endif %}>71 years</option>
+                            <option value="72" {% if form.nok_age.value == 72 or form.nok_age.value == '72' %}selected{% endif %}>72 years</option>
+                            <option value="73" {% if form.nok_age.value == 73 or form.nok_age.value == '73' %}selected{% endif %}>73 years</option>
+                            <option value="74" {% if form.nok_age.value == 74 or form.nok_age.value == '74' %}selected{% endif %}>74 years</option>
+                            <option value="75" {% if form.nok_age.value == 75 or form.nok_age.value == '75' %}selected{% endif %}>75 years</option>
+                            <option value="76" {% if form.nok_age.value == 76 or form.nok_age.value == '76' %}selected{% endif %}>76 years</option>
+                            <option value="77" {% if form.nok_age.value == 77 or form.nok_age.value == '77' %}selected{% endif %}>77 years</option>
+                            <option value="78" {% if form.nok_age.value == 78 or form.nok_age.value == '78' %}selected{% endif %}>78 years</option>
+                            <option value="79" {% if form.nok_age.value == 79 or form.nok_age.value == '79' %}selected{% endif %}>79 years</option>
+                            <option value="80" {% if form.nok_age.value == 80 or form.nok_age.value == '80' %}selected{% endif %}>80+ years</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
-                        <input type="text" name="nok_gender" placeholder="e.g. Male / Female" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <select name="nok_gender" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <option value="">-- Select Gender --</option>
+                            <option value="Female" {% if form.nok_gender.value == 'Female' %}selected{% endif %}>Female</option>
+                            <option value="Male" {% if form.nok_gender.value == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Other" {% if form.nok_gender.value == 'Other' %}selected{% endif %}>Other</option>
+                            <option value="Unknown" {% if form.nok_gender.value == 'Unknown' %}selected{% endif %}>Unknown</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- NOK Location API Cascading Hierarchy -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block border-b border-slate-100 pb-1.5">
+                        Next of Kin Location & Directions
+                    </span>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">County</label>
+                            <select name="nok_county" x-model="selectedCounty" @change="onCountyChange()"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <template x-for="c in countyList" :key="c">
+                                    <option :value="c" x-text="c" :selected="c === selectedCounty"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Sub-County / Constituency</label>
+                            <select name="nok_sub_county" x-model="selectedSubCounty" @change="onSubCountyChange()"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <option value="">-- Select Sub-County --</option>
+                                <template x-for="sc in subCountyList" :key="sc">
+                                    <option :value="sc" x-text="sc" :selected="sc === selectedSubCounty"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Ward</label>
+                            <select name="nok_ward" x-model="selectedWard"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <option value="">-- Select Ward --</option>
+                                <template x-for="w in wardList" :key="w">
+                                    <option :value="w" x-text="w" :selected="w === selectedWard"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Nearest Bus Stop / Matatu Stage</label>
+                            <input type="text" name="nok_nearest_stage" value="{{ form.nok_nearest_stage.value|default:'' }}" 
+                                   placeholder="e.g. Olympic Stage / Makina Bus Stop / Kencom" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Estate / Village / House / Road</label>
+                            <input type="text" name="nok_address" value="{{ form.nok_address.value|default:'' }}" 
+                                   placeholder="e.g. Dandora Phase 4 / House 12" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Caregivers Circle Section (Matching Access Form) -->
-            <div class="bg-cyan-50/40 p-5 rounded-xl border border-cyan-200 space-y-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-900 flex items-center gap-1.5">
-                    <i data-lucide="heart-handshake" class="w-4 h-4 text-cyan-700"></i> Nairobi Hospice Caregivers Circle Details
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Caregiver Name</label>
-                        <input type="text" name="caregiver_name" placeholder="Caregiver full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
-                        <input type="text" name="caregiver_relationship" placeholder="e.g. Sister / Son / Home Care Aide" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Phone</label>
-                        <input type="text" name="caregiver_phone" placeholder="e.g. +254 711 222 333" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
-                    </div>
+            <div class="bg-cyan-50/40 p-5 rounded-xl border border-cyan-200 space-y-4" 
+                 x-data="kenyaLocationData('{{ form.caregiver_county.value|default:'Nairobi' }}', '{{ form.caregiver_sub_county.value|default:'' }}', '{{ form.caregiver_ward.value|default:'' }}')">
+                <div class="flex items-center justify-between border-b border-cyan-200/80 pb-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-900 flex items-center gap-1.5">
+                        <i data-lucide="heart-handshake" class="w-4 h-4 text-cyan-700"></i> Nairobi Hospice Caregivers Circle Details
+                    </h3>
+                    <span class="text-[11px] text-cyan-800 font-medium">Primary direct caregiver assisting patient with day-to-day care</span>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Residence</label>
-                        <input type="text" name="caregiver_address" placeholder="Residence location" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Caregiver Name</label>
+                        <input type="text" name="caregiver_name" value="{{ form.caregiver_name.value|default:'' }}" placeholder="Caregiver full name" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
                     </div>
                     <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Relationship</label>
+                        <select name="caregiver_relationship" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <option value="">-- Select Relationship --</option>
+                            <option value="Spouse" {% if form.caregiver_relationship.value == 'Spouse' %}selected{% endif %}>Spouse / Partner</option>
+                            <option value="Mother" {% if form.caregiver_relationship.value == 'Mother' %}selected{% endif %}>Mother</option>
+                            <option value="Father" {% if form.caregiver_relationship.value == 'Father' %}selected{% endif %}>Father</option>
+                            <option value="Son" {% if form.caregiver_relationship.value == 'Son' %}selected{% endif %}>Son</option>
+                            <option value="Daughter" {% if form.caregiver_relationship.value == 'Daughter' %}selected{% endif %}>Daughter</option>
+                            <option value="Brother" {% if form.caregiver_relationship.value == 'Brother' %}selected{% endif %}>Brother</option>
+                            <option value="Sister" {% if form.caregiver_relationship.value == 'Sister' %}selected{% endif %}>Sister</option>
+                            <option value="Family Caregiver" {% if form.caregiver_relationship.value == 'Family Caregiver' or not form.caregiver_relationship.value %}selected{% endif %}>Family Caregiver</option>
+                            <option value="Home Care Aide" {% if form.caregiver_relationship.value == 'Home Care Aide' %}selected{% endif %}>Home Care Aide / Nurse</option>
+                            <option value="Friend" {% if form.caregiver_relationship.value == 'Friend' %}selected{% endif %}>Friend</option>
+                            <option value="Neighbor" {% if form.caregiver_relationship.value == 'Neighbor' %}selected{% endif %}>Neighbor</option>
+                            <option value="Other" {% if form.caregiver_relationship.value == 'Other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Phone</label>
+                        <input type="text" name="caregiver_phone" value="{{ form.caregiver_phone.value|default:'' }}" placeholder="e.g. +254 711 222 333" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-mono">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Age</label>
-                        <input type="number" name="caregiver_age" placeholder="e.g. 38" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <select name="caregiver_age" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <option value="">-- Select Age --</option>
+                            <option value="18" {% if form.caregiver_age.value == 18 or form.caregiver_age.value == '18' %}selected{% endif %}>18 years</option>
+                            <option value="19" {% if form.caregiver_age.value == 19 or form.caregiver_age.value == '19' %}selected{% endif %}>19 years</option>
+                            <option value="20" {% if form.caregiver_age.value == 20 or form.caregiver_age.value == '20' %}selected{% endif %}>20 years</option>
+                            <option value="21" {% if form.caregiver_age.value == 21 or form.caregiver_age.value == '21' %}selected{% endif %}>21 years</option>
+                            <option value="22" {% if form.caregiver_age.value == 22 or form.caregiver_age.value == '22' %}selected{% endif %}>22 years</option>
+                            <option value="23" {% if form.caregiver_age.value == 23 or form.caregiver_age.value == '23' %}selected{% endif %}>23 years</option>
+                            <option value="24" {% if form.caregiver_age.value == 24 or form.caregiver_age.value == '24' %}selected{% endif %}>24 years</option>
+                            <option value="25" {% if form.caregiver_age.value == 25 or form.caregiver_age.value == '25' %}selected{% endif %}>25 years</option>
+                            <option value="26" {% if form.caregiver_age.value == 26 or form.caregiver_age.value == '26' %}selected{% endif %}>26 years</option>
+                            <option value="27" {% if form.caregiver_age.value == 27 or form.caregiver_age.value == '27' %}selected{% endif %}>27 years</option>
+                            <option value="28" {% if form.caregiver_age.value == 28 or form.caregiver_age.value == '28' %}selected{% endif %}>28 years</option>
+                            <option value="29" {% if form.caregiver_age.value == 29 or form.caregiver_age.value == '29' %}selected{% endif %}>29 years</option>
+                            <option value="30" {% if form.caregiver_age.value == 30 or form.caregiver_age.value == '30' %}selected{% endif %}>30 years</option>
+                            <option value="31" {% if form.caregiver_age.value == 31 or form.caregiver_age.value == '31' %}selected{% endif %}>31 years</option>
+                            <option value="32" {% if form.caregiver_age.value == 32 or form.caregiver_age.value == '32' %}selected{% endif %}>32 years</option>
+                            <option value="33" {% if form.caregiver_age.value == 33 or form.caregiver_age.value == '33' %}selected{% endif %}>33 years</option>
+                            <option value="34" {% if form.caregiver_age.value == 34 or form.caregiver_age.value == '34' %}selected{% endif %}>34 years</option>
+                            <option value="35" {% if form.caregiver_age.value == 35 or form.caregiver_age.value == '35' %}selected{% endif %}>35 years</option>
+                            <option value="36" {% if form.caregiver_age.value == 36 or form.caregiver_age.value == '36' %}selected{% endif %}>36 years</option>
+                            <option value="37" {% if form.caregiver_age.value == 37 or form.caregiver_age.value == '37' %}selected{% endif %}>37 years</option>
+                            <option value="38" {% if form.caregiver_age.value == 38 or form.caregiver_age.value == '38' %}selected{% endif %}>38 years</option>
+                            <option value="39" {% if form.caregiver_age.value == 39 or form.caregiver_age.value == '39' %}selected{% endif %}>39 years</option>
+                            <option value="40" {% if form.caregiver_age.value == 40 or form.caregiver_age.value == '40' %}selected{% endif %}>40 years</option>
+                            <option value="41" {% if form.caregiver_age.value == 41 or form.caregiver_age.value == '41' %}selected{% endif %}>41 years</option>
+                            <option value="42" {% if form.caregiver_age.value == 42 or form.caregiver_age.value == '42' %}selected{% endif %}>42 years</option>
+                            <option value="43" {% if form.caregiver_age.value == 43 or form.caregiver_age.value == '43' %}selected{% endif %}>43 years</option>
+                            <option value="44" {% if form.caregiver_age.value == 44 or form.caregiver_age.value == '44' %}selected{% endif %}>44 years</option>
+                            <option value="45" {% if form.caregiver_age.value == 45 or form.caregiver_age.value == '45' %}selected{% endif %}>45 years</option>
+                            <option value="46" {% if form.caregiver_age.value == 46 or form.caregiver_age.value == '46' %}selected{% endif %}>46 years</option>
+                            <option value="47" {% if form.caregiver_age.value == 47 or form.caregiver_age.value == '47' %}selected{% endif %}>47 years</option>
+                            <option value="48" {% if form.caregiver_age.value == 48 or form.caregiver_age.value == '48' %}selected{% endif %}>48 years</option>
+                            <option value="49" {% if form.caregiver_age.value == 49 or form.caregiver_age.value == '49' %}selected{% endif %}>49 years</option>
+                            <option value="50" {% if form.caregiver_age.value == 50 or form.caregiver_age.value == '50' %}selected{% endif %}>50 years</option>
+                            <option value="51" {% if form.caregiver_age.value == 51 or form.caregiver_age.value == '51' %}selected{% endif %}>51 years</option>
+                            <option value="52" {% if form.caregiver_age.value == 52 or form.caregiver_age.value == '52' %}selected{% endif %}>52 years</option>
+                            <option value="53" {% if form.caregiver_age.value == 53 or form.caregiver_age.value == '53' %}selected{% endif %}>53 years</option>
+                            <option value="54" {% if form.caregiver_age.value == 54 or form.caregiver_age.value == '54' %}selected{% endif %}>54 years</option>
+                            <option value="55" {% if form.caregiver_age.value == 55 or form.caregiver_age.value == '55' %}selected{% endif %}>55 years</option>
+                            <option value="56" {% if form.caregiver_age.value == 56 or form.caregiver_age.value == '56' %}selected{% endif %}>56 years</option>
+                            <option value="57" {% if form.caregiver_age.value == 57 or form.caregiver_age.value == '57' %}selected{% endif %}>57 years</option>
+                            <option value="58" {% if form.caregiver_age.value == 58 or form.caregiver_age.value == '58' %}selected{% endif %}>58 years</option>
+                            <option value="59" {% if form.caregiver_age.value == 59 or form.caregiver_age.value == '59' %}selected{% endif %}>59 years</option>
+                            <option value="60" {% if form.caregiver_age.value == 60 or form.caregiver_age.value == '60' %}selected{% endif %}>60 years</option>
+                            <option value="65" {% if form.caregiver_age.value == 65 or form.caregiver_age.value == '65' %}selected{% endif %}>65 years</option>
+                            <option value="70" {% if form.caregiver_age.value == 70 or form.caregiver_age.value == '70' %}selected{% endif %}>70+ years</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">Caregiver Gender</label>
-                        <input type="text" name="caregiver_gender" placeholder="e.g. Female / Male" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none">
+                        <select name="caregiver_gender" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                            <option value="">-- Select Gender --</option>
+                            <option value="Female" {% if form.caregiver_gender.value == 'Female' %}selected{% endif %}>Female</option>
+                            <option value="Male" {% if form.caregiver_gender.value == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Other" {% if form.caregiver_gender.value == 'Other' %}selected{% endif %}>Other</option>
+                            <option value="Unknown" {% if form.caregiver_gender.value == 'Unknown' %}selected{% endif %}>Unknown</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Caregiver Location API Cascading Hierarchy -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 space-y-4">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 block border-b border-slate-100 pb-1.5">
+                        Caregiver Location & Directions
+                    </span>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">County</label>
+                            <select name="caregiver_county" x-model="selectedCounty" @change="onCountyChange()"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <template x-for="c in countyList" :key="c">
+                                    <option :value="c" x-text="c" :selected="c === selectedCounty"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Sub-County / Constituency</label>
+                            <select name="caregiver_sub_county" x-model="selectedSubCounty" @change="onSubCountyChange()"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <option value="">-- Select Sub-County --</option>
+                                <template x-for="sc in subCountyList" :key="sc">
+                                    <option :value="sc" x-text="sc" :selected="sc === selectedSubCounty"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Ward</label>
+                            <select name="caregiver_ward" x-model="selectedWard"
+                                    class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                                <option value="">-- Select Ward --</option>
+                                <template x-for="w in wardList" :key="w">
+                                    <option :value="w" x-text="w" :selected="w === selectedWard"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Nearest Bus Stop / Matatu Stage</label>
+                            <input type="text" name="caregiver_nearest_stage" value="{{ form.caregiver_nearest_stage.value|default:'' }}" 
+                                   placeholder="e.g. Stage / Junction / Landmark" 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-800 mb-1">Estate / Village / Residence</label>
+                            <input type="text" name="caregiver_address" value="{{ form.caregiver_address.value|default:'' }}" 
+                                   placeholder="e.g. Kangemi / House No." 
+                                   class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">
+                        </div>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Other Caregivers Additional Notes</label>
-                    <textarea name="caregiver_notes" rows="2" placeholder="Availability, physical capability, caregiver burden notes..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none"></textarea>
+                    <textarea name="caregiver_notes" rows="2" placeholder="Availability, physical capability, caregiver burden notes..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-medium">{{ form.caregiver_notes.value|default:'' }}</textarea>
                 </div>
             </div>
 
@@ -645,12 +915,12 @@
 </div>
 
 <script nonce="{{ csp_nonce }}">
-function kenyaLocationData() {
+function kenyaLocationData(defaultCounty = 'Nairobi', defaultSubCounty = '', defaultWard = '') {
     return {
         locations: JSON.parse('{{ kenya_locations_json|escapejs }}' || '{}'),
-        selectedCounty: '{{ form.county.value|default:"Nairobi" }}',
-        selectedSubCounty: '{{ form.sub_county.value|default:"" }}',
-        selectedWard: '{{ form.ward.value|default:"" }}',
+        selectedCounty: defaultCounty || 'Nairobi',
+        selectedSubCounty: defaultSubCounty || '',
+        selectedWard: defaultWard || '',
 
         get countyList() {
             return Object.keys(this.locations).sort();

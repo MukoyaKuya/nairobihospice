@@ -367,13 +367,23 @@
                                     <span class="font-mono font-semibold text-slate-800">{{ nok.phone_number|default:"-" }}</span>
                                 </div>
                                 <div>
-                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Residence</span>
-                                    <span class="font-semibold text-slate-800">{{ nok.address|default:"-" }}</span>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">County & Sub-County</span>
+                                    <span class="font-semibold text-slate-800">{{ nok.county }}{% if nok.sub_county %} / {{ nok.sub_county }}{% endif %}</span>
                                 </div>
                                 <div>
                                     <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Age / Gender</span>
                                     <span class="font-semibold text-slate-800">{{ nok.age|default:"-" }} yrs &bull; {{ nok.gender|default:"-" }}</span>
                                 </div>
+                                <div>
+                                    <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Estate / Residence</span>
+                                    <span class="font-semibold text-slate-800">{{ nok.address|default:"-" }}</span>
+                                </div>
+                                {% if nok.nearest_stage %}
+                                <div class="col-span-2 sm:col-span-3 text-[11px] text-slate-700 bg-amber-50/60 px-2.5 py-1 rounded-md border border-amber-200/70 flex items-center gap-1.5">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-700"></i>
+                                    <span><strong>Nearest Stage / Bus Stop:</strong> {{ nok.nearest_stage }}</span>
+                                </div>
+                                {% endif %}
                             </div>
                             {% empty %}
                             <div class="p-3 bg-white rounded-lg border border-red-100 text-xs text-slate-400 text-center">
@@ -399,34 +409,39 @@
                             <div>
                                 <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Type</label>
                                 <select name="appointment_type" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
-                                    <option value="CLINIC_VISIT">Clinic Review</option>
+                                    <option value="CLINIC_VISIT">Clinic Visit</option>
                                     <option value="HOME_VISIT">Home Visit</option>
-                                    <option value="DAY_CARE">Daycare Session</option>
-                                    <option value="PROCEDURE">Nursing / Wound Care</option>
+                                    <option value="HOSPITAL_VISIT">Hospital Visit</option>
+                                    <option value="TELECONSULT">Teleconsultation</option>
+                                    <option value="DAY_CARE">Day Care</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Location / Room</label>
-                                <input type="text" name="location" placeholder="e.g. Clinic Room 1" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
+                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Assigned Clinician</label>
+                                <select name="staff_member" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
+                                    <option value="">-- Select Clinician --</option>
+                                    {% for staff in clinical_staff_members %}
+                                    <option value="{{ staff.id }}">{{ staff.user.get_full_name }} ({{ staff.get_role_display }})</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Notes</label>
-                                <textarea name="reason" rows="2" placeholder="Clinical objective" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white"></textarea>
+                                <label class="block text-[9.5px] font-bold uppercase text-slate-500 mb-0.5">Reason</label>
+                                <input type="text" name="reason" placeholder="e.g. Pain Review" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs bg-white">
                             </div>
-                            <button type="submit" class="w-full py-2 px-3 bg-[#002D62] hover:bg-[#0B2545] text-white font-bold rounded-lg transition duration-150 flex items-center justify-center space-x-1 cursor-pointer">
-                                <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-red-300"></i>
-                                <span>Schedule Visit</span>
+                            <button type="submit" class="w-full py-2 bg-[#002D62] hover:bg-[#0B2545] text-white font-bold rounded-lg transition">
+                                Book Appointment
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
 
-            <!-- TAB 2: Caregivers Circle Register -->
-            <div x-cloak x-show="activeTab === 'caregivers'" class="space-y-4">
-                <div class="bg-cyan-50/30 rounded-xl p-4 border border-cyan-200/70 space-y-3">
+            <!-- TAB 2: CAREGIVERS CIRCLE -->
+            <div x-show="activeTab === 'caregivers'" class="p-6 space-y-6">
+                <div class="bg-cyan-50/30 rounded-xl p-5 border border-cyan-200/70 space-y-4">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-900 flex items-center gap-1.5">
-                        <i data-lucide="heart-handshake" class="w-3.5 h-3.5 text-cyan-700"></i>
+                        <i data-lucide="heart-handshake" class="w-4 h-4 text-cyan-700"></i>
                         Nairobi Hospice Caregivers Circle Register
                     </h3>
 
@@ -450,6 +465,10 @@
                                         <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Gender / Age</span>
                                         <span class="font-semibold text-slate-800">{{ cg.gender|default:"-" }} &bull; {{ cg.age|default:"-" }} yrs</span>
                                     </div>
+                                    <div>
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">County & Area</span>
+                                        <span class="font-semibold text-slate-800">{{ cg.county }}{% if cg.sub_county %} / {{ cg.sub_county }}{% endif %}</span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -463,16 +482,23 @@
                                         <span class="font-mono font-bold text-slate-900">{{ cg.phone_number|default:"-" }}</span>
                                     </div>
                                     <div>
-                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Residence</span>
-                                        <span class="font-semibold text-slate-800">{{ cg.address|default:"-" }}</span>
-                                    </div>
-                                    <div>
                                         <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Relationship</span>
                                         <span class="font-semibold text-[#002D62]">{{ cg.relationship }}</span>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <span class="text-slate-400 block text-[9.5px] font-bold uppercase">Estate / Residence</span>
+                                        <span class="font-semibold text-slate-800">{{ cg.address|default:"-" }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
+
+                        {% if cg.nearest_stage %}
+                        <div class="text-[11px] text-slate-700 bg-amber-50/60 px-2.5 py-1 rounded-md border border-amber-200/70 flex items-center gap-1.5">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-700"></i>
+                            <span><strong>Nearest Stage / Bus Stop:</strong> {{ cg.nearest_stage }}</span>
+                        </div>
+                        {% endif %}
 
                         {% if cg.notes %}
                         <div class="pt-2 border-t border-slate-100">
