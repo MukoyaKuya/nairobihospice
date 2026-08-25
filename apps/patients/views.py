@@ -37,6 +37,7 @@ class PatientListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
+        tab = self.request.GET.get('tab', 'master')
         query = self.request.GET.get('q', '')
         status = self.request.GET.get('status', '')
         county = self.request.GET.get('county', '')
@@ -58,14 +59,20 @@ class PatientListView(LoginRequiredMixin, ListView):
             age_group=age_group,
             is_clinical=clinical_search,
         )
-        if can_manage_all_patients(user) or user.is_receptionist:
+        if tab == 'caseload':
+            if user.is_clinical or getattr(user, 'is_pharmacist', False):
+                return queryset.filter(pk__in=authorized_patient_queryset(user).values('pk'))
+            return queryset.filter(status=PatientStatusChoices.ACTIVE)
+
+        if can_manage_all_patients(user) or user.is_receptionist or user.is_clinical or getattr(user, 'is_pharmacist', False):
             return queryset
-        if user.is_clinical or getattr(user, 'is_pharmacist', False):
-            return queryset.filter(pk__in=authorized_patient_queryset(user).values('pk'))
         return queryset.none()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        user = self.request.user
+        tab = self.request.GET.get('tab', 'master')
+        context['selected_tab'] = tab
         context['search_query'] = self.request.GET.get('q', '')
         context['selected_status'] = self.request.GET.get('status', '')
         context['selected_county'] = self.request.GET.get('county', '')
@@ -84,6 +91,11 @@ class PatientListView(LoginRequiredMixin, ListView):
             ('U', 'Unknown'),
         ]
         context['years'] = list(range(2026, 2014, -1))
+        context['master_total_count'] = Patient.objects.count()
+        if user.is_clinical or getattr(user, 'is_pharmacist', False):
+            context['caseload_count'] = authorized_patient_queryset(user).count()
+        else:
+            context['caseload_count'] = Patient.objects.filter(status=PatientStatusChoices.ACTIVE).count()
         return context
 
     def get_template_names(self):

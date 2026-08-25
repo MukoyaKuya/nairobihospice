@@ -105,7 +105,17 @@
             <tr>
                 <td colspan="7" class="px-4 py-8 text-center text-slate-400">
                     <i data-lucide="user-x" class="w-6 h-6 mx-auto text-slate-300 mb-1"></i>
-                    No patient records match the specified criteria.
+                    {% if selected_tab == 'caseload' %}
+                        No patients are assigned to your personal care team or appointments for this week.
+                        <div class="mt-2">
+                            <a href="{% url 'patients:patient_list' %}?tab=master" class="inline-flex items-center text-xs font-bold text-[#002D62] hover:underline">
+                                <i data-lucide="database" class="w-3.5 h-3.5 mr-1"></i>
+                                Switch to Master Registry (All Patients)
+                            </a>
+                        </div>
+                    {% else %}
+                        No patient records match the specified criteria.
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -120,15 +130,15 @@
     </div>
     <div class="space-x-1">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}" 
-           hx-get="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}"
+        <a href="?page={{ page_obj.previous_page_number }}&tab={{ selected_tab }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}" 
+           hx-get="?page={{ page_obj.previous_page_number }}&tab={{ selected_tab }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}"
            hx-target="#patient-table-container"
            class="px-2.5 py-1 bg-white border border-slate-300 rounded font-semibold hover:bg-slate-100 text-slate-700 text-xs transition cursor-pointer">Prev</a>
         {% endif %}
         <span class="px-2 py-1 text-slate-500 font-bold">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}" 
-           hx-get="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}"
+        <a href="?page={{ page_obj.next_page_number }}&tab={{ selected_tab }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}" 
+           hx-get="?page={{ page_obj.next_page_number }}&tab={{ selected_tab }}&q={{ search_query }}&status={{ selected_status }}&county={{ selected_county }}&sex={{ selected_sex }}&date_from={{ selected_date_from }}&date_to={{ selected_date_to }}&year={{ selected_year }}&age_group={{ selected_age_group }}"
            hx-target="#patient-table-container"
            class="px-2.5 py-1 bg-white border border-slate-300 rounded font-semibold hover:bg-slate-100 text-slate-700 text-xs transition cursor-pointer">Next</a>
         {% endif %}

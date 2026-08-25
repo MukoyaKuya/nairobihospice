@@ -193,6 +193,59 @@ class TestPatientDomain:
         assert p_female in youth_pts
         assert p_male not in youth_pts
 
+    def test_patient_directory_master_and_caseload_tabs(self):
+        doc = create_staff_user(
+            email='tab_doc@nairobihospice.or.ke',
+            username='tab_doc',
+            first_name='Tab',
+            last_name='Doctor',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        patient_assigned = register_patient(
+            first_name='Assigned',
+            last_name='Patient',
+            date_of_birth=date(1985, 1, 1),
+            sex=SexChoices.FEMALE,
+            created_by=doc,
+            primary_doctor=doc.staff_profile,
+        )
+        other_staff = create_staff_user(
+            email='other_staff@nairobihospice.or.ke',
+            username='other_staff',
+            first_name='Other',
+            last_name='Staff',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        patient_unassigned = register_patient(
+            first_name='Unassigned',
+            last_name='Patient',
+            date_of_birth=date(1975, 1, 1),
+            sex=SexChoices.MALE,
+            created_by=other_staff,
+            primary_doctor=other_staff.staff_profile,
+        )
+
+        client = Client()
+        client.force_login(doc)
+
+        # Master Registry Tab: returns both patients
+        res_master = client.get('/patients/?tab=master')
+        assert res_master.status_code == 200
+        assert 'Master Registry' in res_master.content.decode('utf-8')
+        assert 'Assigned Caseload (This Week)' in res_master.content.decode('utf-8')
+        pts_master = list(res_master.context['patients'])
+        assert patient_assigned in pts_master
+        assert patient_unassigned in pts_master
+
+        # Caseload Tab: returns only assigned patient
+        res_caseload = client.get('/patients/?tab=caseload')
+        assert res_caseload.status_code == 200
+        pts_caseload = list(res_caseload.context['patients'])
+        assert patient_assigned in pts_caseload
+        assert patient_unassigned not in pts_caseload
+
 
 @pytest.mark.django_db
 class TestReferralAndConversion:
