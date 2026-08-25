@@ -63,6 +63,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'apps.accounts.middleware.PrivilegedMfaEnforcementMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
     'apps.audit.middleware.HtmxAuthRedirectMiddleware',
@@ -215,3 +216,5 @@ LOGGING = {
 # Forwarded client IP headers are disabled by default. Production must enable
 # this only when its trusted reverse proxy strips and rewrites the header.
 TRUST_PROXY_HEADERS = False
+MFA_ENFORCEMENT_MIDDLEWARE_ENABLED = True
+MFA_REQUIRED_FOR_PRIVILEGED = True

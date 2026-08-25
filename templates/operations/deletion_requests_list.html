@@ -83,11 +83,11 @@
            class="p-4 rounded-2xl border transition {% if selected_status == 'APPROVED' %}bg-slate-100 border-slate-400 ring-2 ring-slate-500/20{% else %}bg-white border-slate-200 hover:bg-slate-50{% endif %}">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 block">Approved & Purged</span>
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 block">Approved & Closed</span>
                     <span class="text-2xl font-black text-slate-900">{{ appt_approved_count }}</span>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
-                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <i data-lucide="archive" class="w-5 h-5"></i>
                 </div>
             </div>
         </a>
@@ -124,11 +124,11 @@
            class="p-4 rounded-2xl border transition {% if selected_status == 'APPROVED' %}bg-slate-100 border-slate-400 ring-2 ring-slate-500/20{% else %}bg-white border-slate-200 hover:bg-slate-50{% endif %}">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 block">Approved & Purged</span>
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 block">Approved & Closed</span>
                     <span class="text-2xl font-black text-slate-900">{{ approved_count }}</span>
                 </div>
                 <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-black">
-                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    <i data-lucide="archive" class="w-5 h-5"></i>
                 </div>
             </div>
         </a>
@@ -227,7 +227,7 @@
                                         @click="selectedReq = { name: '{{ req.patient_name|escapejs }} ({{ req.scheduled_date|date:'d M Y' }})', id: '{{ req.id }}' }; approveUrl = '{% url 'operations:appointment_deletion_approve' req.id %}'; showApproveModal = true;"
                                         class="px-2.5 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-2xs cursor-pointer flex items-center space-x-1">
                                     <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                    <span>Approve & Purge</span>
+                                    <span>Approve & Cancel</span>
                                 </button>
                                 <button type="button" 
                                         @click="selectedReq = { name: '{{ req.patient_name|escapejs }} ({{ req.scheduled_date|date:'d M Y' }})', id: '{{ req.id }}' }; rejectUrl = '{% url 'operations:appointment_deletion_reject' req.id %}'; showRejectModal = true;"
@@ -318,7 +318,7 @@
                                         @click="selectedReq = { name: '{{ req.patient_name|escapejs }}', id: '{{ req.id }}' }; approveUrl = '{% url 'operations:deletion_request_approve' req.id %}'; showApproveModal = true;"
                                         class="px-2.5 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition shadow-2xs cursor-pointer flex items-center space-x-1">
                                     <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                                    <span>Approve & Purge</span>
+                                    <span>Approve & Close</span>
                                 </button>
                                 <button type="button" 
                                         @click="selectedReq = { name: '{{ req.patient_name|escapejs }}', id: '{{ req.id }}' }; rejectUrl = '{% url 'operations:deletion_request_reject' req.id %}'; showRejectModal = true;"
@@ -356,23 +356,23 @@
                 <i data-lucide="alert-triangle" class="w-6 h-6"></i>
             </div>
             <div>
-                <h3 class="text-base font-black text-slate-900">Authorize Permanent Deletion</h3>
+                <h3 class="text-base font-black text-slate-900">Authorize Record Closure & Archival</h3>
                 <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                    You are approving permanent purge for <strong class="text-slate-900" x-text="selectedReq?.name"></strong>. This action will permanently remove the record and cannot be undone.
+                    You are authorizing file closure and archival for <strong class="text-slate-900" x-text="selectedReq?.name"></strong>. This action transitions the file status to Closed/Archived under healthcare governance policies.
                 </p>
             </div>
             <form method="POST" :action="approveUrl" class="space-y-3">
                 {% csrf_token %}
                 <div>
                     <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Operations Authorization Notes (Optional)</label>
-                    <textarea name="review_notes" rows="2" placeholder="e.g. Verified duplicate/completed task, authorized for purge..." class="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
+                    <textarea name="review_notes" rows="2" placeholder="e.g. Verified duplicate/completed file, authorized for closure..." class="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
                 </div>
                 <div class="flex items-center justify-end space-x-2 pt-2">
                     <button type="button" @click="showApproveModal = false" class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">
                         Cancel
                     </button>
                     <button type="submit" class="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-xs transition">
-                        Yes, Permanently Purge
+                        Confirm Closure & Archive
                     </button>
                 </div>
             </form>

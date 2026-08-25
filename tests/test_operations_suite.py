@@ -146,7 +146,6 @@ class TestOperationsSuite:
             'stock_item': str(morphine.id),
             'patient': str(patient.id),
             'quantity': 3,
-            'medication_statement': 'Rx #9021',
             'notes': 'Severe pain flare protocol',
         })
         assert response.status_code == 302
@@ -156,6 +155,8 @@ class TestOperationsSuite:
         mov = StockMovement.objects.filter(stock_item=morphine, movement_type=MovementTypeChoices.DISPENSE).first()
         assert mov is not None
         assert mov.quantity == 3
+        assert mov.patient == patient
+        assert mov.recorded_by == self.manager
         assert 'Faith Wambui' in mov.reference_document
 
     def test_disease_analytics_view_aggregates_data(self):

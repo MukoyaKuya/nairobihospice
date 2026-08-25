@@ -644,3 +644,63 @@ class TestReceptionistWorkflowAndNotifications:
         })
         assert response2.status_code == 302
         assert patient2.care_plans.filter(status='ACTIVE').count() == 1
+
+    def test_referral_conversion_requires_explicit_care_team(self):
+        """Converting a referral creates an active episode with explicitly chosen nurse and doctor."""
+        from apps.referrals.models import Referral, ReferralPriorityChoices, ReferralStatusChoices
+        from apps.care.models import CareTeamRoleChoices, EpisodeOfCare
+
+        doc = create_staff_user(
+            email='conv_doc@nairobihospice.or.ke',
+            username='conv_doc',
+            first_name='Conversion',
+            last_name='Doctor',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        nurse = create_staff_user(
+            email='conv_nurse@nairobihospice.or.ke',
+            username='conv_nurse',
+            first_name='Conversion',
+            last_name='Nurse',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
+        referral = Referral.objects.create(
+            patient_name='Bernard Kibet',
+            sex='MALE',
+            phone_number='0711998877',
+            priority=ReferralPriorityChoices.URGENT,
+            status=ReferralStatusChoices.UNDER_REVIEW,
+            primary_diagnosis='Multiple Myeloma',
+            reason_for_referral='Pain crisis management',
+            created_by=doc,
+        )
+
+        client = Client()
+        client.force_login(doc)
+
+        # 1. Post without care team fails/redirects with error
+        response_missing = client.post(f'/referrals/{referral.pk}/convert/', {})
+        assert response_missing.status_code == 302
+        referral.refresh_from_db()
+        assert referral.status == ReferralStatusChoices.UNDER_REVIEW
+
+        # 2. Post with explicit nurse and doctor succeeds
+        response_valid = client.post(f'/referrals/{referral.pk}/convert/', {
+            'primary_nurse': str(nurse.staff_profile.id),
+            'primary_doctor': str(doc.staff_profile.id),
+        })
+        assert response_valid.status_code == 302
+        referral.refresh_from_db()
+        assert referral.status == ReferralStatusChoices.CONVERTED
+        patient = referral.converted_patient
+        assert patient is not None
+        assert patient.first_name == 'Bernard'
+        assert patient.last_name == 'Kibet'
+
+        episode = patient.episodes.filter(status='ACTIVE').first()
+        assert episode is not None
+        team = episode.team_members.all()
+        assert team.filter(role=CareTeamRoleChoices.PRIMARY_NURSE, staff_member=nurse.staff_profile).exists()
+        assert team.filter(role=CareTeamRoleChoices.PRIMARY_DOCTOR, staff_member=doc.staff_profile).exists()

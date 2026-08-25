@@ -22,6 +22,7 @@ from apps.audit.services import log_audit_event
 from .forms import LoginForm, MFAEnrollmentForm, MFAVerifyForm, ProfileUpdateForm
 from .mfa import (
     consume_recovery_code,
+    encrypt_mfa_secret,
     generate_recovery_codes,
     generate_secret,
     privileged_user_requires_mfa,
@@ -69,6 +70,8 @@ def _pending_mfa_user(request):
 def _complete_mfa_login(request, user):
     if not request.user.is_authenticated:
         login(request, user)
+    request.session['mfa_verified'] = True
+    request.session['mfa_verified_user_id'] = str(user.pk)
     for key in ['mfa_pending_user_id', 'mfa_next_url', 'mfa_enrollment_secret', 'mfa_recovery_codes_plain']:
         request.session.pop(key, None)
     log_audit_event(
@@ -215,7 +218,7 @@ class MFAEnrollmentView(View):
         secret = request.session.get('mfa_enrollment_secret')
         form = MFAEnrollmentForm(request.POST)
         if form.is_valid() and verify_totp(secret, form.cleaned_data['token']):
-            user.mfa_secret = secret
+            user.mfa_secret = encrypt_mfa_secret(secret)
             user.mfa_recovery_codes = request.session.get('mfa_recovery_codes_hashes', [])
             user.mfa_enrolled_at = timezone.now()
             user.is_mfa_enabled = True

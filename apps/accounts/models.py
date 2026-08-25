@@ -25,7 +25,7 @@ class User(AbstractUser):
     email = models.EmailField(_('email address'), unique=True)
     phone_number = models.CharField(max_length=20, blank=True)
     is_mfa_enabled = models.BooleanField(default=False)
-    mfa_secret = models.CharField(max_length=64, blank=True, editable=False)
+    mfa_secret = models.CharField(max_length=255, blank=True, editable=False)
     mfa_recovery_codes = models.JSONField(default=list, blank=True, editable=False)
     mfa_enrolled_at = models.DateTimeField(null=True, blank=True, editable=False)
 

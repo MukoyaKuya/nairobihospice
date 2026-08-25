@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render
 from django.views.generic import DetailView, ListView, View
 
 from .access import can_review_referrals, get_referral_or_404, referral_queryset_for_user
-from .forms import ReferralForm, ReferralReviewForm
+from .forms import ReferralConvertForm, ReferralForm, ReferralReviewForm
 from .models import Referral, ReferralPriorityChoices, ReferralStatusChoices
 from .selectors import filter_referrals
 from .services import convert_referral_to_patient, create_referral
@@ -43,6 +43,8 @@ class ReferralDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['review_form'] = ReferralReviewForm(instance=self.object)
+        context['convert_form'] = ReferralConvertForm()
+        context['can_review'] = can_review_referrals(self.request.user)
         context['clinical_access'] = bool(self.request.user.is_clinical or self.request.user.is_manager or self.request.user.is_superuser)
         return context
 
@@ -99,6 +101,7 @@ class ReferralReviewView(LoginRequiredMixin, View):
 class ReferralConvertView(LoginRequiredMixin, View):
     """
     Converts accepted referral into a registered patient and active care episode.
+    Requires explicit assignment of primary nurse and primary doctor.
     """
     def post(self, request, pk):
         if not can_review_referrals(request.user):
@@ -109,6 +112,25 @@ class ReferralConvertView(LoginRequiredMixin, View):
             messages.info(request, "This referral has already been converted to a patient record.")
             return redirect('patients:patient_detail', pk=referral.converted_patient.pk)
 
-        patient = convert_referral_to_patient(referral=referral, user=request.user)
-        messages.success(request, f"Successfully converted referral into patient {patient.full_name} ({patient.hospice_number}) and opened active care episode.")
-        return redirect('patients:patient_detail', pk=patient.pk)
+        form = ReferralConvertForm(request.POST)
+        if form.is_valid():
+            primary_nurse = form.cleaned_data['primary_nurse']
+            primary_doctor = form.cleaned_data['primary_doctor']
+            patient = convert_referral_to_patient(
+                referral=referral,
+                user=request.user,
+                primary_nurse=primary_nurse,
+                primary_doctor=primary_doctor,
+            )
+            messages.success(
+                request,
+                f"Successfully converted referral into patient {patient.full_name} ({patient.hospice_number}) with assigned primary care team."
+            )
+            return redirect('patients:patient_detail', pk=patient.pk)
+        
+        # If form validation fails, redirect with error
+        err_msg = "Care team assignment is required: " + "; ".join(
+            [f"{f}: {e[0]}" for f, e in form.errors.items()]
+        )
+        messages.error(request, err_msg)
+        return redirect('referrals:referral_detail', pk=referral.pk)

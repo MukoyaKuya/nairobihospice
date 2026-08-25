@@ -4,7 +4,7 @@
 {% block title %}Referral {{ referral.referral_number }} - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-4">
+<div class="max-w-7xl mx-auto space-y-4" x-data="{ showConvertModal: false }">
     
     <!-- Breadcrumb Navigation -->
     <nav class="flex items-center space-x-2 text-xs text-slate-500">
@@ -40,18 +40,15 @@
             {% if referral.converted_patient %}
             <a href="{% url 'patients:patient_detail' referral.converted_patient.pk %}" 
                class="inline-flex items-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition space-x-1.5">
-                <i data-lucide="folder-check" class="w-4 h-4 text-red-300"></i>
+                <i data-lucide="folder-check" class="w-4 h-4 text-emerald-300"></i>
                 <span>Open Converted Patient Dossier &rarr;</span>
             </a>
             {% elif referral.status != 'REJECTED' %}
-            <form method="POST" action="{% url 'referrals:referral_convert' referral.pk %}" class="inline">
-                {% csrf_token %}
-                <button type="submit" onclick="return confirm('Convert this referral into a registered patient and active care episode?')" 
-                        class="inline-flex items-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition space-x-1.5">
-                    <i data-lucide="user-plus" class="w-4 h-4 text-red-300"></i>
-                    <span>Convert to Registered Patient</span>
-                </button>
-            </form>
+            <button type="button" @click="showConvertModal = true"
+                    class="inline-flex items-center px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-md transition space-x-1.5 cursor-pointer">
+                <i data-lucide="user-plus" class="w-4 h-4 text-emerald-300"></i>
+                <span>Convert to Registered Patient</span>
+            </button>
             {% endif %}
         </div>
     </div>
@@ -216,6 +213,54 @@
         </div>
 
     </div>
+
+    {% if not referral.converted_patient and referral.status != 'REJECTED' %}
+    <!-- Convert to Patient Modal with Required Care Team Assignment -->
+    <div x-cloak x-show="showConvertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4" @click.outside="showConvertModal = false">
+            <div class="flex items-start space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#002D62] flex items-center justify-center shrink-0 border border-blue-200">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-black text-slate-900">Convert Referral & Assign Primary Care Team</h3>
+                    <p class="text-[11px] text-slate-500">Register {{ referral.patient_name }} and assign primary palliative clinicians.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{% url 'referrals:referral_convert' referral.pk %}" class="space-y-4">
+                {% csrf_token %}
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-1">Primary Palliative Nurse *</label>
+                    {{ convert_form.primary_nurse }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-1">Primary Doctor / Clinical Officer *</label>
+                    {{ convert_form.primary_doctor }}
+                </div>
+
+                <div class="p-3 bg-blue-50/70 rounded-xl border border-blue-100 text-[11px] text-[#002D62] space-y-1">
+                    <p class="font-bold">Automated Clinical Initialization</p>
+                    <p class="text-slate-600 leading-relaxed">
+                        Converting this referral creates an active Episode of Care linked to the assigned clinicians, registers the patient dossier, and locks the referral record.
+                    </p>
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" @click="showConvertModal = false" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-xs transition flex items-center space-x-1.5 cursor-pointer">
+                        <i data-lucide="check" class="w-4 h-4 text-emerald-300"></i>
+                        <span>Confirm Conversion & Open Dossier</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 {% endblock %}

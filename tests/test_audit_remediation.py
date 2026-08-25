@@ -166,12 +166,14 @@ def test_mfa_verification_locks_out_after_repeated_failures():
 
 @pytest.mark.django_db
 def test_totp_code_cannot_be_replayed():
+    from apps.accounts.mfa import encrypt_mfa_secret
     cache.clear()
     manager = make_staff('mfa_replay@nairobihospice.or.ke', RoleChoices.MANAGER)
-    manager.mfa_secret = generate_secret()
+    raw_secret = generate_secret()
+    manager.mfa_secret = encrypt_mfa_secret(raw_secret)
     manager.is_mfa_enabled = True
     manager.save(update_fields=['mfa_secret', 'is_mfa_enabled'])
-    token = generate_totp(manager.mfa_secret)
+    token = generate_totp(raw_secret)
 
     first_client = Client()
     session = first_client.session

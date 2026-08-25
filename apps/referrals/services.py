@@ -132,11 +132,11 @@ def convert_referral_to_patient(*, referral: Referral, user=None, primary_nurse=
     # Resolve primary nurse & doctor
     assigned_nurse = primary_nurse or (
         user.staff_profile if (user and hasattr(user, 'staff_profile') and user.staff_profile and user.staff_profile.role == RoleChoices.NURSE)
-        else StaffProfile.objects.filter(role=RoleChoices.NURSE, is_active_staff=True).first()
+        else None
     )
     assigned_doctor = primary_doctor or (
         user.staff_profile if (user and hasattr(user, 'staff_profile') and user.staff_profile and user.staff_profile.role in [RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER])
-        else StaffProfile.objects.filter(role__in=[RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER], is_active_staff=True).first()
+        else None
     )
 
     if assigned_nurse:

@@ -15,19 +15,26 @@ def can_manage_all_patients(user):
     )
 
 
+import datetime
+
+
 def authorized_patient_queryset(user):
     """Return patients whose clinical records this user is allowed to access."""
     if not user or not user.is_authenticated:
         return Patient.objects.none()
-    if can_manage_all_patients(user) or user.role == RoleChoices.PHARMACIST:
+    if can_manage_all_patients(user):
         return Patient.objects.all()
+    if user.role == RoleChoices.PHARMACIST:
+        return Patient.objects.filter(stock_movements__recorded_by=user).distinct()
     if not user.is_clinical:
         return Patient.objects.none()
 
     today = timezone.localdate()
+    appt_min_date = today - datetime.timedelta(days=7)
+    appt_max_date = today + datetime.timedelta(days=14)
+
     return Patient.objects.filter(
-        Q(created_by=user)
-        | (
+        (
             Q(
                 episodes__status='ACTIVE',
                 episodes__team_members__staff_member__user=user,
@@ -38,7 +45,12 @@ def authorized_patient_queryset(user):
                 | Q(episodes__team_members__end_date__gte=today)
             )
         )
-        | Q(appointments__staff_member__user=user),
+        | Q(
+            appointments__scheduled_date__gte=appt_min_date,
+            appointments__scheduled_date__lte=appt_max_date,
+            appointments__status__in=['SCHEDULED', 'CONFIRMED'],
+            appointments__staff_member__user=user,
+        ),
     ).distinct()
 
 

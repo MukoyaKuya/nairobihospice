@@ -284,7 +284,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
 
             ref = f"Patient: {patient.full_name} ({patient.hospice_number})"
             if medication_statement:
-                ref += f" | Med: {medication_statement}"
+                ref += f" | Med: {medication_statement.medication_name}"
 
             try:
                 movement = record_stock_movement(
@@ -292,6 +292,8 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
                     movement_type=MovementTypeChoices.DISPENSE,
                     quantity=quantity,
                     reference_document=ref,
+                    patient=patient,
+                    medication_statement=medication_statement,
                     notes=notes,
                     user=request.user,
                 )
@@ -305,6 +307,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
                         'stock_item': stock_item.name,
                         'is_controlled_substance': stock_item.is_controlled_substance,
                         'patient': patient.hospice_number,
+                        'patient_id': str(patient.id),
                         'quantity': quantity,
                     }
                 )
@@ -322,7 +325,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
             'stock_items_json': json.dumps([
                 {**item, 'id': str(item['id'])} for item in stock_items
             ]),
-            'recent_dispenses': StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related('stock_item', 'recorded_by')[:15],
+            'recent_dispenses': StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related('stock_item', 'recorded_by', 'patient', 'medication_statement')[:15],
         })
 
 

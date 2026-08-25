@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.generic import DetailView, ListView, UpdateView, View
 
+from apps.accounts.models import RoleChoices
 from apps.audit.models import AuditAction
 from apps.audit.services import log_audit_event
 from apps.reporting.charting import chart_json
@@ -20,7 +21,7 @@ from .access import (
     get_operational_patient_or_404,
 )
 from .constants import HOSPICE_DIAGNOSES
-from .forms import PatientRegistrationForm, PatientUpdateForm
+from .forms import PatientRegistrationForm, PatientUpdateForm, ReceptionistPatientUpdateForm
 from .locations import KENYA_LOCATIONS
 from .models import Patient, PatientStatusChoices
 from .selectors import search_patients
@@ -110,18 +111,28 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         patient = self.object
-        clinical_access = not self.request.user.is_receptionist and (
-            self.request.user.is_clinical or can_manage_all_patients(self.request.user) or self.request.user.role == 'PHARMACIST'
+        user = self.request.user
+        is_pharmacist = getattr(user, 'role', '') == RoleChoices.PHARMACIST
+        clinical_access = not user.is_receptionist and not is_pharmacist and (
+            user.is_clinical or can_manage_all_patients(user)
         )
         context['clinical_access'] = clinical_access
+        context['is_pharmacist'] = is_pharmacist
 
         if not clinical_access:
             context['assessments'] = []
             context['recent_assessments'] = []
             context['encounters'] = []
             context['recent_encounters'] = []
-            context['medications'] = []
-            context['active_medications'] = []
+            if is_pharmacist:
+                meds = list(patient.medications.select_related('prescriber').order_by('-status', '-start_date')[:100])
+                context['medications'] = meds
+                context['active_medications'] = [m for m in meds if m.status == 'ACTIVE']
+                context['dispenses'] = list(patient.stock_movements.select_related('stock_item', 'recorded_by').order_by('-created_at')[:50])
+            else:
+                context['medications'] = []
+                context['active_medications'] = []
+                context['dispenses'] = []
             context['active_care_plan'] = None
             context['care_plan'] = None
             context['care_plans'] = []
@@ -199,24 +210,36 @@ def kenya_locations_api(request):
 class PatientCreateView(LoginRequiredMixin, View):
     def get(self, request):
         form = PatientRegistrationForm()
+        clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
         return render(request, 'patients/patient_form.html', {
             'form': form,
             'is_create': True,
+            'clinical_access': clinical_access,
             'kenya_locations_json': json.dumps(KENYA_LOCATIONS),
             'hospice_diagnoses': HOSPICE_DIAGNOSES,
         })
 
     def post(self, request):
+        clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
         form = PatientRegistrationForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
+            hiv_status = cd.get('hiv_status', '') if clinical_access else ''
+            primary_diagnosis = cd.get('primary_diagnosis', '') if clinical_access else ''
+            allergies = cd.get('allergies', '') if clinical_access else ''
+            clinical_alerts = cd.get('clinical_alerts', '') if clinical_access else ''
+            chief_complaint = cd.get('chief_complaint', '') if clinical_access else ''
+            past_medical_history = cd.get('past_medical_history', '') if clinical_access else ''
+            family_history = cd.get('family_history', '') if clinical_access else ''
+            drug_history = cd.get('drug_history', '') if clinical_access else ''
+
             patient = register_patient(
                 first_name=cd['first_name'],
                 last_name=cd['last_name'],
                 middle_name=cd.get('middle_name', ''),
                 ip_op_number=cd.get('ip_op_number', ''),
                 daycare_number=cd.get('daycare_number', ''),
-                hiv_status=cd.get('hiv_status', ''),
+                hiv_status=hiv_status,
                 referred_by=cd.get('referred_by', ''),
                 date_of_birth=cd.get('date_of_birth'),
                 sex=cd.get('sex', 'F'),
@@ -234,9 +257,9 @@ class PatientCreateView(LoginRequiredMixin, View):
                 marital_status=cd.get('marital_status', 'MARRIED'),
                 religion=cd.get('religion', ''),
                 occupation=cd.get('occupation', ''),
-                primary_diagnosis=cd.get('primary_diagnosis', ''),
-                allergies=cd.get('allergies', ''),
-                clinical_alerts=cd.get('clinical_alerts', ''),
+                primary_diagnosis=primary_diagnosis,
+                allergies=allergies,
+                clinical_alerts=clinical_alerts,
                 notes=cd.get('notes', ''),
                 created_by=request.user,
                 nok_name=cd.get('nok_name', ''),
@@ -252,18 +275,20 @@ class PatientCreateView(LoginRequiredMixin, View):
                 caregiver_age=cd.get('caregiver_age'),
                 caregiver_gender=cd.get('caregiver_gender', ''),
                 caregiver_notes=cd.get('caregiver_notes', ''),
-                chief_complaint=cd.get('chief_complaint', ''),
-                past_medical_history=cd.get('past_medical_history', ''),
-                family_history=cd.get('family_history', ''),
-                drug_history=cd.get('drug_history', ''),
+                chief_complaint=chief_complaint,
+                past_medical_history=past_medical_history,
+                family_history=family_history,
+                drug_history=drug_history,
                 primary_nurse=cd.get('primary_nurse'),
                 primary_doctor=cd.get('primary_doctor'),
+                require_care_team=True,
             )
             messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.")
             return redirect('patients:patient_detail', pk=patient.pk)
         return render(request, 'patients/patient_form.html', {
             'form': form,
             'is_create': True,
+            'clinical_access': clinical_access,
             'kenya_locations_json': json.dumps(KENYA_LOCATIONS),
             'hospice_diagnoses': HOSPICE_DIAGNOSES,
         })
@@ -271,8 +296,12 @@ class PatientCreateView(LoginRequiredMixin, View):
 
 class PatientUpdateView(LoginRequiredMixin, UpdateView):
     model = Patient
-    form_class = PatientUpdateForm
     template_name = 'patients/patient_form.html'
+
+    def get_form_class(self):
+        if getattr(self.request.user, 'is_clinical', False) or can_manage_all_patients(self.request.user):
+            return PatientUpdateForm
+        return ReceptionistPatientUpdateForm
 
     def get_object(self, queryset=None):
         if not (self.request.user.is_receptionist or self.request.user.is_clinical or can_manage_all_patients(self.request.user)):
@@ -284,6 +313,8 @@ class PatientUpdateView(LoginRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['kenya_locations_json'] = json.dumps(KENYA_LOCATIONS)
         context['hospice_diagnoses'] = HOSPICE_DIAGNOSES
+        context['is_create'] = False
+        context['clinical_access'] = getattr(self.request.user, 'is_clinical', False) or can_manage_all_patients(self.request.user)
         return context
 
     def form_valid(self, form):
@@ -428,28 +459,37 @@ def patient_search_api(request):
     if not request.user.is_authenticated:
         return JsonResponse({'results': []}, status=401)
 
+    is_clinical = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
     q = request.GET.get('q', '').strip()
+
+    if is_clinical:
+        base_qs = authorized_patient_queryset(request.user)
+    else:
+        base_qs = Patient.objects.all()
+
     if not q:
-        patients = Patient.objects.all().order_by('-registration_date', '-created_at')[:20]
+        patients = base_qs.order_by('-registration_date', '-created_at')[:20]
     else:
         terms = q.split()
-        qs = Patient.objects.all()
+        qs = base_qs
         for term in terms:
             clean_term = term.strip()
             if clean_term:
-                qs = qs.filter(
+                filters = (
                     Q(first_name__icontains=clean_term)
                     | Q(last_name__icontains=clean_term)
                     | Q(middle_name__icontains=clean_term)
                     | Q(hospice_number__icontains=clean_term)
                     | Q(ip_op_number__icontains=clean_term)
                     | Q(identification_number__icontains=clean_term)
-                    | Q(primary_diagnosis__icontains=clean_term)
                     | Q(phone_number__icontains=clean_term)
                     | Q(alternative_phone__icontains=clean_term)
                     | Q(county__icontains=clean_term)
                     | Q(sub_county__icontains=clean_term)
                 )
+                if is_clinical:
+                    filters |= Q(primary_diagnosis__icontains=clean_term)
+                qs = qs.filter(filters)
         patients = qs.order_by('-registration_date', '-created_at')[:60]
 
     results = [
@@ -457,7 +497,7 @@ def patient_search_api(request):
             'id': str(p.id),
             'full_name': p.full_name,
             'hospice_number': p.hospice_number,
-            'primary_diagnosis': p.primary_diagnosis or '',
+            'primary_diagnosis': (p.primary_diagnosis or '') if is_clinical else '',
             'age': p.age or '',
             'sex': p.get_sex_display() if hasattr(p, 'get_sex_display') else '',
             'status': p.get_status_display() if hasattr(p, 'get_status_display') else 'Active',

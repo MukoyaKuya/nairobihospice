@@ -12,18 +12,18 @@ from .models import (
 class PatientRegistrationForm(forms.ModelForm):
     # Mandatory Primary Care Team
     primary_nurse = forms.ModelChoiceField(
-        queryset=StaffProfile.objects.none(),
+        queryset=None,
         label="Primary Assigned Nurse",
-        required=False,
+        required=True,
         empty_label="-- Select Primary Nurse --",
-        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white'})
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900'})
     )
     primary_doctor = forms.ModelChoiceField(
-        queryset=StaffProfile.objects.none(),
+        queryset=None,
         label="Primary Assigned Doctor / CO",
-        required=False,
+        required=True,
         empty_label="-- Select Primary Doctor --",
-        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white'})
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900'})
     )
 
     def __init__(self, *args, **kwargs):
@@ -122,6 +122,28 @@ class PatientUpdateForm(forms.ModelForm):
             'other_medical_notes': forms.Textarea(attrs={'rows': 2}),
             'cause_of_death': forms.Textarea(attrs={'rows': 2}),
             'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+class ReceptionistPatientUpdateForm(forms.ModelForm):
+    """
+    Restricted demographic and contact update form for front-desk receptionists.
+    Excludes all clinical diagnoses, HIV status, allergies, alerts, and clinical notes.
+    """
+    class Meta:
+        model = Patient
+        fields = [
+            'first_name', 'middle_name', 'last_name',
+            'ip_op_number', 'daycare_number', 'referred_by',
+            'date_of_birth', 'is_approximate_dob', 'sex',
+            'identification_type', 'identification_number',
+            'phone_number', 'alternative_phone', 'email',
+            'address', 'county', 'sub_county', 'ward', 'landmark',
+            'preferred_language', 'marital_status', 'religion', 'occupation',
+            'status', 'special_remarks',
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
         }
 
 

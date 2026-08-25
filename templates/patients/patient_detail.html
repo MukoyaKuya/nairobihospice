@@ -125,7 +125,13 @@
                         <i data-lucide="calendar-plus" class="w-3.5 h-3.5 text-[#991B1B]"></i>
                         <span>Schedule</span>
                     </a>
-                    {% else %}
+                    {% elif is_pharmacist %}
+                    <a href="{% url 'operations:pharmacy_dispense' %}" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
+                        <i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-300"></i>
+                        <span>Dispense Stock</span>
+                    </a>
+                    {% elif clinical_access %}
                     <a href="{% url 'encounters:encounter_create' patient.pk %}" 
                        class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
                         <i data-lucide="stethoscope" class="w-3.5 h-3.5 text-red-300"></i>
@@ -138,13 +144,13 @@
                     </a>
                     <a href="{% url 'assessments:assessment_create' patient.pk %}" 
                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
-                        <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i>
+                        <i data-lucide="clipboard-plus" class="w-3.5 h-3.5 text-[#002D62]"></i>
                         <span>Assess</span>
                     </a>
                     <a href="{% url 'medications:medication_create' patient.pk %}" 
                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
-                        <i data-lucide="pill" class="w-3.5 h-3.5"></i>
-                        <span>Meds</span>
+                        <i data-lucide="pill" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        <span>Prescribe</span>
                     </a>
                     <a href="{% url 'appointments:appointment_create' patient.pk %}" 
                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg shadow-2xs transition space-x-1">
@@ -246,14 +252,18 @@
                 <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
                 <span>History & Assessments ({{ assessments|length }})</span>
             </button>
+            {% endif %}
 
+            {% if clinical_access or is_pharmacist %}
             <button @click="activeTab = 'medications'" 
                     :class="activeTab === 'medications' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
                     class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">
                 <i data-lucide="pill" class="w-3.5 h-3.5"></i>
                 <span>Medications ({{ medications|length }})</span>
             </button>
+            {% endif %}
 
+            {% if clinical_access %}
             <button @click="activeTab = 'symptoms'" 
                     :class="activeTab === 'symptoms' ? 'border-[#002D62] text-[#002D62] bg-white shadow-2xs' : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100/60'"
                     class="py-2.5 px-3 border-b-2 transition flex items-center space-x-1.5 rounded-t-lg cursor-pointer">

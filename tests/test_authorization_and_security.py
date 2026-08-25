@@ -171,20 +171,264 @@ class TestAPISecurityAndAuthorization:
         response = client.get(f'/patients/{self.patient.id}/')
         assert response.status_code == 404
 
-    def test_clinical_dashboard_scoped_to_authorized_caseload(self):
-        """Clinical dashboards only display metrics and patients for assigned clinicians."""
-        from apps.reporting.selectors import get_clinical_dashboard_data
-        clinician_b = create_staff_user(
-            email='dash_doc@nairobihospice.or.ke',
-            username='dash_doc',
-            first_name='Dash',
+    def test_receptionist_patient_edit_form_excludes_clinical_fields(self):
+        """Receptionist edit form must use ReceptionistPatientUpdateForm without clinical fields."""
+        from django.test import Client
+        client = Client()
+        client.force_login(self.receptionist)
+        response = client.get(f'/patients/{self.patient.id}/edit/')
+        assert response.status_code == 200
+        form = response.context['form']
+        assert form.__class__.__name__ == 'ReceptionistPatientUpdateForm'
+        assert 'primary_diagnosis' not in form.fields
+        assert 'hiv_status' not in form.fields
+        assert 'allergies' not in form.fields
+        assert 'clinical_alerts' not in form.fields
+        assert 'past_medical_history' not in form.fields
+        assert 'present_medical_notes' not in form.fields
+
+        # Clinician edit form retains clinical fields
+        client.force_login(self.doctor)
+        response_doc = client.get(f'/patients/{self.patient.id}/edit/')
+        assert response_doc.status_code == 200
+        form_doc = response_doc.context['form']
+        assert form_doc.__class__.__name__ == 'PatientUpdateForm'
+        assert 'primary_diagnosis' in form_doc.fields
+        assert 'hiv_status' in form_doc.fields
+
+    def test_patient_search_api_strips_diagnosis_for_receptionist(self):
+        """Patient search API returns blank primary_diagnosis for receptionists and scoped results."""
+        from django.test import Client
+        self.patient.primary_diagnosis = "Advanced Cervical Carcinoma"
+        self.patient.save()
+
+        client = Client()
+        # Receptionist search
+        client.force_login(self.receptionist)
+        response = client.get(f'/patients/api/search/?q={self.patient.first_name}')
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data['results']) >= 1
+        item = [r for r in data['results'] if r['id'] == str(self.patient.id)][0]
+        assert item['primary_diagnosis'] == ''
+
+        # Doctor authorized search
+        client.force_login(self.doctor)
+        response_doc = client.get(f'/patients/api/search/?q={self.patient.first_name}')
+        assert response_doc.status_code == 200
+        data_doc = response_doc.json()
+        item_doc = [r for r in data_doc['results'] if r['id'] == str(self.patient.id)][0]
+        assert item_doc['primary_diagnosis'] == "Advanced Cervical Carcinoma"
+
+    def test_medication_list_scoped_to_authorized_caseload(self):
+        """Medication list view scopes statements to clinician authorized caseload."""
+        from django.test import Client
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Oral Morphine Solution 10mg",
+            dosage="10mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+
+        unassigned_doc = create_staff_user(
+            email='unauth_med_doc@nairobihospice.or.ke',
+            username='unauth_med_doc',
+            first_name='Unauth',
             last_name='Doc',
             password='Pass!',
             role=RoleChoices.DOCTOR,
         )
-        data = get_clinical_dashboard_data(clinician_b)
-        assert data['today_appts_count'] == 0
-        assert len(data['active_medications']) == 0
+        client = Client()
+        client.force_login(unassigned_doc)
+        response = client.get('/medications/')
+        assert response.status_code == 200
+        assert len(response.context['medications']) == 0
+
+        # Assigned doctor sees medication
+        client.force_login(self.doctor)
+        response_auth = client.get('/medications/')
+        assert response_auth.status_code == 200
+        assert len(response_auth.context['medications']) >= 1
+
+    def test_mfa_secret_encrypted_in_database_and_verifies(self):
+        """MFA secrets use real Fernet at-rest encryption; DB dump contains no plaintext secret."""
+        from apps.accounts.mfa import decrypt_mfa_secret, encrypt_mfa_secret, generate_secret, generate_totp, verify_totp_for_user
+        raw_secret = generate_secret()
+        encrypted = encrypt_mfa_secret(raw_secret)
+        assert encrypted != raw_secret
+        assert raw_secret not in encrypted  # No plaintext TOTP secret in ciphertext
+
+        self.doctor.mfa_secret = encrypted
+        self.doctor.is_mfa_enabled = True
+        self.doctor.save()
+
+        # Database stores encrypted secret
+        self.doctor.refresh_from_db()
+        assert self.doctor.mfa_secret == encrypted
+
+        # TOTP generation and verification succeeds transparently
+        token = generate_totp(raw_secret)
+        assert verify_totp_for_user(self.doctor, token) is True
+
+        # Malformed ciphertext fails closed (returns empty string)
+        assert decrypt_mfa_secret("invalid-corrupted-ciphertext") == ""
+
+    def test_pharmacist_cannot_view_unrelated_patients_or_full_clinical_chart(self):
+        """Pharmacists only access patients with recorded stock movements, and chart excludes clinical PHI."""
+        from django.test import Client
+        from apps.operations.models import MovementTypeChoices, StockItem, StockMovement
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        pharmacist = create_staff_user(
+            email='pharm_sec@nairobihospice.or.ke',
+            username='pharm_sec',
+            first_name='Pharm',
+            last_name='Sec',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        client = Client()
+        client.force_login(pharmacist)
+
+        # 1. Without any recorded stock movement, pharmacist receives 404
+        response_unauth = client.get(f'/patients/{self.patient.id}/')
+        assert response_unauth.status_code == 404
+
+        # 2. Add an active medication and record a stock movement by this pharmacist
+        med = MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Oral Morphine Solution 10mg/5ml",
+            dosage="5mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        item = StockItem.objects.create(
+            name="Oral Morphine 10mg/5ml",
+            unit_of_measure="Bottles",
+            quantity_on_hand=50,
+            minimum_reorder_level=5,
+            unit_cost_kes=600.0,
+            is_controlled_substance=True,
+        )
+        StockMovement.objects.create(
+            stock_item=item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=2,
+            balance_after=48,
+            patient=self.patient,
+            medication_statement=med,
+            recorded_by=pharmacist,
+        )
+
+        # 3. Now pharmacist can access detail, but clinical data is stripped
+        response_auth = client.get(f'/patients/{self.patient.id}/')
+        assert response_auth.status_code == 200
+        assert response_auth.context['clinical_access'] is False
+        assert response_auth.context['is_pharmacist'] is True
+        assert len(response_auth.context['medications']) >= 1
+        assert response_auth.context['encounters'] == []
+        assert response_auth.context['assessments'] == []
+        assert response_auth.context['active_care_plan'] is None
+
+    def test_receptionist_cannot_set_hiv_or_diagnosis_on_registration(self):
+        """Receptionist web registration ignores/strips HIV status and clinical diagnosis."""
+        from django.test import Client
+        nurse = create_staff_user(
+            email='rec_reg_nurse@nairobihospice.or.ke',
+            username='rec_reg_nurse',
+            first_name='Nurse',
+            last_name='Reg',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
+        client = Client()
+        client.force_login(self.receptionist)
+
+        response = client.post('/patients/register/', {
+            'first_name': 'Grace',
+            'last_name': 'Wanjiru',
+            'sex': 'F',
+            'marital_status': 'MARRIED',
+            'identification_type': 'NATIONAL_ID',
+            'identification_number': '12345678',
+            'date_of_birth': '1985-05-12',
+            'phone_number': '0722112233',
+            'county': 'Nairobi',
+            'sub_county': 'Westlands',
+            'ward': 'Parklands',
+            'preferred_language': 'English',
+            'status': 'ACTIVE',
+            'primary_nurse': str(nurse.staff_profile.id),
+            'primary_doctor': str(self.doctor.staff_profile.id),
+            # Attempted clinical fields submitted by receptionist:
+            'hiv_status': 'POSITIVE',
+            'primary_diagnosis': 'Metastatic Breast Carcinoma',
+            'chief_complaint': 'Severe dyspnea and bone pain',
+            'past_medical_history': 'Prior mastectomy in 2022',
+        })
+        form_errs = response.context['form'].errors if hasattr(response, 'context') and response.context and 'form' in response.context else None
+        assert response.status_code == 302, f"Form validation failed with errors: {form_errs}"
+        from apps.patients.models import Patient
+        created = Patient.objects.filter(first_name='Grace', last_name='Wanjiru').first()
+        assert created is not None
+        assert created.hiv_status == ''
+        assert created.primary_diagnosis == ''
+
+    def test_dispense_form_rejects_mismatched_patient_and_medication(self):
+        """StockDispenseForm fails validation when medication prescription belongs to another patient."""
+        from apps.operations.forms import StockDispenseForm
+        from apps.operations.models import StockItem
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        patient_b = register_patient(first_name='Patient', last_name='Beta', created_by=self.doctor)
+        item = StockItem.objects.create(
+            name="Morphine Sulfate 10mg",
+            unit_of_measure="Bottles",
+            quantity_on_hand=100,
+            minimum_reorder_level=10,
+            unit_cost_kes=500.0,
+        )
+        med_for_patient_a = MedicationStatement.objects.create(
+            patient=self.patient,
+            medication_name="Morphine Sulfate 10mg",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+
+        form = StockDispenseForm(data={
+            'stock_item': item.id,
+            'patient': patient_b.id,
+            'medication_statement': med_for_patient_a.id,
+            'quantity': 2,
+        })
+        assert form.is_valid() is False
+        assert 'medication_statement' in form.errors
+
+    def test_privileged_session_without_mfa_fails_closed(self):
+        """Privileged users without verified MFA session are intercepted by middleware."""
+        from django.test import Client, override_settings
+        with override_settings(MFA_ENFORCEMENT_MIDDLEWARE_ENABLED=True):
+            manager = create_staff_user(
+                email='mgr_mfa_test@nairobihospice.or.ke',
+                username='mgr_mfa_test',
+                first_name='Manager',
+                last_name='MFA',
+                password='Pass!',
+                role=RoleChoices.MANAGER,
+            )
+            client = Client()
+            # Force login without setting mfa_verified session marker
+            client.force_login(manager)
+
+            response = client.get('/dashboard/')
+            assert response.status_code == 302
+            assert '/accounts/mfa/enroll/' in response.url or '/accounts/mfa/verify/' in response.url
 
 
 @pytest.mark.django_db

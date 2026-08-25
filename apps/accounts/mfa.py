@@ -5,11 +5,39 @@ import secrets
 import time
 from urllib.parse import quote
 
+from cryptography.fernet import Fernet, InvalidToken
+from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.cache import cache
 from django.db import transaction
 
 ISSUER = 'Nairobi Hospice PCMS'
+
+
+def _get_fernet():
+    """Derives a 32-byte Fernet key from the Django SECRET_KEY."""
+    raw_key = hashlib.sha256(settings.SECRET_KEY.encode('utf-8')).digest()
+    return Fernet(base64.urlsafe_b64encode(raw_key))
+
+
+def encrypt_mfa_secret(secret: str) -> str:
+    """Encrypt the plaintext base32 TOTP secret at rest before saving to database."""
+    if not secret:
+        return ''
+    f = _get_fernet()
+    return f.encrypt(secret.encode('utf-8')).decode('utf-8')
+
+
+def decrypt_mfa_secret(stored_val: str) -> str:
+    """Decrypt the stored ciphertext. Fails closed (empty string) if ciphertext is invalid."""
+    if not stored_val:
+        return ''
+    f = _get_fernet()
+    try:
+        return f.decrypt(stored_val.encode('utf-8')).decode('utf-8')
+    except (InvalidToken, Exception):
+        return ''
+
 
 # A token stays valid for at most verify_totp's window (±1 step). Remembering
 # used tokens for twice that span makes replay impossible even with clock skew.
@@ -25,6 +53,8 @@ def _counter_bytes(counter):
 
 
 def generate_totp(secret, timestamp=None, interval=30):
+    if not secret:
+        return ''
     timestamp = int(time.time() if timestamp is None else timestamp)
     counter = timestamp // interval
     key = base64.b32decode(secret + '=' * (-len(secret) % 8), casefold=True)
@@ -50,7 +80,8 @@ def _totp_replay_key(user, token):
 
 def verify_totp_for_user(user, token):
     """Verify a TOTP code and reject reuse of an already-consumed code."""
-    if not verify_totp(user.mfa_secret, token):
+    raw_secret = decrypt_mfa_secret(user.mfa_secret)
+    if not verify_totp(raw_secret, token):
         return False
     if not cache.add(_totp_replay_key(user, token), 1, TOTP_REPLAY_TTL):
         return False

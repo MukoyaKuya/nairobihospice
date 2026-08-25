@@ -58,7 +58,8 @@ def get_clinical_dashboard_data(user):
         recent_high_distress = recent_high_distress.filter(patient__in=auth_patients)
     recent_high_distress = recent_high_distress[:8]
 
-    pending_referrals = Referral.objects.filter(
+    from apps.referrals.access import referral_queryset_for_user
+    pending_referrals = referral_queryset_for_user(user).filter(
         status__in=[ReferralStatusChoices.RECEIVED, ReferralStatusChoices.UNDER_REVIEW]
     ).order_by('priority', '-referral_date')[:6]
 

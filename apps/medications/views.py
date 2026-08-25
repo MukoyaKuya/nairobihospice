@@ -19,10 +19,14 @@ class MedicationListView(LoginRequiredMixin, ListView):
     paginate_by = 30
 
     def get_queryset(self):
-        if not self.request.user.is_clinical and not self.request.user.is_manager and not self.request.user.is_superuser:
+        user = self.request.user
+        if not user.is_clinical and not user.is_manager and not user.is_administrator and not user.is_superuser and not getattr(user, 'is_pharmacist', False):
             return MedicationStatement.objects.none()
         
         queryset = MedicationStatement.objects.select_related('patient', 'prescriber').order_by('-start_date', '-created_at')
+        if not (user.is_manager or user.is_administrator or user.is_superuser):
+            auth_patients = authorized_patient_queryset(user)
+            queryset = queryset.filter(patient__in=auth_patients)
         
         status = self.request.GET.get('status')
         if status:
@@ -43,7 +47,11 @@ class MedicationListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        base_qs = MedicationStatement.objects.all()
+        user = self.request.user
+        if user.is_manager or user.is_administrator or user.is_superuser:
+            base_qs = MedicationStatement.objects.all()
+        else:
+            base_qs = MedicationStatement.objects.filter(patient__in=authorized_patient_queryset(user))
         context['total_count'] = base_qs.count()
         context['active_count'] = base_qs.filter(status='ACTIVE').count()
         context['stopped_count'] = base_qs.filter(status='STOPPED').count()

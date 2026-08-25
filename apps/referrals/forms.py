@@ -31,3 +31,28 @@ class ReferralReviewForm(forms.ModelForm):
             'review_notes': forms.Textarea(attrs={'rows': 3}),
             'rejection_reason': forms.Textarea(attrs={'rows': 2}),
         }
+
+
+class ReferralConvertForm(forms.Form):
+    primary_nurse = forms.ModelChoiceField(
+        queryset=None,
+        required=True,
+        empty_label="-- Select Primary Palliative Nurse --",
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900'})
+    )
+    primary_doctor = forms.ModelChoiceField(
+        queryset=None,
+        required=True,
+        empty_label="-- Select Primary Doctor / CO --",
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.accounts.models import RoleChoices, StaffProfile
+        self.fields['primary_nurse'].queryset = StaffProfile.objects.filter(
+            role=RoleChoices.NURSE, is_active_staff=True
+        ).select_related('user')
+        self.fields['primary_doctor'].queryset = StaffProfile.objects.filter(
+            role__in=[RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER], is_active_staff=True
+        ).select_related('user')

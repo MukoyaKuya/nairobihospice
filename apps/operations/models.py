@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 class DeletionRequestStatusChoices(models.TextChoices):
     PENDING = 'PENDING', _('Pending Operations Approval')
-    APPROVED = 'APPROVED', _('Approved & Purged')
+    APPROVED = 'APPROVED', _('Approved & Closed / Archived')
     REJECTED = 'REJECTED', _('Rejected')
 
 
@@ -341,11 +341,28 @@ class StockMovement(models.Model):
     quantity = models.IntegerField(help_text=_("Positive for inbound, negative for outbound"))
     balance_after = models.IntegerField()
     reference_document = models.CharField(max_length=100, blank=True, help_text=_("e.g. PO Number, Patient ID, or Audit ID"))
+    patient = models.ForeignKey(
+        'patients.Patient',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        help_text=_("Linked patient record for dispensed medications/supplies")
+    )
+    medication_statement = models.ForeignKey(
+        'medications.MedicationStatement',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_movements',
+        help_text=_("Linked medication prescription/statement if applicable")
+    )
     notes = models.TextField(blank=True)
     recorded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         related_name='stock_movements'
     )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

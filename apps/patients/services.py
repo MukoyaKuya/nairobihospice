@@ -77,10 +77,13 @@ def register_patient(
     drug_history: str = '',
     primary_nurse=None,
     primary_doctor=None,
+    require_care_team: bool = False,
 ) -> Patient:
     """
     Registers a new patient, generates unique identifier, and records next of kin / caregiver.
     """
+    if require_care_team and (not primary_nurse or not primary_doctor):
+        raise ValidationError("Both a primary palliative nurse and doctor must be assigned to open an active care episode.")
     patient_fields = {
         'first_name': first_name,
         'middle_name': middle_name,
@@ -171,6 +174,7 @@ def register_patient(
         )
 
     # Automatically initialize active Episode of Care and multidisciplinary care team
+    from apps.accounts.models import RoleChoices
     from apps.care.models import CareTeamMember, CareTeamRoleChoices, EpisodeOfCare, EpisodeStatusChoices
     episode = EpisodeOfCare.objects.create(
         patient=patient,
@@ -180,18 +184,25 @@ def register_patient(
         created_by=created_by,
     )
 
-    if primary_nurse:
+    assigned_nurse = primary_nurse
+    assigned_doctor = primary_doctor
+    if not assigned_nurse and created_by and hasattr(created_by, 'staff_profile') and created_by.staff_profile and created_by.staff_profile.role == RoleChoices.NURSE:
+        assigned_nurse = created_by.staff_profile
+    if not assigned_doctor and created_by and hasattr(created_by, 'staff_profile') and created_by.staff_profile and created_by.staff_profile.role in [RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER]:
+        assigned_doctor = created_by.staff_profile
+
+    if assigned_nurse:
         CareTeamMember.objects.create(
             episode=episode,
-            staff_member=primary_nurse,
+            staff_member=assigned_nurse,
             role=CareTeamRoleChoices.PRIMARY_NURSE,
             is_primary=True,
             start_date=episode.start_date,
         )
-    if primary_doctor:
+    if assigned_doctor:
         CareTeamMember.objects.create(
             episode=episode,
-            staff_member=primary_doctor,
+            staff_member=assigned_doctor,
             role=CareTeamRoleChoices.PRIMARY_DOCTOR,
             is_primary=True,
             start_date=episode.start_date,

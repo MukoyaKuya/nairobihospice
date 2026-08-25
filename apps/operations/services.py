@@ -9,7 +9,17 @@ from .models import (
 
 
 @transaction.atomic
-def record_stock_movement(*, stock_item: StockItem, movement_type: str, quantity: int, reference_document: str = '', notes: str = '', user = None) -> StockMovement:
+def record_stock_movement(
+    *,
+    stock_item: StockItem,
+    movement_type: str,
+    quantity: int,
+    reference_document: str = '',
+    notes: str = '',
+    user = None,
+    patient = None,
+    medication_statement = None,
+) -> StockMovement:
     """
     Adjusts stock quantity on hand and records an immutable ledger entry.
     """
@@ -41,6 +51,8 @@ def record_stock_movement(*, stock_item: StockItem, movement_type: str, quantity
         quantity=quantity,
         balance_after=stock_item.quantity_on_hand,
         reference_document=reference_document,
+        patient=patient,
+        medication_statement=medication_statement,
         notes=notes,
         recorded_by=user,
     )

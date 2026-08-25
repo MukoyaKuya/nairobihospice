@@ -97,13 +97,15 @@ class StockDispenseForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white'})
     )
+    medication_statement = forms.ModelChoiceField(
+        queryset=None,
+        required=False,
+        empty_label="-- Optional: Linked Active Medication Prescription --",
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white'})
+    )
     quantity = forms.IntegerField(
         min_value=1,
         widget=forms.NumberInput(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none', 'placeholder': 'Units / Doses to dispense'})
-    )
-    medication_statement = forms.CharField(
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none', 'placeholder': 'Optional: Medication Statement Ref / Prescription #'})
     )
     notes = forms.CharField(
         required=False,
@@ -112,8 +114,22 @@ class StockDispenseForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        from apps.medications.models import MedicationStatement
         from apps.patients.models import Patient
         self.fields['patient'].queryset = Patient.objects.filter(status='ACTIVE').order_by('first_name', 'last_name')
+        self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
+
+    def clean(self):
+        cleaned_data = super().clean()
+        patient = cleaned_data.get('patient')
+        medication_statement = cleaned_data.get('medication_statement')
+        if patient and medication_statement:
+            if medication_statement.patient != patient:
+                self.add_error(
+                    'medication_statement',
+                    f"Selected prescription ({medication_statement.medication_name}) belongs to patient {medication_statement.patient.full_name}, not {patient.full_name}."
+                )
+        return cleaned_data
 
 
 class InvoiceForm(forms.ModelForm):

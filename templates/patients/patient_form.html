@@ -25,12 +25,14 @@
             <span>1. General Patient Data</span>
         </button>
 
+        {% if clinical_access %}
         <button type="button" @click="activeFormTab = 'medical'"
                 :class="activeFormTab === 'medical' ? 'border-[#002D62] text-[#002D62]' : 'border-transparent text-slate-500 hover:text-slate-700'"
                 class="pb-3 border-b-2 transition flex items-center space-x-2 cursor-pointer">
             <i data-lucide="activity" class="w-4 h-4 text-[#991B1B]"></i>
             <span>2. Medical Information & History</span>
         </button>
+        {% endif %}
 
         {% if is_create %}
         <button type="button" @click="activeFormTab = 'caregivers'"
@@ -256,13 +258,26 @@
             </div>
 
             <div class="flex justify-end pt-4">
+                {% if clinical_access %}
                 <button type="button" @click="activeFormTab = 'medical'" class="px-5 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-1.5 cursor-pointer">
                     <span>Next: Medical History & Profile</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                 </button>
+                {% elif is_create %}
+                <button type="button" @click="activeFormTab = 'caregivers'" class="px-5 py-2 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-1.5 cursor-pointer">
+                    <span>Next: Next of Kin & Caregivers</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                </button>
+                {% else %}
+                <button type="submit" class="px-6 py-2.5 text-xs font-bold bg-[#002D62] text-white rounded-xl hover:bg-[#0B2545] transition flex items-center space-x-2 cursor-pointer">
+                    <i data-lucide="check" class="w-4 h-4 text-emerald-300"></i>
+                    <span>Save Patient Demographics</span>
+                </button>
+                {% endif %}
             </div>
         </div>
 
+        {% if clinical_access %}
         <!-- TAB 2: Medical Information & Patient History (Matching Access Nairobi Hospice Patients Clinical Data) -->
         <div x-show="activeFormTab === 'medical'" 
              x-data="{ 
@@ -452,6 +467,7 @@
                 {% endif %}
             </div>
         </div>
+        {% endif %}
 
         {% if is_create %}
         <!-- TAB 3: Next of Kin & Caregivers Circle -->
@@ -584,7 +600,7 @@
                     Operations Approval Required
                 </p>
                 <p class="text-[11px] text-amber-800 leading-relaxed">
-                    Submitting this request will flag the dossier of <strong>{{ form.instance.full_name }}</strong> (<span class="font-mono">{{ form.instance.hospice_number }}</span>) for Operations Management review. Only verified administrators can approve and permanently purge patient files.
+                    Submitting this request will flag the dossier of <strong>{{ form.instance.full_name }}</strong> (<span class="font-mono">{{ form.instance.hospice_number }}</span>) for Operations Management review. Only verified administrators can approve and close / archive patient files.
                 </p>
             </div>
 
