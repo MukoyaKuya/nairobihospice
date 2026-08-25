@@ -113,8 +113,10 @@ def generate_patient_comprehensive_report_pdf(patient, requesting_user=None) -> 
     value_code = ParagraphStyle('RepValueCode', fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=navy_color)
 
     th_style = ParagraphStyle('RepTH', fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, textColor=colors.white)
+    th_center = ParagraphStyle('RepTHCenter', fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, alignment=TA_CENTER, textColor=colors.white)
     td_style = ParagraphStyle('RepTD', fontName='Helvetica', fontSize=7.5, leading=10, textColor=slate_body)
     td_bold = ParagraphStyle('RepTDBold', fontName='Helvetica-Bold', fontSize=7.5, leading=10, textColor=slate_dark)
+    td_date = ParagraphStyle('RepTDDate', fontName='Helvetica-Bold', fontSize=7, leading=9, textColor=slate_dark)
     td_center = ParagraphStyle('RepTDCenter', fontName='Helvetica', fontSize=7.5, leading=10, alignment=TA_CENTER, textColor=slate_body)
 
     elements = []
@@ -310,13 +312,13 @@ def generate_patient_comprehensive_report_pdf(patient, requesting_user=None) -> 
             Paragraph(m.frequency or "-", td_style),
             Paragraph(m.indication or "-", td_style),
             Paragraph(m.start_date.strftime('%d/%m/%Y') if m.start_date else "-", td_style),
-            Paragraph(m.get_status_display().upper() if hasattr(m, 'get_status_display') else m.status, td_bold),
+            Paragraph(m.get_status_display() if hasattr(m, 'get_status_display') else m.status, td_bold),
         ])
 
     if len(meds_data) == 1:
         meds_data.append([Paragraph("No active palliative medications on record.", td_style)] + [Paragraph("-", td_style)] * 6)
 
-    meds_table = Table(meds_data, colWidths=[40 * mm, 24 * mm, 18 * mm, 32 * mm, 36 * mm, 16 * mm, 16 * mm])
+    meds_table = Table(meds_data, colWidths=[42 * mm, 20 * mm, 16 * mm, 30 * mm, 38 * mm, 18 * mm, 18 * mm])
     meds_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), navy_color),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
@@ -339,23 +341,23 @@ def generate_patient_comprehensive_report_pdf(patient, requesting_user=None) -> 
     if symptoms.exists():
         esas_data = [[
             Paragraph("Assessment Date", th_style),
-            Paragraph("Pain", th_style),
-            Paragraph("Tired", th_style),
-            Paragraph("Nausea", th_style),
-            Paragraph("Depr", th_style),
-            Paragraph("Anx", th_style),
-            Paragraph("Drowsy", th_style),
-            Paragraph("Appet", th_style),
-            Paragraph("Wellb", th_style),
-            Paragraph("SOB", th_style),
-            Paragraph("Distress Score", th_style),
+            Paragraph("Pain", th_center),
+            Paragraph("Tired", th_center),
+            Paragraph("Nausea", th_center),
+            Paragraph("Depr", th_center),
+            Paragraph("Anx", th_center),
+            Paragraph("Drowsy", th_center),
+            Paragraph("Appet", th_center),
+            Paragraph("Wellb", th_center),
+            Paragraph("SOB", th_center),
+            Paragraph("Distress Score", th_center),
         ]]
 
         for r in symptoms:
             scores_map = {s.symptom_type: s.score for s in r.scores.all()}
             
             esas_data.append([
-                Paragraph(r.recorded_at.strftime('%d/%m/%Y %H:%M') if r.recorded_at else "-", td_bold),
+                Paragraph(r.recorded_at.strftime('%d/%m/%Y %H:%M') if r.recorded_at else "-", td_date),
                 Paragraph(str(scores_map.get('PAIN', '-')), td_center),
                 Paragraph(str(scores_map.get('TIREDNESS', '-')), td_center),
                 Paragraph(str(scores_map.get('NAUSEA', '-')), td_center),
@@ -368,14 +370,14 @@ def generate_patient_comprehensive_report_pdf(patient, requesting_user=None) -> 
                 Paragraph(f"<b>{r.total_distress_score} / 100</b>", td_center),
             ])
 
-        esas_table = Table(esas_data, colWidths=[32 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 15 * mm, 25 * mm])
+        esas_table = Table(esas_data, colWidths=[29 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 14 * mm, 27 * mm])
         esas_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), burgundy_color),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('TOPPADDING', (0, 0), (-1, -1), 2.5),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 2.5),
-            ('LEFTPADDING', (0, 0), (-1, -1), 2),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+            ('LEFTPADDING', (0, 0), (-1, -1), 1.5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 1.5),
             ('GRID', (0, 0), (-1, -1), 0.5, border_color),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, slate_light]),
         ]))
