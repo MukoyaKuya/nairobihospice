@@ -29,13 +29,16 @@ def encrypt_mfa_secret(secret: str) -> str:
 
 
 def decrypt_mfa_secret(stored_val: str) -> str:
-    """Decrypt the stored ciphertext. Fails closed (empty string) if ciphertext is invalid."""
+    """Decrypt the stored ciphertext. Handles legacy unencrypted base32 secrets gracefully."""
     if not stored_val:
         return ''
     f = _get_fernet()
     try:
         return f.decrypt(stored_val.encode('utf-8')).decode('utf-8')
     except (InvalidToken, Exception):
+        import re
+        if re.fullmatch(r'[A-Z2-7]{16,64}', stored_val.strip()):
+            return stored_val.strip()
         return ''
 
 
@@ -85,6 +88,9 @@ def verify_totp_for_user(user, token):
         return False
     if not cache.add(_totp_replay_key(user, token), 1, TOTP_REPLAY_TTL):
         return False
+    if user.mfa_secret and not user.mfa_secret.startswith('gAAAAA'):
+        user.mfa_secret = encrypt_mfa_secret(raw_secret)
+        user.save(update_fields=['mfa_secret'])
     return True
 
 

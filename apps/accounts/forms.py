@@ -24,12 +24,45 @@ class LoginForm(AuthenticationForm):
 
 
 class MFAEnrollmentForm(forms.Form):
-    token = forms.CharField(max_length=6, min_length=6, label='Authenticator code')
+    token = forms.CharField(
+        max_length=6,
+        min_length=6,
+        label='Authenticator code',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-3 text-center tracking-widest text-lg font-mono rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none',
+            'placeholder': '123456',
+            'autocomplete': 'one-time-code',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'autofocus': 'autofocus',
+        })
+    )
 
 
 class MFAVerifyForm(forms.Form):
-    token = forms.CharField(max_length=6, min_length=6, required=False, label='Authenticator code')
-    recovery_code = forms.CharField(max_length=32, required=False, label='Recovery code')
+    token = forms.CharField(
+        max_length=6,
+        min_length=6,
+        required=False,
+        label='Authenticator code',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-3 text-center tracking-widest text-lg font-mono rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none',
+            'placeholder': '123456',
+            'autocomplete': 'one-time-code',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'autofocus': 'autofocus',
+        })
+    )
+    recovery_code = forms.CharField(
+        max_length=32,
+        required=False,
+        label='Recovery code',
+        widget=forms.TextInput(attrs={
+            'class': 'w-full px-4 py-2.5 text-center uppercase tracking-widest font-mono text-sm rounded-xl border border-slate-300 focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none',
+            'placeholder': 'e.g. A1B2C3D4E5',
+        })
+    )
 
     def clean(self):
         cleaned_data = super().clean()

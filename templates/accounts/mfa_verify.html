@@ -1,22 +1,46 @@
 {% extends 'base.html' %}
 
-{% block title %}Verify MFA - Nairobi Hospice PCMS{% endblock %}
+{% block title %}Verify Two-Factor Authentication - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
-    <div>
-        <h1 class="text-xl font-black text-slate-900">Verify your sign-in</h1>
-        <p class="text-sm text-slate-600 mt-2">Enter a current authenticator code or a saved recovery code.</p>
+<div class="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+    <div class="text-center space-y-1">
+        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#002D62] flex items-center justify-center mx-auto mb-3 border border-blue-100">
+            <i data-lucide="lock" class="w-6 h-6"></i>
+        </div>
+        <h1 class="text-xl font-black text-slate-900">Verify Your Sign-In</h1>
+        <p class="text-xs text-slate-600">Enter the 6-digit code from your authenticator app for <strong class="text-slate-800">{{ user.email }}</strong></p>
     </div>
-    <form method="post" class="space-y-3">
+
+    <form method="post" class="space-y-4" x-data="{ useRecovery: false }">
         {% csrf_token %}
-        {{ form.non_field_errors }}
-        <label class="block text-xs font-bold text-slate-700">Authenticator code</label>
-        {{ form.token }}
-        <label class="block text-xs font-bold text-slate-700">Recovery code</label>
-        {{ form.recovery_code }}
-        {% for error in form.non_field_errors %}<p class="text-xs text-red-700">{{ error }}</p>{% endfor %}
-        <button class="w-full rounded-xl bg-[#002D62] text-white px-4 py-2.5 text-sm font-bold">Continue</button>
+        {% if form.non_field_errors %}
+        <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <div x-show="!useRecovery">
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 text-center">6-Digit Authenticator Code</label>
+            {{ form.token }}
+            {% for error in form.token.errors %}<p class="text-xs text-red-600 mt-1 text-center font-medium">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div x-show="useRecovery" x-cloak>
+            <label class="block text-xs font-bold text-slate-700 mb-1.5 text-center">10-Character Recovery Code</label>
+            {{ form.recovery_code }}
+            {% for error in form.recovery_code.errors %}<p class="text-xs text-red-600 mt-1 text-center font-medium">{{ error }}</p>{% endfor %}
+        </div>
+
+        <button type="submit" class="w-full rounded-xl bg-[#002D62] hover:bg-[#001D42] text-white px-4 py-3 text-sm font-bold shadow-sm transition">
+            Verify &amp; Continue
+        </button>
+
+        <div class="text-center pt-2">
+            <button type="button" @click="useRecovery = !useRecovery" class="text-xs text-[#002D62] hover:underline font-bold">
+                <span x-text="useRecovery ? 'Use Authenticator Code instead' : 'Lost access? Use a Recovery Code'"></span>
+            </button>
+        </div>
     </form>
 </div>
 {% endblock %}
