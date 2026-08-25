@@ -10,10 +10,10 @@ from .storage import private_patient_photo_storage
 
 
 class SexChoices(models.TextChoices):
-    FEMALE = 'F', _('Female')
     MALE = 'M', _('Male')
-    OTHER = 'O', _('Other')
+    FEMALE = 'F', _('Female')
     UNKNOWN = 'U', _('Unknown')
+    UNISEX = 'O', _('Unisex')
 
 
 class IdentificationTypeChoices(models.TextChoices):
