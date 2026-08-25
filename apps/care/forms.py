@@ -1,6 +1,6 @@
 from django import forms
 
-from apps.accounts.models import StaffProfile
+from apps.accounts.models import RoleChoices, StaffProfile
 from apps.patients.models import Patient
 
 from .models import (
@@ -53,7 +53,17 @@ class EpisodeOfCareForm(forms.ModelForm):
 
 class CareTeamMemberForm(forms.ModelForm):
     staff_member = forms.ModelChoiceField(
-        queryset=StaffProfile.objects.filter(is_active_staff=True).select_related('user'),
+        queryset=StaffProfile.objects.filter(
+            is_active_staff=True,
+            role__in=[
+                RoleChoices.DOCTOR,
+                RoleChoices.CLINICAL_OFFICER,
+                RoleChoices.NURSE,
+                RoleChoices.COUNSELLOR,
+                RoleChoices.SOCIAL_WORKER,
+                RoleChoices.PHARMACIST,
+            ]
+        ).select_related('user').order_by('user__first_name', 'user__last_name'),
         label="Staff Member"
     )
 

@@ -471,6 +471,51 @@ class TestMedicationAndAppointmentLifecycle:
         assert appt.status == AppointmentStatusChoices.SCHEDULED
         assert appt.patient == patient
 
+    def test_appointment_form_excludes_non_clinical_roles(self):
+        from apps.appointments.forms import AppointmentForm
+        from apps.appointments.models import AppointmentTypeChoices
+
+        doc = create_staff_user(
+            email='doc_appt@nairobihospice.or.ke',
+            username='doc_appt',
+            first_name='Clinical',
+            last_name='Doctor',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        receptionist = create_staff_user(
+            email='rec_appt@nairobihospice.or.ke',
+            username='rec_appt',
+            first_name='Front',
+            last_name='Desk',
+            password='Pass!',
+            role=RoleChoices.RECEPTIONIST,
+        )
+        manager = create_staff_user(
+            email='mgr_appt@nairobihospice.or.ke',
+            username='mgr_appt',
+            first_name='Operations',
+            last_name='Manager',
+            password='Pass!',
+            role=RoleChoices.MANAGER,
+        )
+        admin = create_staff_user(
+            email='admin_appt@nairobihospice.or.ke',
+            username='admin_appt',
+            first_name='System',
+            last_name='Admin',
+            password='Pass!',
+            role=RoleChoices.ADMINISTRATOR,
+        )
+
+        form = AppointmentForm()
+        staff_qs = form.fields['staff_member'].queryset
+
+        assert doc.staff_profile in staff_qs
+        assert receptionist.staff_profile not in staff_qs
+        assert manager.staff_profile not in staff_qs
+        assert admin.staff_profile not in staff_qs
+
 
 @pytest.mark.django_db
 class TestAPIEndpoints:
