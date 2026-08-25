@@ -124,8 +124,11 @@ class StockDispenseForm(forms.Form):
             self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
         elif user and getattr(user, 'role', '') == RoleChoices.PHARMACIST:
             # Pharmacists dispense only for patients with active prescriptions
-            self.fields['patient'].queryset = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct().order_by('first_name', 'last_name')
-            self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
+            scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
+            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
+            self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(
+                status='ACTIVE', patient__in=scoped_patients
+            ).select_related('patient').order_by('patient__first_name')
         elif user:
             scoped_patients = authorized_patient_queryset(user).filter(status='ACTIVE')
             self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')

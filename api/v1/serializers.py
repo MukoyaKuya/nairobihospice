@@ -68,7 +68,7 @@ class PatientSummarySerializer(serializers.ModelSerializer):
             'landmark', 'preferred_language', 'marital_status', 'status',
             'registration_date', 'created_at',
         ]
-        read_only_fields = ['id', 'hospice_number', 'full_name', 'age', 'created_at']
+        read_only_fields = ['id', 'hospice_number', 'full_name', 'age', 'status', 'created_at']
 
 
 class PatientBoundSerializerMixin:

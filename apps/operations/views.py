@@ -242,6 +242,18 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
     Day-One Pharmacy Slice: Dispense stock directly to an active patient / medication statement,
     with controlled substance / opioid register highlighting and immutable stock movement logging.
     """
+    def _get_recent_dispenses(self, user):
+        from apps.accounts.models import RoleChoices
+        from apps.patients.access import authorized_patient_queryset, can_manage_all_patients
+        qs = StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related(
+            'stock_item', 'recorded_by', 'patient', 'medication_statement'
+        ).order_by('-created_at')
+        if can_manage_all_patients(user):
+            return qs[:15]
+        if getattr(user, 'role', '') == RoleChoices.PHARMACIST:
+            return qs.filter(recorded_by=user)[:15]
+        return qs.filter(patient__in=authorized_patient_queryset(user))[:15]
+
     def get(self, request):
         from apps.patients.access import can_manage_all_patients
         if not (request.user.is_pharmacist or request.user.is_clinical or can_manage_all_patients(request.user)):
@@ -264,7 +276,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
             'stock_items_json': json.dumps([
                 {**item, 'id': str(item['id'])} for item in stock_items
             ]),
-            'recent_dispenses': StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related('stock_item', 'recorded_by')[:15],
+            'recent_dispenses': self._get_recent_dispenses(request.user),
         })
 
     def post(self, request):
@@ -325,7 +337,7 @@ class PharmacyDispenseView(LoginRequiredMixin, View):
             'stock_items_json': json.dumps([
                 {**item, 'id': str(item['id'])} for item in stock_items
             ]),
-            'recent_dispenses': StockMovement.objects.filter(movement_type=MovementTypeChoices.DISPENSE).select_related('stock_item', 'recorded_by', 'patient', 'medication_statement')[:15],
+            'recent_dispenses': self._get_recent_dispenses(request.user),
         })
 
 

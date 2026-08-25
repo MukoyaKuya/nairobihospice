@@ -322,6 +322,66 @@ class TestAPISecurityAndAuthorization:
         allowed_patients = list(form.fields['patient'].queryset)
         assert patient_with_meds in allowed_patients
         assert patient_without_meds not in allowed_patients
+        allowed_meds = list(form.fields['medication_statement'].queryset)
+        assert len(allowed_meds) == 1
+        assert allowed_meds[0].patient == patient_with_meds
+
+    def test_pharmacy_recent_dispenses_scoped_by_role(self):
+        """Pharmacy dispense view scopes recent dispenses table strictly by user role and dispenses."""
+        from django.test import Client
+        from apps.operations.models import StockItem, StockMovement, MovementTypeChoices
+        from apps.operations.services import record_stock_movement
+
+        item = StockItem.objects.create(
+            item_code="STK-MORPH-TST",
+            name="Morphine 10mg",
+            unit_of_measure="vial",
+            quantity_on_hand=50,
+        )
+        pharm1 = create_staff_user(
+            email='pharm1_test@nairobihospice.or.ke',
+            username='pharm1_test',
+            first_name='Pharm',
+            last_name='One',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        pharm2 = create_staff_user(
+            email='pharm2_test@nairobihospice.or.ke',
+            username='pharm2_test',
+            first_name='Pharm',
+            last_name='Two',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        mov1 = record_stock_movement(
+            stock_item=item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=2,
+            reference_document="Ref 1",
+            patient=self.patient,
+            user=pharm1,
+        )
+
+        client = Client()
+        # Pharm1 sees their own dispense
+        client.force_login(pharm1)
+        resp1 = client.get('/operations/pharmacy/dispense/')
+        assert resp1.status_code == 200
+        assert mov1 in list(resp1.context['recent_dispenses'])
+
+        # Pharm2 does NOT see Pharm1's dispense
+        client.force_login(pharm2)
+        resp2 = client.get('/operations/pharmacy/dispense/')
+        assert resp2.status_code == 200
+        assert mov1 not in list(resp2.context['recent_dispenses'])
+
+    def test_patient_summary_serializer_status_is_read_only(self):
+        """PatientSummarySerializer declares status as a read-only field."""
+        from api.v1.serializers import PatientSummarySerializer
+        serializer = PatientSummarySerializer()
+        assert 'status' in serializer.fields
+        assert serializer.fields['status'].read_only is True
 
     def test_patient_search_api_strips_diagnosis_for_receptionist(self):
         """Patient search API returns blank primary_diagnosis for receptionists and scoped results."""
