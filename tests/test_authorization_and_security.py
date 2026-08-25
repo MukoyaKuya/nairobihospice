@@ -383,6 +383,54 @@ class TestAPISecurityAndAuthorization:
         assert 'status' in serializer.fields
         assert serializer.fields['status'].read_only is True
 
+    def test_pharmacist_cannot_patch_patient_clinical_fields(self):
+        """Pharmacist receives PatientSummarySerializer and cannot PATCH clinical fields or status."""
+        pharm = create_staff_user(
+            email='pharm_patch@nairobihospice.or.ke',
+            username='pharm_patch',
+            first_name='Pharm',
+            last_name='Patch',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        self.patient.primary_diagnosis = "Original Carcinoma"
+        self.patient.status = "ACTIVE"
+        self.patient.save()
+
+        self.api_client.force_authenticate(user=pharm)
+        response = self.api_client.patch(
+            f'/api/v1/patients/{self.patient.id}/',
+            {'primary_diagnosis': 'Hacked Carcinoma', 'status': 'DECEASED'},
+            format='json',
+        )
+        self.patient.refresh_from_db()
+        assert self.patient.primary_diagnosis == "Original Carcinoma"
+        assert self.patient.status == "ACTIVE"
+
+    def test_receptionist_cannot_access_home_routes_logistics(self):
+        """Receptionist is forbidden from accessing field route dispatch workspace."""
+        from django.test import Client
+        client = Client()
+        client.force_login(self.receptionist)
+        response = client.get('/appointments/routes/')
+        assert response.status_code == 403
+
+        client.force_login(self.doctor)
+        response_doc = client.get('/appointments/routes/')
+        assert response_doc.status_code == 200
+
+    def test_search_patients_drops_diagnosis_for_non_clinical(self):
+        """search_patients does not match primary_diagnosis query terms when is_clinical=False."""
+        from apps.patients.selectors import search_patients
+        self.patient.primary_diagnosis = "Glioblastoma Multiforme"
+        self.patient.save()
+
+        results_clin = search_patients(query="Glioblastoma", is_clinical=True)
+        assert self.patient in list(results_clin)
+
+        results_non_clin = search_patients(query="Glioblastoma", is_clinical=False)
+        assert self.patient not in list(results_non_clin)
+
     def test_patient_search_api_strips_diagnosis_for_receptionist(self):
         """Patient search API returns blank primary_diagnosis for receptionists and scoped results."""
         from django.test import Client

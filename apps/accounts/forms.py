@@ -109,3 +109,10 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = StaffProfile
         fields = ['profile_picture', 'qualifications', 'license_number']
+
+    def clean_profile_picture(self):
+        uploaded = self.cleaned_data.get('profile_picture')
+        if uploaded:
+            from apps.documents.malware import scan_uploaded_file
+            scan_uploaded_file(uploaded)
+        return uploaded

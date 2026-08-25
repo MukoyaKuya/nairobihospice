@@ -72,7 +72,8 @@ def _complete_mfa_login(request, user):
         login(request, user)
     request.session['mfa_verified'] = True
     request.session['mfa_verified_user_id'] = str(user.pk)
-    for key in ['mfa_pending_user_id', 'mfa_next_url', 'mfa_enrollment_secret', 'mfa_recovery_codes_plain']:
+    next_url = request.session.pop('mfa_next_url', None)
+    for key in ['mfa_pending_user_id', 'mfa_enrollment_secret', 'mfa_recovery_codes_plain']:
         request.session.pop(key, None)
     log_audit_event(
         action=AuditAction.LOGIN,
@@ -82,6 +83,9 @@ def _complete_mfa_login(request, user):
         user=user,
         request=request,
     )
+    from django.utils.http import url_has_allowed_host_and_scheme
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
     return redirect(_role_redirect(user))
 
 
@@ -114,13 +118,20 @@ class PCMSLoginView(DjangoLoginView):
     def form_valid(self, form):
         user = form.get_user()
         clear_login_attempts(self.request)
+        from django.utils.http import url_has_allowed_host_and_scheme
+        next_param = self.request.GET.get('next') or self.request.POST.get('next')
+        if next_param and url_has_allowed_host_and_scheme(next_param, allowed_hosts={self.request.get_host()}):
+            target_url = next_param
+        else:
+            target_url = str(reverse_lazy(_role_redirect(user)))
+
         if privileged_user_requires_mfa(user) and not user.is_mfa_enabled:
             self.request.session['mfa_pending_user_id'] = str(user.pk)
-            self.request.session['mfa_next_url'] = str(reverse_lazy(_role_redirect(user)))
+            self.request.session['mfa_next_url'] = target_url
             return redirect('accounts:mfa_enroll')
         if user.is_mfa_enabled:
             self.request.session['mfa_pending_user_id'] = str(user.pk)
-            self.request.session['mfa_next_url'] = str(reverse_lazy(_role_redirect(user)))
+            self.request.session['mfa_next_url'] = target_url
             return redirect('accounts:mfa_verify')
         login(self.request, user)
         log_audit_event(
@@ -131,7 +142,7 @@ class PCMSLoginView(DjangoLoginView):
             user=user,
             request=self.request,
         )
-        return redirect(self.get_success_url())
+        return redirect(target_url)
 
 
 def logout_view(request):

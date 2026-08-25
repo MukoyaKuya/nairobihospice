@@ -96,8 +96,12 @@ def get_clinical_dashboard_data(user):
 
     # Monthly additions
     month_start = today.replace(day=1)
-    new_registrations_month = Patient.objects.filter(registration_date__gte=month_start).count()
-    active_cohort_count = Patient.objects.filter(status=PatientStatusChoices.ACTIVE).count()
+    if is_admin_or_mgr or is_rec:
+        new_registrations_month = Patient.objects.filter(registration_date__gte=month_start).count()
+        active_cohort_count = Patient.objects.filter(status=PatientStatusChoices.ACTIVE).count()
+    else:
+        new_registrations_month = auth_patients.filter(registration_date__gte=month_start).count()
+        active_cohort_count = auth_patients.filter(status=PatientStatusChoices.ACTIVE).count()
 
     # Bereavement cases (patients deceased in last 6 months for psychosocial follow-up)
     bereavement_cases = Patient.objects.filter(

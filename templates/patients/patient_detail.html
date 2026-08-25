@@ -279,7 +279,6 @@
             </button>
             {% endif %}
         </div>
-        </div>
 
         <div class="p-4 sm:p-6">
             <!-- TAB 1: General Patient Data & Bio-Data -->
@@ -625,12 +624,14 @@
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
+            {% if clinical_access or is_pharmacist %}
             <!-- TAB 5: Medications -->
             <div x-cloak x-show="activeTab === 'medications'" class="space-y-4">
                 <div class="flex items-center justify-between">
                     <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">Current & Historical Prescriptions</h3>
-                    {% if not is_receptionist %}
+                    {% if not is_receptionist and not is_pharmacist %}
                     <a href="{% url 'medications:medication_create' patient.pk %}" class="text-xs font-bold text-[#002D62] hover:underline">
                         + Prescribe
                     </a>
@@ -673,7 +674,9 @@
                     </table>
                 </div>
             </div>
+            {% endif %}
 
+            {% if clinical_access %}
             <!-- TAB 6: ESAS Symptom Trends -->
             <div x-cloak x-show="activeTab === 'symptoms'" class="space-y-4">
                 <div class="flex items-center justify-between">

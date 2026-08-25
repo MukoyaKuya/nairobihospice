@@ -50,13 +50,14 @@ class PatientViewSet(viewsets.ModelViewSet):
         return self.queryset.none()
 
     def get_serializer_class(self):
-        if getattr(self.request.user, 'is_clinical', False) or can_manage_all_patients(self.request.user):
+        user = self.request.user
+        if (getattr(user, 'is_clinical', False) and not getattr(user, 'is_pharmacist', False)) or can_manage_all_patients(user):
             return PatientSerializer
         return PatientSummarySerializer
 
     def filter_queryset(self, queryset):
         user = self.request.user
-        if not (getattr(user, 'is_clinical', False) or can_manage_all_patients(user)):
+        if not ((getattr(user, 'is_clinical', False) and not getattr(user, 'is_pharmacist', False)) or can_manage_all_patients(user)):
             self.search_fields = ['hospice_number', 'first_name', 'last_name', 'phone_number', 'identification_number']
         else:
             self.search_fields = ['hospice_number', 'first_name', 'last_name', 'phone_number', 'identification_number', 'primary_diagnosis']

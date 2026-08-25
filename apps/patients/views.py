@@ -45,6 +45,8 @@ class PatientListView(LoginRequiredMixin, ListView):
         date_to = self.request.GET.get('date_to', '') or None
         year = self.request.GET.get('year', '')
         age_group = self.request.GET.get('age_group', '')
+        user = self.request.user
+        clinical_search = (getattr(user, 'is_clinical', False) and not getattr(user, 'is_receptionist', False) and not getattr(user, 'is_pharmacist', False)) or can_manage_all_patients(user)
         queryset = search_patients(
             query=query,
             status=status,
@@ -54,8 +56,8 @@ class PatientListView(LoginRequiredMixin, ListView):
             date_to=date_to,
             year=year,
             age_group=age_group,
+            is_clinical=clinical_search,
         )
-        user = self.request.user
         if can_manage_all_patients(user) or user.is_receptionist:
             return queryset
         if user.is_clinical:
@@ -233,58 +235,62 @@ class PatientCreateView(LoginRequiredMixin, View):
             family_history = cd.get('family_history', '') if clinical_access else ''
             drug_history = cd.get('drug_history', '') if clinical_access else ''
 
-            patient = register_patient(
-                first_name=cd['first_name'],
-                last_name=cd['last_name'],
-                middle_name=cd.get('middle_name', ''),
-                ip_op_number=cd.get('ip_op_number', ''),
-                daycare_number=cd.get('daycare_number', ''),
-                hiv_status=hiv_status,
-                referred_by=cd.get('referred_by', ''),
-                date_of_birth=cd.get('date_of_birth'),
-                sex=cd.get('sex', 'F'),
-                identification_type=cd.get('identification_type', 'NATIONAL_ID'),
-                identification_number=cd.get('identification_number', ''),
-                phone_number=cd.get('phone_number', ''),
-                alternative_phone=cd.get('alternative_phone', ''),
-                email=cd.get('email', ''),
-                address=cd.get('address', ''),
-                county=cd.get('county', 'Nairobi'),
-                sub_county=cd.get('sub_county', ''),
-                ward=cd.get('ward', ''),
-                landmark=cd.get('landmark', ''),
-                preferred_language=cd.get('preferred_language', 'English'),
-                marital_status=cd.get('marital_status', 'MARRIED'),
-                religion=cd.get('religion', ''),
-                occupation=cd.get('occupation', ''),
-                primary_diagnosis=primary_diagnosis,
-                allergies=allergies,
-                clinical_alerts=clinical_alerts,
-                notes=cd.get('notes', ''),
-                created_by=request.user,
-                nok_name=cd.get('nok_name', ''),
-                nok_relationship=cd.get('nok_relationship', ''),
-                nok_phone=cd.get('nok_phone', ''),
-                nok_address=cd.get('nok_address', ''),
-                nok_age=cd.get('nok_age'),
-                nok_gender=cd.get('nok_gender', ''),
-                caregiver_name=cd.get('caregiver_name', ''),
-                caregiver_relationship=cd.get('caregiver_relationship', ''),
-                caregiver_phone=cd.get('caregiver_phone', ''),
-                caregiver_address=cd.get('caregiver_address', ''),
-                caregiver_age=cd.get('caregiver_age'),
-                caregiver_gender=cd.get('caregiver_gender', ''),
-                caregiver_notes=cd.get('caregiver_notes', ''),
-                chief_complaint=chief_complaint,
-                past_medical_history=past_medical_history,
-                family_history=family_history,
-                drug_history=drug_history,
-                primary_nurse=cd.get('primary_nurse'),
-                primary_doctor=cd.get('primary_doctor'),
-                require_care_team=True,
-            )
-            messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.")
-            return redirect('patients:patient_detail', pk=patient.pk)
+            from django.core.exceptions import ValidationError
+            try:
+                patient = register_patient(
+                    first_name=cd['first_name'],
+                    last_name=cd['last_name'],
+                    middle_name=cd.get('middle_name', ''),
+                    ip_op_number=cd.get('ip_op_number', ''),
+                    daycare_number=cd.get('daycare_number', ''),
+                    hiv_status=hiv_status,
+                    referred_by=cd.get('referred_by', ''),
+                    date_of_birth=cd.get('date_of_birth'),
+                    sex=cd.get('sex', 'F'),
+                    identification_type=cd.get('identification_type', 'NATIONAL_ID'),
+                    identification_number=cd.get('identification_number', ''),
+                    phone_number=cd.get('phone_number', ''),
+                    alternative_phone=cd.get('alternative_phone', ''),
+                    email=cd.get('email', ''),
+                    address=cd.get('address', ''),
+                    county=cd.get('county', 'Nairobi'),
+                    sub_county=cd.get('sub_county', ''),
+                    ward=cd.get('ward', ''),
+                    landmark=cd.get('landmark', ''),
+                    preferred_language=cd.get('preferred_language', 'English'),
+                    marital_status=cd.get('marital_status', 'MARRIED'),
+                    religion=cd.get('religion', ''),
+                    occupation=cd.get('occupation', ''),
+                    primary_diagnosis=primary_diagnosis,
+                    allergies=allergies,
+                    clinical_alerts=clinical_alerts,
+                    notes=cd.get('notes', ''),
+                    created_by=request.user,
+                    nok_name=cd.get('nok_name', ''),
+                    nok_relationship=cd.get('nok_relationship', ''),
+                    nok_phone=cd.get('nok_phone', ''),
+                    nok_address=cd.get('nok_address', ''),
+                    nok_age=cd.get('nok_age'),
+                    nok_gender=cd.get('nok_gender', ''),
+                    caregiver_name=cd.get('caregiver_name', ''),
+                    caregiver_relationship=cd.get('caregiver_relationship', ''),
+                    caregiver_phone=cd.get('caregiver_phone', ''),
+                    caregiver_address=cd.get('caregiver_address', ''),
+                    caregiver_age=cd.get('caregiver_age'),
+                    caregiver_gender=cd.get('caregiver_gender', ''),
+                    caregiver_notes=cd.get('caregiver_notes', ''),
+                    chief_complaint=chief_complaint,
+                    past_medical_history=past_medical_history,
+                    family_history=family_history,
+                    drug_history=drug_history,
+                    primary_nurse=cd.get('primary_nurse'),
+                    primary_doctor=cd.get('primary_doctor'),
+                    require_care_team=True,
+                )
+                messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.")
+                return redirect('patients:patient_detail', pk=patient.pk)
+            except ValidationError as e:
+                form.add_error(None, e)
         return render(request, 'patients/patient_form.html', {
             'form': form,
             'is_create': True,

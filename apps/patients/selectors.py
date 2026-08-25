@@ -25,6 +25,7 @@ def search_patients(
     date_to=None,
     year: str = '',
     age_group: str = '',
+    is_clinical: bool = True,
 ) -> QuerySet[Patient]:
     qs = Patient.objects.annotate(
         full_name_annotated=Concat('first_name', Value(' '), 'middle_name', Value(' '), 'last_name'),
@@ -40,7 +41,7 @@ def search_patients(
         # Token-based multi-field matching (matches every token in query against any name/field)
         token_filter = Q()
         for t in tokens:
-            token_filter &= (
+            t_filter = (
                 Q(first_name__icontains=t) |
                 Q(middle_name__icontains=t) |
                 Q(last_name__icontains=t) |
@@ -49,11 +50,13 @@ def search_patients(
                 Q(daycare_number__icontains=t) |
                 Q(phone_number__icontains=t) |
                 Q(identification_number__icontains=t) |
-                Q(primary_diagnosis__icontains=t) |
                 Q(address__icontains=t)
             )
+            if is_clinical:
+                t_filter |= Q(primary_diagnosis__icontains=t)
+            token_filter &= t_filter
 
-        qs = qs.filter(
+        named_filters = (
             token_filter |
             Q(full_name_annotated__icontains=q) |
             Q(first_middle_annotated__icontains=q) |
@@ -61,9 +64,12 @@ def search_patients(
             Q(middle_last_annotated__icontains=q) |
             Q(hospice_number__icontains=q) |
             Q(ip_op_number__icontains=q) |
-            Q(daycare_number__icontains=q) |
-            Q(primary_diagnosis__icontains=q)
+            Q(daycare_number__icontains=q)
         )
+        if is_clinical:
+            named_filters |= Q(primary_diagnosis__icontains=q)
+
+        qs = qs.filter(named_filters)
 
     if status:
         qs = qs.filter(status=status)

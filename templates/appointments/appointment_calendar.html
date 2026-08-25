@@ -233,7 +233,7 @@
                     <!-- Appointments Card-Style Grid/List -->
                     <div class="grid grid-cols-1 gap-3">
                         {% for appt in group.appointments %}
-                        <div x-show="matchesFilter('{{ appt.patient.full_name|escapejs }} {{ appt.patient.hospice_number|escapejs }} {% if not request.user.is_receptionist %}{{ appt.reason|escapejs }} {% endif %}{{ appt.location|escapejs }} {{ appt.staff_member.user.display_name|escapejs }} {{ appt.patient.primary_diagnosis|escapejs }}', '{{ appt.get_appointment_type_display|escapejs }}', '{{ appt.get_status_display|escapejs }}')"
+                        <div x-show="matchesFilter('{{ appt.patient.full_name|escapejs }} {{ appt.patient.hospice_number|escapejs }} {% if not request.user.is_receptionist %}{{ appt.reason|escapejs }} {{ appt.patient.primary_diagnosis|escapejs }} {% endif %}{{ appt.location|escapejs }} {{ appt.staff_member.user.display_name|escapejs }}', '{{ appt.get_appointment_type_display|escapejs }}', '{{ appt.get_status_display|escapejs }}')"
                              class="p-4 rounded-xl border transition duration-150 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 {% if appt.status == 'COMPLETED' %}bg-slate-50/60 border-slate-200{% else %}bg-white border-slate-200/90 shadow-2xs hover:border-slate-300{% endif %}">
                             
                             <!-- Left Block: Time + Modality + Patient & Clinical Details -->

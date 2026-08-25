@@ -228,6 +228,11 @@ class HomeRouteLogisticsView(LoginRequiredMixin, View):
     for Palliative Care Nurses, Clinical Officers, and home outreach teams.
     """
     def get(self, request):
+        from apps.patients.access import can_manage_all_patients
+        if not (request.user.is_clinical or can_manage_all_patients(request.user)):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Home visit route logistics are restricted to clinical care and management teams.")
+
         today = timezone.now().date()
         date_str = request.GET.get('date')
         if date_str:
