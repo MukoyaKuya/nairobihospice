@@ -35,6 +35,10 @@ class PatientRegistrationForm(forms.ModelForm):
             role__in=[RoleChoices.DOCTOR, RoleChoices.CLINICAL_OFFICER], is_active_staff=True
         ).select_related('user')
 
+        if not self.is_bound and not self.initial.get('ip_op_number'):
+            from .services import generate_next_ip_op_number
+            self.initial['ip_op_number'] = generate_next_ip_op_number()
+
     def clean(self):
         cleaned_data = super().clean()
         nurses_exist = StaffProfile.objects.filter(role=RoleChoices.NURSE, is_active_staff=True).exists()
@@ -52,24 +56,37 @@ class PatientRegistrationForm(forms.ModelForm):
         ip_op_number = (cleaned_data.get('ip_op_number') or '').strip()
         phone_number = (cleaned_data.get('phone_number') or '').strip()
         date_of_birth = cleaned_data.get('date_of_birth')
+        exclude_pk = self.instance.pk if (self.instance and self.instance.pk) else None
 
         if id_number:
-            existing = Patient.objects.filter(identification_number__iexact=id_number).first()
+            existing = Patient.objects.filter(identification_number__iexact=id_number)
+            if exclude_pk:
+                existing = existing.exclude(pk=exclude_pk)
+            existing = existing.first()
             if existing:
                 self.add_error('identification_number', f"A patient with Identification Number '{id_number}' is already registered: {existing.full_name} ({existing.hospice_number}).")
 
         if ip_op_number:
-            existing = Patient.objects.filter(ip_op_number__iexact=ip_op_number).first()
+            existing = Patient.objects.filter(ip_op_number__iexact=ip_op_number)
+            if exclude_pk:
+                existing = existing.exclude(pk=exclude_pk)
+            existing = existing.first()
             if existing:
                 self.add_error('ip_op_number', f"A patient with Hospital IP/OP Number '{ip_op_number}' is already registered: {existing.full_name} ({existing.hospice_number}).")
 
         if first_name and last_name:
             if phone_number:
-                existing = Patient.objects.filter(first_name__iexact=first_name, last_name__iexact=last_name, phone_number__iexact=phone_number).first()
+                existing = Patient.objects.filter(first_name__iexact=first_name, last_name__iexact=last_name, phone_number__iexact=phone_number)
+                if exclude_pk:
+                    existing = existing.exclude(pk=exclude_pk)
+                existing = existing.first()
                 if existing:
                     raise forms.ValidationError(f"Duplicate registration detected: '{first_name} {last_name}' with phone '{phone_number}' is already registered under Hospice ID {existing.hospice_number}.")
             if date_of_birth:
-                existing = Patient.objects.filter(first_name__iexact=first_name, last_name__iexact=last_name, date_of_birth=date_of_birth).first()
+                existing = Patient.objects.filter(first_name__iexact=first_name, last_name__iexact=last_name, date_of_birth=date_of_birth)
+                if exclude_pk:
+                    existing = existing.exclude(pk=exclude_pk)
+                existing = existing.first()
                 if existing:
                     raise forms.ValidationError(f"Duplicate registration detected: '{first_name} {last_name}' born {date_of_birth} is already registered under Hospice ID {existing.hospice_number}.")
 

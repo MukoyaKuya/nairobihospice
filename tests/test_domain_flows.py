@@ -18,7 +18,7 @@ from apps.encounters.services import record_encounter
 from apps.medications.models import MedicationStatusChoices
 from apps.medications.services import prescribe_medication, update_medication_status
 from apps.patients.models import PatientStatusChoices, SexChoices
-from apps.patients.services import generate_hospice_number, register_patient
+from apps.patients.services import generate_hospice_number, generate_next_ip_op_number, register_patient
 from apps.referrals.models import ReferralPriorityChoices, ReferralStatusChoices
 from apps.referrals.services import convert_referral_to_patient, create_referral
 from apps.symptoms.models import SymptomTypeChoices
@@ -110,6 +110,36 @@ class TestPatientDomain:
         num = generate_hospice_number()
         year = date.today().year
         assert num.startswith(f"NH-{year}-")
+
+    def test_ip_op_number_auto_generation(self):
+        user = create_staff_user(
+            email='ip_seq_nurse@nairobihospice.or.ke',
+            username='ip_seq_nurse',
+            first_name='Seq',
+            last_name='Nurse',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
+        # Register patient with 146/26
+        p1 = register_patient(
+            first_name='Latest',
+            last_name='Patient',
+            ip_op_number='146/26',
+            created_by=user,
+        )
+        assert p1.ip_op_number == '146/26'
+
+        # Next calculated IP/OP number should be 147/26
+        next_val = generate_next_ip_op_number()
+        assert next_val == '147/26'
+
+        # When registering another patient without passing ip_op_number, it auto-assigns 147/26
+        p2 = register_patient(
+            first_name='Next',
+            last_name='Patient',
+            created_by=user,
+        )
+        assert p2.ip_op_number == '147/26'
 
     def test_register_patient_service(self):
         user = create_staff_user(

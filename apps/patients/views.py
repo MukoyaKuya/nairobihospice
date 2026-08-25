@@ -230,11 +230,14 @@ class PatientCreateView(LoginRequiredMixin, View):
         if getattr(request.user, 'is_pharmacist', False):
             from django.core.exceptions import PermissionDenied
             raise PermissionDenied("Pharmacists are not authorized to register new patients.")
-        form = PatientRegistrationForm()
+        from .services import generate_next_ip_op_number
+        suggested_ip_op = generate_next_ip_op_number()
+        form = PatientRegistrationForm(initial={'ip_op_number': suggested_ip_op})
         clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
         return render(request, 'patients/patient_form.html', {
             'form': form,
             'is_create': True,
+            'suggested_ip_op_number': suggested_ip_op,
             'clinical_access': clinical_access,
             'kenya_locations_json': json.dumps(KENYA_LOCATIONS),
             'hospice_diagnoses': HOSPICE_DIAGNOSES,

@@ -31,6 +31,30 @@ def generate_hospice_number() -> str:
     return f"{prefix}{seq:04d}"
 
 
+def generate_next_ip_op_number() -> str:
+    """
+    Calculates the next sequential Hospital IP/OP file number for current year based on most recent patient (e.g. 146/26 -> 147/26).
+    """
+    import re
+    now = timezone.now()
+    year_2digit = now.strftime('%y')
+    year_4digit = str(now.year)
+    max_seq = 0
+
+    for ip in Patient.objects.exclude(ip_op_number='').values_list('ip_op_number', flat=True):
+        if not ip:
+            continue
+        match = re.match(r'^(\d+)\s*/\s*(\d+)$', ip.strip())
+        if match:
+            num, yr = int(match.group(1)), match.group(2)
+            if yr in (year_2digit, year_4digit):
+                if num > max_seq:
+                    max_seq = num
+
+    next_seq = max_seq + 1 if max_seq > 0 else 1
+    return f"{next_seq}/{year_2digit}"
+
+
 @transaction.atomic
 def register_patient(
     *,
@@ -116,11 +140,13 @@ def register_patient(
             if existing_dob:
                 raise ValidationError(f"Duplicate registration detected: '{fn_clean} {ln_clean}' born {date_of_birth} is already registered with Hospice ID {existing_dob.hospice_number}.")
 
+    assigned_ip_op = ip_clean or generate_next_ip_op_number()
+
     patient_fields = {
         'first_name': first_name,
         'middle_name': middle_name,
         'last_name': last_name,
-        'ip_op_number': ip_op_number,
+        'ip_op_number': assigned_ip_op,
         'daycare_number': daycare_number,
         'hiv_status': hiv_status,
         'referred_by': referred_by,
