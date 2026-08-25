@@ -56,7 +56,7 @@
 
         <!-- Form Body -->
         <form method="POST" 
-              @submit="if(isSubmitting){ $event.preventDefault(); } else { isSubmitting = true; }" 
+              @submit="beforeSubmit($event)" 
               class="p-5 space-y-4">
             {% csrf_token %}
 
@@ -91,7 +91,7 @@
                            @keydown.escape="dropdownOpen = false"
                            required
                            placeholder="Search hospital formulary or type medication..."
-                           class="w-full pl-3 pr-8 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+                           class="w-full pl-3 pr-8 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
                     <button type="button" 
                             @click="dropdownOpen = !dropdownOpen"
                             class="absolute right-2 top-2 text-slate-400 hover:text-slate-600">
@@ -102,38 +102,111 @@
                 <!-- Clean Formulary Dropdown -->
                 <div x-show="dropdownOpen" 
                      x-cloak
-                     class="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg text-xs divide-y divide-slate-100">
+                     class="absolute z-50 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg text-xs divide-y divide-slate-100">
                     <template x-for="(item, idx) in filteredDrugs" :key="idx">
                         <div @click="selectDrug(item)"
-                             class="px-3 py-2 hover:bg-slate-50 cursor-pointer flex items-center justify-between">
+                             class="px-3 py-2 hover:bg-blue-50/60 cursor-pointer flex items-center justify-between transition-colors">
                             <div>
-                                <span class="font-semibold text-slate-900" x-text="item.name"></span>
+                                <span class="font-bold text-slate-900" x-text="item.name"></span>
                                 <span class="text-[11px] text-slate-500 ml-1.5" x-text="'(' + item.desc + ')'"></span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded font-medium bg-slate-100 text-slate-600" x-text="item.cat"></span>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-slate-100 text-slate-700" x-text="item.cat"></span>
                         </div>
                     </template>
                     <div x-show="filteredDrugs.length === 0" class="px-3 py-3 text-center text-slate-400 text-[11px]">
-                        No matching formulary item. Press tab or enter to keep custom text.
+                        No matching formulary item. Type custom drug name.
                     </div>
                 </div>
             </div>
 
-            <!-- Dosage, Route, Frequency (Compact Grid) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
-                        Dosage <span class="text-rose-600">*</span>
+            <!-- Dosage Guidance (Amount | Unit | Formulation) -->
+            <div class="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-slate-800">
+                        Dosage &amp; Formulation <span class="text-rose-600">*</span>
                     </label>
-                    <input type="text" 
-                           id="id_dosage"
-                           name="dosage" 
-                           x-model="dosageVal"
-                           required
-                           placeholder="e.g. 10 mg (10 ml), 1+1+1"
-                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+                    <span class="text-[10px] text-slate-500 font-medium">Amount &bull; Unit &bull; Form</span>
                 </div>
 
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <!-- Amount -->
+                    <div class="sm:col-span-4">
+                        <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-0.5">Amount</label>
+                        <input type="number" 
+                               step="any" 
+                               min="0" 
+                               x-model="doseAmount" 
+                               @input="onDosageChange()"
+                               placeholder="e.g. 10" 
+                               required
+                               class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 bg-white font-semibold focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+                    </div>
+
+                    <!-- Unit -->
+                    <div class="sm:col-span-4">
+                        <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-0.5">Unit</label>
+                        <select x-model="doseUnit" 
+                                @change="onDosageChange()"
+                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                            <option value="mg">mg</option>
+                            <option value="mcg">mcg</option>
+                            <option value="g">g</option>
+                            <option value="mL">mL</option>
+                            <option value="L">L</option>
+                            <option value="units">units</option>
+                            <option value="IU">IU</option>
+                            <option value="mmol">mmol</option>
+                            <option value="%">%</option>
+                            <option value="drops">drops</option>
+                            <option value="puffs">puffs</option>
+                            <option value="sprays">sprays</option>
+                            <option value="patch">patch</option>
+                            <option value="tablet">tablet</option>
+                            <option value="capsule">capsule</option>
+                            <option value="suppository">suppository</option>
+                        </select>
+                    </div>
+
+                    <!-- Formulation -->
+                    <div class="sm:col-span-4">
+                        <label class="block text-[10px] font-semibold uppercase text-slate-500 mb-0.5">Formulation</label>
+                        <select x-model="doseFormulation" 
+                                @change="onDosageChange()"
+                                class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 font-medium focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                            <option value="Tablet">Tablet</option>
+                            <option value="Capsule">Capsule</option>
+                            <option value="Oral solution">Oral solution</option>
+                            <option value="Syrup">Syrup</option>
+                            <option value="Injection">Injection</option>
+                            <option value="Sublingual tablet">Sublingual tablet</option>
+                            <option value="Sublingual solution">Sublingual solution</option>
+                            <option value="Suppository">Suppository</option>
+                            <option value="Transdermal patch">Transdermal patch</option>
+                            <option value="Cream">Cream</option>
+                            <option value="Ointment">Ointment</option>
+                            <option value="Drops">Drops</option>
+                            <option value="Inhaler">Inhaler</option>
+                            <option value="Nebulizer solution">Nebulizer solution</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Hidden Dosage input submitting clean combined string -->
+                <input type="hidden" id="id_dosage" name="dosage" x-model="dosageVal" required>
+
+                <!-- Dynamic Medication Equivalent Helper Badge -->
+                <div x-show="dosageHelperText" 
+                     x-cloak 
+                     class="flex items-center gap-1.5 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200/80">
+                    <i data-lucide="info" class="w-3.5 h-3.5 text-emerald-600 shrink-0"></i>
+                    <span x-text="dosageHelperText"></span>
+                </div>
+            </div>
+
+            <!-- Route & Frequency Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Route -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">
                         Route <span class="text-rose-600">*</span>
@@ -141,7 +214,7 @@
                     <select name="route" 
                             id="id_route"
                             x-model="routeVal"
-                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white">
+                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white font-medium">
                         <option value="ORAL">Oral (PO)</option>
                         <option value="SUBLINGUAL">Sublingual (SL)</option>
                         <option value="SUBCUTANEOUS">Subcutaneous (SC)</option>
@@ -153,17 +226,41 @@
                     </select>
                 </div>
 
+                <!-- Frequency -->
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">
                         Frequency <span class="text-rose-600">*</span>
                     </label>
-                    <input type="text" 
-                           id="id_frequency"
-                           name="frequency" 
-                           x-model="frequencyVal"
-                           required
-                           placeholder="e.g. q4h, BD, TDS, ON"
-                           class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none">
+                    <select x-model="frequencyChoice" 
+                            @change="onFrequencyChange()"
+                            class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none bg-white font-medium">
+                        <option value="Once daily (OD)">Once daily (OD) &mdash; 1 time per day</option>
+                        <option value="Twice daily (BD)">Twice daily (BD) &mdash; 2 times per day</option>
+                        <option value="Three times daily (TDS)">Three times daily (TDS) &mdash; 3 times per day</option>
+                        <option value="Four times daily (QDS)">Four times daily (QDS) &mdash; 4 times per day</option>
+                        <option value="Every 4 hours (q4h)">Every 4 hours (q4h) &mdash; Every 4 hours</option>
+                        <option value="Every 6 hours (q6h)">Every 6 hours (q6h) &mdash; Every 6 hours</option>
+                        <option value="Every 8 hours (q8h)">Every 8 hours (q8h) &mdash; Every 8 hours</option>
+                        <option value="Every 12 hours (q12h)">Every 12 hours (q12h) &mdash; Every 12 hours</option>
+                        <option value="At bedtime (Nocte)">At bedtime (Nocte) &mdash; At night</option>
+                        <option value="As needed (PRN)">As needed (PRN) &mdash; When required</option>
+                        <option value="Stat">Stat &mdash; Give immediately</option>
+                        <option value="Once only">Once only &mdash; Single administration</option>
+                        <option value="Weekly">Weekly &mdash; Once per week</option>
+                        <option value="OTHER">Other / Custom &mdash; Allows clinician-defined frequency</option>
+                    </select>
+
+                    <!-- Custom Frequency Text Input (shown when Other is selected) -->
+                    <div x-show="frequencyChoice === 'OTHER'" x-cloak class="mt-1.5">
+                        <input type="text" 
+                               x-model="customFrequencyText" 
+                               @input="frequencyVal = customFrequencyText"
+                               placeholder="Specify custom frequency instruction..." 
+                               class="w-full px-3 py-1.5 text-xs border border-amber-300 bg-amber-50/40 rounded-lg text-slate-900 focus:ring-1 focus:ring-[#002D62] focus:outline-none font-medium">
+                    </div>
+
+                    <!-- Hidden Frequency input submitting clean value -->
+                    <input type="hidden" id="id_frequency" name="frequency" x-model="frequencyVal" required>
                 </div>
             </div>
 
@@ -233,39 +330,321 @@ function medicationFormHandler() {
         dropdownOpen: false,
         searchMed: '{{ form.medication_name.value|default:""|escapejs }}',
         dosageVal: '{{ form.dosage.value|default:""|escapejs }}',
+        doseAmount: 10,
+        doseUnit: 'mg',
+        doseFormulation: 'Tablet',
+        dosageHelperText: '',
+        activeDrug: null,
         routeVal: '{{ form.route.value|default:"ORAL"|escapejs }}',
-        frequencyVal: '{{ form.frequency.value|default:""|escapejs }}',
+        frequencyVal: '{{ form.frequency.value|default:"Every 4 hours (q4h)"|escapejs }}',
+        frequencyChoice: 'Every 4 hours (q4h)',
+        customFrequencyText: '',
         indicationVal: '{{ form.indication.value|default:""|escapejs }}',
         startDateVal: '{{ form.start_date.value|date:"Y-m-d"|default:"" }}' || new Date().toISOString().split('T')[0],
         instructionsVal: '{{ form.instructions_for_caregiver.value|default:""|escapejs }}',
 
         catalog: [
-            { name: "Oral Morphine Solution 5mg/5ml", desc: "Opioid Analgesic", cat: "Opioid", route: "ORAL", freq: "Every 4 hours (q4h)", ind: "Severe somatic and visceral cancer pain" },
-            { name: "Morphine 10Mg Capsules", desc: "Extended-Release Opioid", cat: "Opioid", route: "ORAL", freq: "Every 12 hours (q12h)", ind: "Continuous baseline cancer pain" },
-            { name: "TAB-RIVOTRIL 0.5", desc: "Clonazepam 0.5mg", cat: "Anxiolytic", route: "ORAL", freq: "Once daily at bedtime (ON)", ind: "Anxiety & nocturnal distress" },
-            { name: "TAB-VOLATLIN FORTE/CLOFENAC 50", desc: "Diclofenac Sodium 50mg", cat: "NSAID", route: "ORAL", freq: "Twice daily after meals (BD)", ind: "Bone pain & inflammatory swelling" },
-            { name: "TAB-PURIFEN/XFLAM 200/300/400", desc: "Ibuprofen", cat: "NSAID", route: "ORAL", freq: "Every 8 hours with food (TDS)", ind: "Musculoskeletal pain" },
-            { name: "TAB-TORY 90/120", desc: "Etoricoxib 90/120mg", cat: "NSAID", route: "ORAL", freq: "Once daily (OM)", ind: "Localized inflammatory pain" },
-            { name: "TAB-ROLAC/TORAMAX 10", desc: "Ketorolac 10mg", cat: "NSAID", route: "ORAL", freq: "Every 6-8 hours (short-course)", ind: "Acute pain flare" },
-            { name: "TAB-NAPA 500", desc: "Paracetamol 500mg", cat: "Analgesic", route: "ORAL", freq: "Every 6-8 hours (q6h)", ind: "Mild pain and fever" },
-            { name: "CAP-MOXACIL 250/500", desc: "Amoxicillin 500mg", cat: "Antibiotic", route: "ORAL", freq: "Every 8 hours (TDS)", ind: "Bacterial infection" },
-            { name: "TAB-MOXACLAV 375/625", desc: "Amoxicillin / Clavulanate", cat: "Antibiotic", route: "ORAL", freq: "Twice daily (BD)", ind: "Respiratory / soft tissue infection" },
-            { name: "TAB-FUROTIL 125/250/500", desc: "Cefuroxime Axetil", cat: "Antibiotic", route: "ORAL", freq: "Twice daily after meals (BD)", ind: "Bacterial infection" },
-            { name: "Ciprolab / Ciprofloxacin 500mg", desc: "Ciprofloxacin 500mg", cat: "Antibiotic", route: "ORAL", freq: "Twice daily (BD)", ind: "Urinary / systemic bacterial infection" },
-            { name: "TAB-AMODIS/FILMET 400", desc: "Metronidazole 400mg", cat: "Antibacterial", route: "ORAL", freq: "Every 8 hours (TDS)", ind: "Anaerobic infection / fungating wound" },
-            { name: "ORAL SUSPENSION-CANDEX", desc: "Antifungal Suspension", cat: "Antifungal", route: "ORAL", freq: "Four times daily after food", ind: "Oral candidiasis / thrush" },
-            { name: "ORAL SUSPENSION-NYSTAT", desc: "Nystatin Suspension", cat: "Antifungal", route: "ORAL", freq: "Four times daily (Swish & Swallow)", ind: "Oral thrush" },
-            { name: "Fluconazole 200mg", desc: "Fluconazole 200mg", cat: "Antifungal", route: "ORAL", freq: "Once daily", ind: "Esophageal / systemic candidiasis" },
-            { name: "CAP-SECLO 20/40", desc: "Omeprazole 20mg", cat: "Gastro", route: "ORAL", freq: "Once daily before breakfast", ind: "Gastric acid suppression" },
-            { name: "CAP-SERGEL 20/40", desc: "Esomeprazole 20mg", cat: "Gastro", route: "ORAL", freq: "Once daily before breakfast", ind: "Gastroprotection" },
-            { name: "SYP-ENTACYD/GAVIFLUX", desc: "Antacid Liquid", cat: "Gastro", route: "ORAL", freq: "After meals and at bedtime (PRN)", ind: "Dyspepsia & reflux" },
-            { name: "Senna 7.5 mgs", desc: "Senna Laxative", cat: "Laxative", route: "ORAL", freq: "1-2 tablets at bedtime (ON)", ind: "Opioid constipation prophylaxis" },
-            { name: "Prednisolone 5mg", desc: "Prednisolone 5mg", cat: "Steroid", route: "ORAL", freq: "Morning dose with food", ind: "Anti-inflammatory & nerve compression" },
-            { name: "OINTMENT-KENALOG IN ORABASE", desc: "Triamcinolone Orabase", cat: "Topical", route: "TOPICAL", freq: "Apply to lesion 2-3 times daily", ind: "Oral mucosal ulceration" },
-            { name: "OINTMENT-TRIALON", desc: "Triamcinolone Ointment", cat: "Topical", route: "TOPICAL", freq: "Apply sparingly twice daily", ind: "Skin inflammation" },
-            { name: "TOOTHPASTE-MEDIPLUS", desc: "Oral Compound", cat: "Oral Care", route: "TOPICAL", freq: "Brush gently twice daily", ind: "Oral hygiene" },
-            { name: "TAB-CORALCAL D", desc: "Calcium & Vit D3", cat: "Supplement", route: "ORAL", freq: "Once daily after food", ind: "Bone support" },
-            { name: "CAP-D RISE 40000IU", desc: "Vitamin D3 40,000 IU", cat: "Supplement", route: "ORAL", freq: "Once weekly", ind: "Vitamin D deficiency" }
+            { 
+                name: "Morphine Oral Solution 10 mg/5 mL", 
+                desc: "Concentrated Oral Morphine", 
+                cat: "Opioid", 
+                route: "ORAL", 
+                amount: 5, 
+                unit: "mL", 
+                formulation: "Oral solution", 
+                freq: "Every 4 hours (q4h)", 
+                ind: "Moderate to severe cancer pain",
+                mgPerMl: 2.0,
+                baseDrug: "morphine"
+            },
+            { 
+                name: "Oral Morphine Solution 5 mg/5 mL", 
+                desc: "Oral Morphine Solution (1 mg/mL)", 
+                cat: "Opioid", 
+                route: "ORAL", 
+                amount: 5, 
+                unit: "mL", 
+                formulation: "Oral solution", 
+                freq: "Every 4 hours (q4h)", 
+                ind: "Moderate cancer pain & dyspnea",
+                mgPerMl: 1.0,
+                baseDrug: "morphine"
+            },
+            { 
+                name: "Morphine 10 mg Capsules (MST)", 
+                desc: "Extended-Release Opioid (12-hourly)", 
+                cat: "Opioid", 
+                route: "ORAL", 
+                amount: 10, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Every 12 hours (q12h)", 
+                ind: "Continuous baseline cancer pain",
+                staticHelper: "10 mg continuous release morphine every 12h"
+            },
+            { 
+                name: "Morphine 30 mg Capsules (MST)", 
+                desc: "Extended-Release Opioid (12-hourly)", 
+                cat: "Opioid", 
+                route: "ORAL", 
+                amount: 30, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Every 12 hours (q12h)", 
+                ind: "Continuous baseline cancer pain",
+                staticHelper: "30 mg continuous release morphine every 12h"
+            },
+            { 
+                name: "Morphine 60 mg Capsules (MST)", 
+                desc: "Extended-Release Opioid (12-hourly)", 
+                cat: "Opioid", 
+                route: "ORAL", 
+                amount: 60, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Every 12 hours (q12h)", 
+                ind: "Severe continuous baseline cancer pain",
+                staticHelper: "60 mg continuous release morphine every 12h"
+            },
+            { 
+                name: "Fentanyl 25 mcg/hr Transdermal Patch", 
+                desc: "Transdermal Opioid Patch", 
+                cat: "Opioid", 
+                route: "TRANSDERMAL", 
+                amount: 25, 
+                unit: "mcg", 
+                formulation: "Transdermal patch", 
+                freq: "Weekly", 
+                ind: "Stable chronic pain with swallowing difficulty",
+                staticHelper: "Patch changed every 72 hours (3 days)"
+            },
+            { 
+                name: "Tramadol 50 mg Capsules", 
+                desc: "Step 2 Weak Opioid", 
+                cat: "Opioid", 
+                route: "ORAL", 
+                amount: 50, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Every 6 hours (q6h)", 
+                ind: "Moderate somatic pain" 
+            },
+            { 
+                name: "Paracetamol (Napa) 500 mg", 
+                desc: "Analgesic & Antipyretic", 
+                cat: "Analgesic", 
+                route: "ORAL", 
+                amount: 500, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Every 6 hours (q6h)", 
+                ind: "Mild pain and fever",
+                staticHelper: "500 mg active paracetamol (Max 4,000 mg in 24h)"
+            },
+            { 
+                name: "Diclofenac Sodium 50 mg", 
+                desc: "NSAID", 
+                cat: "NSAID", 
+                route: "ORAL", 
+                amount: 50, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Twice daily (BD)", 
+                ind: "Bone pain & inflammatory swelling",
+                staticHelper: "Take with food to protect gastric mucosa"
+            },
+            { 
+                name: "Ibuprofen 400 mg Tablets", 
+                desc: "NSAID", 
+                cat: "NSAID", 
+                route: "ORAL", 
+                amount: 400, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Three times daily (TDS)", 
+                ind: "Musculoskeletal inflammatory pain" 
+            },
+            { 
+                name: "Etoricoxib (Tory) 90 mg", 
+                desc: "COX-2 Selective NSAID", 
+                cat: "NSAID", 
+                route: "ORAL", 
+                amount: 90, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Once daily (OD)", 
+                ind: "Localized metastatic bone pain" 
+            },
+            { 
+                name: "Clonazepam (Rivotril) 0.5 mg", 
+                desc: "Anxiolytic & Anticonvulsant", 
+                cat: "Anxiolytic", 
+                route: "ORAL", 
+                amount: 0.5, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "At bedtime (Nocte)", 
+                ind: "Anxiety, muscle spasm & nocturnal restlessness" 
+            },
+            { 
+                name: "Haloperidol 0.5 mg Tablets", 
+                desc: "Antiemetic & Delirium Management", 
+                cat: "Antiemetic", 
+                route: "ORAL", 
+                amount: 0.5, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "At bedtime (Nocte)", 
+                ind: "Opioid-induced nausea / restlessness" 
+            },
+            { 
+                name: "Metoclopramide 10 mg Tablets", 
+                desc: "Prokinetic Antiemetic", 
+                cat: "Antiemetic", 
+                route: "ORAL", 
+                amount: 10, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Three times daily (TDS)", 
+                ind: "Nausea & gastroparesis",
+                staticHelper: "Take 30 minutes before meals"
+            },
+            { 
+                name: "Ondansetron 4 mg Tablets", 
+                desc: "5-HT3 Antiemetic", 
+                cat: "Antiemetic", 
+                route: "ORAL", 
+                amount: 4, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Every 8 hours (q8h)", 
+                ind: "Chemotherapy & visceral nausea" 
+            },
+            { 
+                name: "Dexamethasone 4 mg Tablets", 
+                desc: "Corticosteroid", 
+                cat: "Steroid", 
+                route: "ORAL", 
+                amount: 4, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Once daily (OD)", 
+                ind: "Raised ICP, nerve compression, appetite stimulation",
+                staticHelper: "Administer in the morning to prevent insomnia"
+            },
+            { 
+                name: "Prednisolone 5 mg Tablets", 
+                desc: "Corticosteroid", 
+                cat: "Steroid", 
+                route: "ORAL", 
+                amount: 5, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Once daily (OD)", 
+                ind: "Anti-inflammatory & fatigue support" 
+            },
+            { 
+                name: "Omeprazole (Seclo) 20 mg", 
+                desc: "Proton Pump Inhibitor", 
+                cat: "Gastro", 
+                route: "ORAL", 
+                amount: 20, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Once daily (OD)", 
+                ind: "Gastric acid suppression & gastroprotection",
+                staticHelper: "Take 30 minutes before breakfast"
+            },
+            { 
+                name: "Senna 7.5 mg Tablets", 
+                desc: "Stimulant Laxative", 
+                cat: "Laxative", 
+                route: "ORAL", 
+                amount: 15, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "At bedtime (Nocte)", 
+                ind: "Opioid-induced constipation prophylaxis",
+                staticHelper: "2 tablets (15 mg) at bedtime"
+            },
+            { 
+                name: "Lactulose 10 g/15 mL Oral Solution", 
+                desc: "Osmotic Laxative", 
+                cat: "Laxative", 
+                route: "ORAL", 
+                amount: 15, 
+                unit: "mL", 
+                formulation: "Oral solution", 
+                freq: "Twice daily (BD)", 
+                ind: "Constipation & bowel regulation" 
+            },
+            { 
+                name: "Amoxicillin 500 mg Capsules", 
+                desc: "Broad-Spectrum Antibiotic", 
+                cat: "Antibiotic", 
+                route: "ORAL", 
+                amount: 500, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Every 8 hours (q8h)", 
+                ind: "Bacterial infection" 
+            },
+            { 
+                name: "Amoxicillin / Clavulanate (Moxaclav) 625 mg", 
+                desc: "Broad-Spectrum Antibiotic", 
+                cat: "Antibiotic", 
+                route: "ORAL", 
+                amount: 625, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Twice daily (BD)", 
+                ind: "Respiratory or tissue infection" 
+            },
+            { 
+                name: "Metronidazole (Amodis) 400 mg", 
+                desc: "Antibacterial & Antiprotozoal", 
+                cat: "Antibiotic", 
+                route: "ORAL", 
+                amount: 400, 
+                unit: "mg", 
+                formulation: "Tablet", 
+                freq: "Every 8 hours (q8h)", 
+                ind: "Anaerobic infection & malodorous fungating wounds" 
+            },
+            { 
+                name: "Fluconazole 200 mg", 
+                desc: "Systemic Antifungal", 
+                cat: "Antifungal", 
+                route: "ORAL", 
+                amount: 200, 
+                unit: "mg", 
+                formulation: "Capsule", 
+                freq: "Once daily (OD)", 
+                ind: "Esophageal & systemic candidiasis" 
+            },
+            { 
+                name: "Nystatin 100,000 IU/mL Oral Suspension", 
+                desc: "Topical Antifungal Suspension", 
+                cat: "Antifungal", 
+                route: "ORAL", 
+                amount: 1, 
+                unit: "mL", 
+                formulation: "Oral solution", 
+                freq: "Four times daily (QDS)", 
+                ind: "Oral thrush",
+                staticHelper: "Swish around mouth for 1 minute before swallowing"
+            },
+            { 
+                name: "Triamcinolone in Orabase (Kenalog)", 
+                desc: "Oral Mucosal Anti-inflammatory", 
+                cat: "Topical", 
+                route: "TOPICAL", 
+                amount: 1, 
+                unit: "application", 
+                formulation: "Ointment", 
+                freq: "Three times daily (TDS)", 
+                ind: "Oral mucosal ulceration & aphthous lesions" 
+            }
         ],
 
         get filteredDrugs() {
@@ -280,12 +659,123 @@ function medicationFormHandler() {
             );
         },
 
+        init() {
+            // Parse initial dosage if existing
+            if (this.dosageVal) {
+                const match = this.dosageVal.match(/^([\d.]+)\s*(\w+)?(?:\s*\(([^)]+)\))?/);
+                if (match) {
+                    if (match[1]) this.doseAmount = parseFloat(match[1]);
+                    if (match[2]) this.doseUnit = match[2];
+                    if (match[3]) this.doseFormulation = match[3];
+                }
+            } else {
+                this.updateDosageString();
+            }
+
+            // Match initial frequency to dropdown options
+            const standardFrequencies = [
+                "Once daily (OD)", "Twice daily (BD)", "Three times daily (TDS)", "Four times daily (QDS)",
+                "Every 4 hours (q4h)", "Every 6 hours (q6h)", "Every 8 hours (q8h)", "Every 12 hours (q12h)",
+                "At bedtime (Nocte)", "As needed (PRN)", "Stat", "Once only", "Weekly"
+            ];
+            if (this.frequencyVal) {
+                const found = standardFrequencies.find(f => f.toLowerCase() === this.frequencyVal.toLowerCase() || this.frequencyVal.toLowerCase().startsWith(f.toLowerCase().slice(0, 6)));
+                if (found) {
+                    this.frequencyChoice = found;
+                    this.frequencyVal = found;
+                } else {
+                    this.frequencyChoice = "OTHER";
+                    this.customFrequencyText = this.frequencyVal;
+                }
+            } else {
+                this.frequencyChoice = "Every 4 hours (q4h)";
+                this.frequencyVal = "Every 4 hours (q4h)";
+            }
+        },
+
         selectDrug(item) {
+            this.activeDrug = item;
             this.searchMed = item.name;
+            if (item.amount !== undefined) this.doseAmount = item.amount;
+            if (item.unit) this.doseUnit = item.unit;
+            if (item.formulation) this.doseFormulation = item.formulation;
             if (item.route) this.routeVal = item.route;
-            if (item.freq && !this.frequencyVal) this.frequencyVal = item.freq;
+            if (item.freq) {
+                this.frequencyChoice = item.freq;
+                this.frequencyVal = item.freq;
+            }
             if (item.ind && !this.indicationVal) this.indicationVal = item.ind;
+            
+            this.updateDosageString();
             this.dropdownOpen = false;
+        },
+
+        onDosageChange() {
+            this.updateDosageString();
+        },
+
+        updateDosageString() {
+            const amt = this.doseAmount !== null && this.doseAmount !== undefined ? this.doseAmount : '';
+            const unit = this.doseUnit || '';
+            const form = this.doseFormulation || '';
+            
+            if (amt !== '') {
+                this.dosageVal = `${amt} ${unit} (${form})`.trim();
+            } else {
+                this.dosageVal = '';
+            }
+
+            // Calculate dynamic helper
+            this.calculateHelper();
+        },
+
+        calculateHelper() {
+            if (this.activeDrug) {
+                if (this.activeDrug.mgPerMl && (this.doseUnit === 'mL' || this.doseUnit === 'ml')) {
+                    const totalMg = (this.doseAmount || 0) * this.activeDrug.mgPerMl;
+                    const formattedMg = totalMg % 1 === 0 ? totalMg : totalMg.toFixed(1);
+                    this.dosageHelperText = `Equivalent to ${formattedMg} mg ${this.activeDrug.baseDrug || 'active ingredient'}`;
+                    return;
+                }
+                if (this.activeDrug.staticHelper) {
+                    this.dosageHelperText = this.activeDrug.staticHelper;
+                    return;
+                }
+            }
+
+            // Fallback: check if the drug name or concentration has mg/mL
+            const concMatch = this.searchMed.match(/(\d+(?:\.\d+)?)\s*mg\s*\/\s*(\d+(?:\.\d+)?)\s*m[Ll]/i);
+            if (concMatch && (this.doseUnit === 'mL' || this.doseUnit === 'ml')) {
+                const mg = parseFloat(concMatch[1]);
+                const ml = parseFloat(concMatch[2]);
+                if (ml > 0) {
+                    const ratio = mg / ml;
+                    const totalMg = (this.doseAmount || 0) * ratio;
+                    const formattedMg = totalMg % 1 === 0 ? totalMg : totalMg.toFixed(1);
+                    this.dosageHelperText = `Equivalent to ${formattedMg} mg active ingredient`;
+                    return;
+                }
+            }
+
+            this.dosageHelperText = '';
+        },
+
+        onFrequencyChange() {
+            if (this.frequencyChoice === 'OTHER') {
+                this.frequencyVal = this.customFrequencyText || 'Custom frequency';
+            } else {
+                this.frequencyVal = this.frequencyChoice;
+            }
+        },
+
+        beforeSubmit(event) {
+            if (this.isSubmitting) {
+                event.preventDefault();
+                return;
+            }
+            this.updateDosageString();
+            this.onFrequencyChange();
+            this.isSubmitting = true;
         }
     }
 }
