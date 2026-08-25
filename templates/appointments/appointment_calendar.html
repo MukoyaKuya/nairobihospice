@@ -164,7 +164,7 @@
             <div class="sm:col-span-6 relative">
                 <input type="text" 
                        x-model="filterSearch" 
-                       placeholder="Filter by patient name, Hospice No, diagnosis, clinician, or reason..." 
+                       placeholder="{% if not request.user.is_receptionist and not is_pharmacist %}Filter by patient name, Hospice No, diagnosis, clinician, or reason...{% else %}Filter by patient name, Hospice No, clinician, or location...{% endif %}" 
                        class="w-full pl-8.5 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
                 <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
             </div>

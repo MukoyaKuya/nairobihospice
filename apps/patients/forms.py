@@ -95,6 +95,13 @@ class PatientRegistrationForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
 
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            from apps.documents.malware import scan_uploaded_file
+            scan_uploaded_file(photo)
+        return photo
+
 
 class PatientUpdateForm(forms.ModelForm):
     class Meta:
@@ -123,6 +130,13 @@ class PatientUpdateForm(forms.ModelForm):
             'cause_of_death': forms.Textarea(attrs={'rows': 2}),
             'notes': forms.Textarea(attrs={'rows': 3}),
         }
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            from apps.documents.malware import scan_uploaded_file
+            scan_uploaded_file(photo)
+        return photo
 
 
 class ReceptionistPatientUpdateForm(forms.ModelForm):

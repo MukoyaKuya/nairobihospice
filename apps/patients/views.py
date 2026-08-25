@@ -375,17 +375,24 @@ class PatientPhotoUploadView(LoginRequiredMixin, View):
 
         patient = get_operational_patient_or_404(request.user, pk)
         if 'photo' in request.FILES:
-            patient.photo = request.FILES['photo']
-            patient.save(update_fields=['photo', 'updated_at'])
+            photo_file = request.FILES['photo']
+            from apps.documents.malware import scan_uploaded_file
+            from django.core.exceptions import ValidationError
+            try:
+                scan_uploaded_file(photo_file)
+                patient.photo = photo_file
+                patient.save(update_fields=['photo', 'updated_at'])
 
-            log_audit_event(
-                action=AuditAction.UPDATE,
-                resource_type='PatientPhoto',
-                resource_id=str(patient.id),
-                summary=f"Uploaded identification photograph for patient {patient.full_name} ({patient.hospice_number})",
-                user=request.user,
-            )
-            messages.success(request, f"Patient identification photograph updated successfully for {patient.full_name}.")
+                log_audit_event(
+                    action=AuditAction.UPDATE,
+                    resource_type='PatientPhoto',
+                    resource_id=str(patient.id),
+                    summary=f"Uploaded identification photograph for patient {patient.full_name} ({patient.hospice_number})",
+                    user=request.user,
+                )
+                messages.success(request, f"Patient identification photograph updated successfully for {patient.full_name}.")
+            except ValidationError as exc:
+                messages.error(request, str(exc.message if hasattr(exc, 'message') else exc))
         else:
             messages.error(request, "No photograph file was provided.")
 

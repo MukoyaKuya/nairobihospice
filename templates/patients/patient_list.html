@@ -38,7 +38,7 @@
                            id="search-input"
                            name="q" 
                            value="{{ search_query }}"
-                           placeholder="Search Name, Hospice ID, Phone, Diagnosis..." 
+                           placeholder="{% if not is_receptionist and not is_pharmacist %}Search Name, Hospice ID, Phone, Diagnosis...{% else %}Search Name, Hospice ID, Phone, Location...{% endif %}" 
                            class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-medium focus:bg-white focus:ring-1 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
                     <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
                 </div>

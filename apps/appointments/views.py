@@ -162,8 +162,9 @@ class AppointmentStatusUpdateView(LoginRequiredMixin, View):
             )
             messages.success(request, f"Home visit status for {appt.patient.full_name} updated to {appt.get_status_display()}.")
         
-        next_url = request.POST.get('next')
-        if next_url:
+        next_url = request.POST.get('next') or request.GET.get('next')
+        from django.utils.http import url_has_allowed_host_and_scheme
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             return redirect(next_url)
         return redirect('appointments:calendar')
 
@@ -216,8 +217,9 @@ class AppointmentDeletionRequestCreateView(LoginRequiredMixin, View):
             f"Deletion request for {appt.patient.full_name}'s appointment on {appt.scheduled_date} has been submitted for Operations approval."
         )
         
-        next_url = request.POST.get('next')
-        if next_url:
+        next_url = request.POST.get('next') or request.GET.get('next')
+        from django.utils.http import url_has_allowed_host_and_scheme
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             return redirect(next_url)
         return redirect('appointments:calendar')
 

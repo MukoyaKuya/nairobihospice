@@ -218,3 +218,12 @@ LOGGING = {
 TRUST_PROXY_HEADERS = False
 MFA_ENFORCEMENT_MIDDLEWARE_ENABLED = True
 MFA_REQUIRED_FOR_PRIVILEGED = True
+
+CONTENT_SECURITY_POLICY = os.environ.get(
+    'CONTENT_SECURITY_POLICY',
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
+    "img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "script-src 'self' 'unsafe-inline'; "
+    "connect-src 'self'; form-action 'self';"
+)

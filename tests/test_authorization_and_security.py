@@ -677,6 +677,14 @@ class TestInputValidationAndAuditIntegrity:
             password='Pass!',
             role=RoleChoices.DOCTOR,
         )
+        self.receptionist = create_staff_user(
+            email='val_rec@nairobihospice.or.ke',
+            username='val_rec',
+            first_name='Val',
+            last_name='Rec',
+            password='Pass!',
+            role=RoleChoices.RECEPTIONIST,
+        )
         self.patient = register_patient(
             first_name='John',
             last_name='Kamau',
@@ -717,3 +725,73 @@ class TestInputValidationAndAuditIntegrity:
         res_404 = client.get('/nonexistent-clinical-endpoint/')
         assert res_404.status_code == 404
         assert b'Clinical Page Not Found' in res_404.content or b'404' in res_404.content
+
+    def test_appointment_next_redirect_blocks_open_redirects(self):
+        """Appointment status updates and deletion requests discard external next= URLs."""
+        from django.test import Client
+        from apps.appointments.models import Appointment, AppointmentTypeChoices, AppointmentStatusChoices
+        from django.utils import timezone
+        
+        appt = Appointment.objects.create(
+            patient=self.patient,
+            staff_member=self.doctor.staff_profile,
+            appointment_type=AppointmentTypeChoices.CLINIC_VISIT,
+            scheduled_date=timezone.now().date(),
+            scheduled_time=timezone.now().time(),
+            status=AppointmentStatusChoices.SCHEDULED,
+            created_by=self.doctor,
+        )
+
+        client = Client()
+        client.force_login(self.doctor)
+
+        # Update status with malicious next
+        resp = client.post(
+            f'/appointments/{appt.pk}/update-status/',
+            {'status': AppointmentStatusChoices.COMPLETED, 'next': 'https://evil.com/phishing'}
+        )
+        assert resp.status_code == 302
+        assert resp.url == '/appointments/'
+
+        # Deletion request with malicious next
+        resp_del = client.post(
+            f'/appointments/{appt.pk}/request-delete/',
+            {'reason': 'Duplicate entry', 'next': 'https://evil.com/phishing'}
+        )
+        assert resp_del.status_code == 302
+        assert resp_del.url == '/appointments/'
+
+    def test_patient_photo_upload_scans_malware(self, monkeypatch):
+        """Patient photo upload view invokes malware scanner."""
+        from django.test import Client
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from apps.patients import views as patient_views
+        
+        scanned = []
+        def fake_scan(uploaded_file):
+            scanned.append(uploaded_file.name)
+        
+        import apps.documents.malware
+        monkeypatch.setattr(apps.documents.malware, 'scan_uploaded_file', fake_scan)
+
+        client = Client()
+        client.force_login(self.receptionist)
+        
+        photo = SimpleUploadedFile('avatar.png', b'fake-image-bytes', content_type='image/png')
+        resp = client.post(f'/patients/{self.patient.pk}/upload-photo/', {'photo': photo})
+        assert resp.status_code == 302
+        assert 'avatar.png' in scanned
+
+    def test_search_placeholders_hide_diagnosis_from_receptionist(self):
+        """Calendar and patient list search placeholders do not advertise diagnosis to receptionist."""
+        from django.test import Client
+        client = Client()
+        client.force_login(self.receptionist)
+
+        resp_cal = client.get('/appointments/')
+        assert resp_cal.status_code == 200
+        assert b'Filter by patient name, Hospice No, clinician, or location...' in resp_cal.content
+
+        resp_pat = client.get('/patients/')
+        assert resp_pat.status_code == 200
+        assert b'Search Name, Hospice ID, Phone, Location...' in resp_pat.content
