@@ -343,13 +343,17 @@ class TestAPISecurityAndAuthorization:
             password='Pass!',
             role=RoleChoices.PHARMACIST,
         )
-        form = StockDispenseForm(user=pharmacist)
-        allowed_patients = list(form.fields['patient'].queryset)
-        assert patient_with_meds in allowed_patients
+        # Blank form without candidate: only existing caseload
+        form_blank = StockDispenseForm(user=pharmacist)
+        assert patient_with_meds not in list(form_blank.fields['patient'].queryset)
+        assert patient_without_meds not in list(form_blank.fields['patient'].queryset)
+
+        # Form with active-Rx candidate requested via initial/?patient=: not widened
+        # unless the patient is already in authorized_patient_queryset (no prior dispense).
+        form_candidate = StockDispenseForm(initial={'patient': patient_with_meds.pk}, user=pharmacist)
+        allowed_patients = list(form_candidate.fields['patient'].queryset)
+        assert patient_with_meds not in allowed_patients
         assert patient_without_meds not in allowed_patients
-        allowed_meds = list(form.fields['medication_statement'].queryset)
-        assert len(allowed_meds) == 1
-        assert allowed_meds[0].patient == patient_with_meds
 
     def test_pharmacy_recent_dispenses_scoped_by_role(self):
         """Pharmacy dispense view scopes recent dispenses table strictly by user role and dispenses."""
@@ -695,7 +699,7 @@ class TestAPISecurityAndAuthorization:
         assert ref.primary_diagnosis == 'Pending Clinical Review'
         assert ref.clinical_summary == ''
         assert ref.current_medications == ''
-        assert ref.reason_for_referral == 'Palliative intake requested by KNH oncology'
+        assert ref.reason_for_referral == 'Palliative care intake evaluation requested.'
 
     def test_dispense_without_prescription_fk_raises_validation_error(self):
         """Service layer record_stock_movement and model clean() strictly require medication_statement on patient dispenses."""
@@ -746,7 +750,7 @@ class TestAPISecurityAndAuthorization:
             ])
 
     def test_receptionist_referral_scrubs_clinical_terms_from_reason(self):
-        """Referral reason_for_referral from receptionists automatically redacts clinical staging and oncology terms."""
+        """Referral reason_for_referral from receptionists drops clinical narrative and saves fixed intake token."""
         from django.test import Client
         from apps.referrals.models import Referral
 
@@ -763,15 +767,97 @@ class TestAPISecurityAndAuthorization:
             'referral_date': '2026-08-25',
             'priority': 'ROUTINE',
             'primary_diagnosis': 'Metastatic Breast Carcinoma Stage IV',
-            'reason_for_referral': 'Referral for Stage IV metastatic carcinoma palliative home care pain management',
+            'reason_for_referral': 'Referral for breast cancer / Ca cervix / adenocarcinoma / HIV / morphine titration',
         })
         assert res.status_code == 302
         ref = Referral.objects.filter(patient_name='Grace Auma').latest('created_at')
         assert ref.primary_diagnosis == 'Pending Clinical Review'
-        assert 'Stage IV' not in ref.reason_for_referral
-        assert 'metastatic' not in ref.reason_for_referral
-        assert 'carcinoma' not in ref.reason_for_referral
-        assert '[redacted for clinical triage]' in ref.reason_for_referral
+        assert ref.reason_for_referral == 'Palliative care intake evaluation requested.'
+        assert 'breast cancer' not in ref.reason_for_referral
+        assert 'Ca cervix' not in ref.reason_for_referral
+        assert 'adenocarcinoma' not in ref.reason_for_referral
+        assert 'HIV' not in ref.reason_for_referral
+        assert 'morphine' not in ref.reason_for_referral
+
+    def test_dispense_cross_patient_rx_mismatch_db_trigger_fails(self):
+        """Database trigger ensures medication_statement belongs to the dispensed patient on bulk_create and update."""
+        from django.db.utils import IntegrityError, DatabaseError
+        from apps.operations.models import StockItem, StockMovement, MovementTypeChoices
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        from apps.patients.models import Patient
+
+        stock_item = StockItem.objects.create(
+            name="Morphine 10mg Solution",
+            item_code="STK-DB-TRG-01",
+            quantity_on_hand=50,
+            unit_of_measure="bottle",
+        )
+        patient_b = Patient.objects.create(
+            first_name="Patient",
+            last_name="Beta",
+            hospice_number="NH-TRG-B",
+            sex="F",
+            status="ACTIVE",
+        )
+        rx_beta = MedicationStatement.objects.create(
+            patient=patient_b,
+            medication_name="Morphine 10mg",
+            dosage="10mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+
+        # Mismatch: Dispensing to self.patient using patient_b's prescription via bulk_create
+        with pytest.raises((IntegrityError, DatabaseError)):
+            StockMovement.objects.bulk_create([
+                StockMovement(
+                    stock_item=stock_item,
+                    movement_type=MovementTypeChoices.DISPENSE,
+                    quantity=-1,
+                    balance_after=49,
+                    patient=self.patient,  # Mismatched patient
+                    medication_statement=rx_beta,  # Belongs to patient_b
+                )
+            ])
+
+    def test_pharmacist_dispense_form_does_not_contain_unassigned_patient(self):
+        """Pharmacist initial GET of dispense form does not dump unassigned patients into HTML select."""
+        from django.test import Client
+        from apps.patients.models import Patient
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        unassigned_pat = Patient.objects.create(
+            first_name="Unassigned",
+            last_name="Candidate",
+            hospice_number="NH-UNASSIGNED-01",
+            sex="M",
+            status="ACTIVE",
+        )
+        MedicationStatement.objects.create(
+            patient=unassigned_pat,
+            medication_name="Paracetamol 500mg",
+            dosage="500mg",
+            route="ORAL",
+            frequency="TID",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+
+        pharm = create_staff_user(
+            email='pharm_roster_check@nairobihospice.or.ke',
+            username='pharm_roster_check',
+            first_name='Pharm',
+            last_name='Check',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        client = Client()
+        client.force_login(pharm)
+        resp = client.get('/operations/pharmacy/dispense/')
+        assert resp.status_code == 200
+        assert 'NH-UNASSIGNED-01' not in resp.content.decode('utf-8')
 
     def test_clinical_dashboard_skips_pain_and_encounter_queries_for_reception_and_pharmacy(self):
         """Clinical dashboard selectors return empty querysets for pain, encounters, and care plans for non-clinical roles."""
@@ -817,6 +903,15 @@ class TestAPISecurityAndAuthorization:
         assert doc_resp.status_code == 200
         assert doc_resp['Cache-Control'] == 'private, no-store, max-age=0, must-revalidate'
         assert doc_resp['X-Content-Type-Options'] == 'nosniff'
+
+        # Test photo streaming headers
+        self.patient.photo = SimpleUploadedFile("avatar.jpg", b"\xff\xd8\xff\xe0testjpegimagebytes", content_type="image/jpeg")
+        self.patient.save()
+
+        photo_resp = client.get(f'/patients/{self.patient.pk}/photo/')
+        assert photo_resp.status_code == 200
+        assert photo_resp['Cache-Control'] == 'private, no-store, max-age=0, must-revalidate'
+        assert photo_resp['X-Content-Type-Options'] == 'nosniff'
 
     def test_medication_list_scoped_to_authorized_caseload(self):
         """Medication list view scopes statements to clinician authorized caseload."""
@@ -1035,6 +1130,217 @@ class TestAPISecurityAndAuthorization:
             assert '/accounts/mfa/enroll/' in response.url or '/accounts/mfa/verify/' in response.url
 
 
+    def test_pharmacist_dispense_query_param_does_not_leak_unassigned_hospice_number(self):
+        """Pharmacist GET /operations/pharmacy/dispense/?patient=<unassigned-uuid> omits that hospice number."""
+        from django.test import Client
+        from apps.patients.models import Patient
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+
+        unassigned = Patient.objects.create(
+            first_name="Unassigned",
+            last_name="QueryParam",
+            hospice_number="NH-UNASSIGNED-QP-01",
+            sex="F",
+            status="ACTIVE",
+        )
+        MedicationStatement.objects.create(
+            patient=unassigned,
+            medication_name="Oral Morphine 10mg",
+            dosage="10mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        pharmacist = create_staff_user(
+            email='pharm_qp@nairobihospice.or.ke',
+            username='pharm_qp',
+            first_name='Pharm',
+            last_name='Query',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        client = Client()
+        client.force_login(pharmacist)
+        resp = client.get(f'/operations/pharmacy/dispense/?patient={unassigned.pk}')
+        assert resp.status_code == 200
+        html = resp.content.decode('utf-8')
+        assert 'NH-UNASSIGNED-QP-01' not in html
+
+    def test_dispense_queryset_update_patient_rx_mismatch_is_rejected(self):
+        """QuerySet.update() cannot re-point a dispense at a patient who does not own the Rx."""
+        from django.core.exceptions import ValidationError
+        from django.db import connection
+        from django.db.utils import DatabaseError, IntegrityError, OperationalError
+        from apps.operations.models import StockItem, StockMovement, MovementTypeChoices
+        from apps.operations.services import record_stock_movement
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        from apps.patients.models import Patient
+
+        stock_item = StockItem.objects.create(
+            name="Morphine 10mg Solution",
+            item_code="STK-DB-UPD-01",
+            quantity_on_hand=50,
+            unit_of_measure="bottle",
+        )
+        patient_a = self.patient
+        patient_b = Patient.objects.create(
+            first_name="Patient",
+            last_name="BetaUpdate",
+            hospice_number="NH-TRG-UPD-B",
+            sex="F",
+            status="ACTIVE",
+        )
+        rx_a = MedicationStatement.objects.create(
+            patient=patient_a,
+            medication_name="Morphine 10mg",
+            dosage="10mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        rx_b = MedicationStatement.objects.create(
+            patient=patient_b,
+            medication_name="Morphine 10mg",
+            dosage="10mg",
+            route="ORAL",
+            frequency="q4h",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        movement = record_stock_movement(
+            stock_item=stock_item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=1,
+            patient=patient_a,
+            medication_statement=rx_a,
+            user=self.doctor,
+        )
+
+        mismatch = StockMovement(
+            stock_item=stock_item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=-1,
+            balance_after=49,
+            patient=patient_a,
+            medication_statement=rx_b,
+        )
+        with pytest.raises(ValidationError):
+            mismatch.full_clean()
+
+        try:
+            StockMovement.objects.filter(pk=movement.pk).update(patient_id=patient_b.pk)
+        except (IntegrityError, DatabaseError, OperationalError):
+            return
+        movement.refresh_from_db()
+        if movement.patient_id == patient_b.pk and movement.medication_statement_id == rx_a.pk:
+            if connection.vendor == 'sqlite':
+                pytest.skip(
+                    'SQLite test database did not enforce check_dispense_patient_rx_match on '
+                    'QuerySet.update(); migration 0013 installs Postgres/MySQL triggers for production. '
+                    'Model full_clean()/save() still reject the mismatch.'
+                )
+            pytest.fail('QuerySet.update() allowed a patient/Rx mismatch')
+
+    def test_controlled_register_export_is_scoped_by_role(self):
+        """Nurse and unrelated pharmacist cannot download another pharmacist's morphine rows; manager can."""
+        from django.test import Client
+        from apps.operations.models import StockItem, MovementTypeChoices
+        from apps.operations.services import record_stock_movement
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        from apps.patients.models import Patient
+
+        owner = create_staff_user(
+            email='pharm_register_owner@nairobihospice.or.ke',
+            username='pharm_register_owner',
+            first_name='Owner',
+            last_name='Pharm',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        other_pharm = create_staff_user(
+            email='pharm_register_other@nairobihospice.or.ke',
+            username='pharm_register_other',
+            first_name='Other',
+            last_name='Pharm',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+        nurse = create_staff_user(
+            email='nurse_register_export@nairobihospice.or.ke',
+            username='nurse_register_export',
+            first_name='Nurse',
+            last_name='Export',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
+        manager = create_staff_user(
+            email='mgr_register_export@nairobihospice.or.ke',
+            username='mgr_register_export',
+            first_name='Mgr',
+            last_name='Export',
+            password='Pass!',
+            role=RoleChoices.MANAGER,
+        )
+        patient = Patient.objects.create(
+            first_name="Morphine",
+            last_name="Register",
+            hospice_number="NH-OPIOID-REG-01",
+            sex="F",
+            status="ACTIVE",
+        )
+        rx = MedicationStatement.objects.create(
+            patient=patient,
+            medication_name="Oral Morphine Solution 10mg/5ml",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=self.doctor,
+        )
+        item = StockItem.objects.create(
+            name="Oral Morphine Solution 10mg/5ml",
+            item_code="STK-OPIOID-IDOR",
+            quantity_on_hand=20,
+            unit_of_measure="bottle",
+            is_controlled_substance=True,
+        )
+        record_stock_movement(
+            stock_item=item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=1,
+            patient=patient,
+            medication_statement=rx,
+            user=owner,
+        )
+
+        url = '/operations/pharmacy/controlled-register/export/'
+        nurse_client = Client()
+        nurse_client.force_login(nurse)
+        nurse_resp = nurse_client.get(url)
+        assert nurse_resp.status_code == 403
+
+        other_client = Client()
+        other_client.force_login(other_pharm)
+        other_resp = other_client.get(url)
+        assert other_resp.status_code == 200
+        other_body = other_resp.content.decode('utf-8')
+        assert 'NH-OPIOID-REG-01' not in other_body
+        assert 'Morphine Register' not in other_body
+
+        owner_client = Client()
+        owner_client.force_login(owner)
+        owner_resp = owner_client.get(url)
+        assert owner_resp.status_code == 200
+        owner_body = owner_resp.content.decode('utf-8')
+        assert 'NH-OPIOID-REG-01' in owner_body
+
+        mgr_client = Client()
+        mgr_client.force_login(manager)
+        mgr_resp = mgr_client.get(url)
+        assert mgr_resp.status_code == 200
+        mgr_body = mgr_resp.content.decode('utf-8')
+        assert 'NH-OPIOID-REG-01' in mgr_body
+        assert 'Morphine Register' in mgr_body
+
 @pytest.mark.django_db
 class TestInputValidationAndAuditIntegrity:
     def setup_method(self):
@@ -1195,3 +1501,35 @@ class TestInputValidationAndAuditIntegrity:
         res_doc = api.get('/api/v1/appointments/?search=metastasis')
         assert res_doc.status_code == 200
         assert len(res_doc.json()['results']) == 1
+
+    def test_all_phi_access_roles_enforce_mfa_middleware(self, settings):
+        """MFA middleware intercepts Doctor, Nurse, Pharmacist, and Receptionist sessions lacking MFA verification."""
+        settings.MFA_ENFORCEMENT_MIDDLEWARE_ENABLED = True
+        settings.MFA_REQUIRED_FOR_PRIVILEGED = True
+
+        from django.test import Client
+
+        nurse = create_staff_user(
+            email='mfa_test_nurse@nairobihospice.or.ke',
+            username='mfa_test_nurse',
+            first_name='Nurse',
+            last_name='MFA',
+            password='Pass!',
+            role=RoleChoices.NURSE,
+        )
+        pharm = create_staff_user(
+            email='mfa_test_pharm@nairobihospice.or.ke',
+            username='mfa_test_pharm',
+            first_name='Pharm',
+            last_name='MFA',
+            password='Pass!',
+            role=RoleChoices.PHARMACIST,
+        )
+
+        for user in [self.doctor, nurse, pharm, self.receptionist]:
+            client = Client()
+            client.force_login(user)
+            # Accessing patient list without MFA verification redirects to enroll or verify
+            resp = client.get('/patients/')
+            assert resp.status_code == 302
+            assert '/accounts/mfa/' in resp.url

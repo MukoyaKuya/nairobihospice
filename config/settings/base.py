@@ -224,6 +224,6 @@ CONTENT_SECURITY_POLICY = os.environ.get(
     "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
     "img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-    "script-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'nonce-{csp_nonce}' 'unsafe-eval'; "
     "connect-src 'self'; form-action 'self';"
 )

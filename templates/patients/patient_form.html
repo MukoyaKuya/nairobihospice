@@ -628,7 +628,7 @@
     {% endif %}
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function kenyaLocationData() {
     return {
         locations: JSON.parse('{{ kenya_locations_json|escapejs }}' || '{}'),

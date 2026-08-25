@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Style+Script&family=Sora:wght@300;400;500;600;700;800&family=Libre+Barcode+39&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
+    <script nonce="{{ csp_nonce }}" src="https://cdn.tailwindcss.com"></script>
+    <script nonce="{{ csp_nonce }}">
         tailwind.config = {
             theme: {
                 extend: {
@@ -25,7 +25,7 @@
             }
         }
     </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script nonce="{{ csp_nonce }}" src="https://unpkg.com/lucide@latest"></script>
     
     <style>
         body {
@@ -240,7 +240,7 @@
         <p>Tip: Use <strong>Landscape</strong> orientation or <strong>Scale: 100%</strong> in your browser print dialogue.</p>
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         document.addEventListener('DOMContentLoaded', () => {
             if (window.lucide) {
                 lucide.createIcons();

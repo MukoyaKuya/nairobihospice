@@ -576,6 +576,8 @@ class InvoicePdfView(ManagerRequiredMixin, View):
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
         filename = f"Invoice_{invoice.invoice_number}.pdf"
         response['Content-Disposition'] = f'inline; filename="{filename}"'
+        response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
+        response['X-Content-Type-Options'] = 'nosniff'
         return response
 
 
@@ -769,3 +771,63 @@ class AppointmentDeletionRequestRejectView(ManagerRequiredMixin, View):
             f"Deletion request for {deletion_req.patient_name}'s appointment on {deletion_req.scheduled_date} has been rejected."
         )
         return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")
+
+
+class ControlledSubstancesRegisterExportView(LoginRequiredMixin, View):
+    """
+    Export Pharmacy & Poisons Board (PPB) standard Controlled Substance / Opioid Dispense Register.
+    Strictly verifies patient FK, active medication statement FK, prescriber, and pharmacist ledger.
+    """
+    def get(self, request):
+        from django.core.exceptions import PermissionDenied
+        from apps.patients.access import can_manage_all_patients
+        import csv
+        from django.http import HttpResponse
+
+        if can_manage_all_patients(request.user):
+            movements = StockMovement.objects.filter(
+                movement_type=MovementTypeChoices.DISPENSE,
+                stock_item__is_controlled_substance=True,
+            )
+        elif request.user.is_pharmacist:
+            movements = StockMovement.objects.filter(
+                movement_type=MovementTypeChoices.DISPENSE,
+                stock_item__is_controlled_substance=True,
+                recorded_by=request.user,
+            )
+        else:
+            raise PermissionDenied("You are not authorized to export controlled substance registers.")
+
+        movements = movements.select_related(
+            'stock_item', 'patient', 'medication_statement', 'medication_statement__prescriber', 'recorded_by'
+        ).order_by('-created_at')
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="ppb_controlled_substances_register_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+        response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
+        response['X-Content-Type-Options'] = 'nosniff'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'Timestamp', 'Item Code', 'Controlled Substance Name', 'Quantity Dispensed',
+            'Unit of Measure', 'Patient Hospice ID', 'Patient Full Name', 'Prescription ID',
+            'Prescribing Clinician', 'Dispensing Pharmacist / Staff', 'Ledger Balance After', 'Notes'
+        ])
+
+        for m in movements:
+            writer.writerow([
+                m.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                m.stock_item.item_code,
+                m.stock_item.name,
+                abs(m.quantity),
+                m.stock_item.unit_of_measure,
+                m.patient.hospice_number if m.patient else '',
+                m.patient.full_name if m.patient else '',
+                str(m.medication_statement.id) if m.medication_statement else '',
+                m.medication_statement.prescriber.display_name if m.medication_statement and m.medication_statement.prescriber else '',
+                m.recorded_by.display_name if m.recorded_by else '',
+                m.balance_after,
+                m.notes or '',
+            ])
+
+        return response

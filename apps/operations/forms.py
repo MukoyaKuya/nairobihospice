@@ -114,31 +114,25 @@ class StockDispenseForm(forms.Form):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
-        from apps.accounts.models import RoleChoices
         from apps.medications.models import MedicationStatement
         from apps.patients.access import authorized_patient_queryset, can_manage_all_patients
         from apps.patients.models import Patient
 
         if user and can_manage_all_patients(user):
             scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
-            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
-            self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
-        elif user and getattr(user, 'role', '') == RoleChoices.PHARMACIST:
-            scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
-            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
-            self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(
-                status='ACTIVE', patient__in=scoped_patients
-            ).select_related('patient').order_by('patient__first_name')
         elif user:
-            scoped_patients = authorized_patient_queryset(user).filter(status='ACTIVE', medications__status='ACTIVE').distinct()
-            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
-            self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(
-                status='ACTIVE', patient__in=scoped_patients
-            ).select_related('patient').order_by('patient__first_name')
+            # Pharmacists and other non-managers may only see patients already in
+            # authorized_patient_queryset. A requested ?patient= / POST PK is not
+            # appended unless it is already in that queryset (no caseload widening).
+            caseload_ids = list(authorized_patient_queryset(user).filter(status='ACTIVE').values_list('pk', flat=True))
+            scoped_patients = Patient.objects.filter(pk__in=caseload_ids)
         else:
-            scoped_patients = Patient.objects.filter(status='ACTIVE', medications__status='ACTIVE').distinct()
-            self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
-            self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(status='ACTIVE').select_related('patient').order_by('patient__first_name')
+            scoped_patients = Patient.objects.none()
+
+        self.fields['patient'].queryset = scoped_patients.order_by('first_name', 'last_name')
+        self.fields['medication_statement'].queryset = MedicationStatement.objects.filter(
+            status='ACTIVE', patient__in=scoped_patients
+        ).select_related('patient').order_by('patient__first_name')
 
     def clean(self):
         cleaned_data = super().clean()

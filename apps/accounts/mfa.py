@@ -126,5 +126,11 @@ def privileged_user_requires_mfa(user):
         getattr(settings, 'MFA_REQUIRED_FOR_PRIVILEGED', True)
         and user
         and user.is_authenticated
-        and (user.is_superuser or user.is_manager)
+        and (
+            user.is_superuser
+            or user.is_manager
+            or user.is_clinical
+            or getattr(user, 'is_pharmacist', False)
+            or getattr(user, 'is_receptionist', False)
+        )
     )

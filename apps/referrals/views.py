@@ -78,6 +78,7 @@ class ReferralCreateView(LoginRequiredMixin, View):
         if form.is_valid():
             cd = form.cleaned_data
             primary_diag = cd['primary_diagnosis'] if clinical_access else 'Pending Clinical Review'
+            reason_for_ref = cd['reason_for_referral'] if clinical_access else 'Palliative care intake evaluation requested.'
             clinical_sum = cd.get('clinical_summary', '') if clinical_access else ''
             current_meds = cd.get('current_medications', '') if clinical_access else ''
 
@@ -86,7 +87,7 @@ class ReferralCreateView(LoginRequiredMixin, View):
                 patient_name=cd['patient_name'],
                 referring_facility=cd['referring_facility'],
                 primary_diagnosis=primary_diag,
-                reason_for_referral=cd['reason_for_referral'],
+                reason_for_referral=reason_for_ref,
                 clinical_summary=clinical_sum,
                 current_medications=current_meds,
                 created_by=request.user,

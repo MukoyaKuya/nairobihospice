@@ -1,68 +1,24 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Access Denied | Nairobi Hospice PCMS</title>
-    
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 </head>
-<body class="min-h-full font-sans antialiased text-slate-800 bg-slate-50 flex items-center justify-center p-6">
-
-    <div class="max-w-md w-full text-center space-y-6">
-        
-        <!-- Big Red Access Denied Symbol -->
-        <div class="mx-auto w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-red-100 border-2 border-red-300 text-red-600 flex items-center justify-center shadow-lg shadow-red-500/10 animate-pulse">
-            <i data-lucide="shield-alert" class="w-10 h-10 sm:w-12 sm:h-12 text-red-600"></i>
-        </div>
-
-        <!-- Red Heading and Message -->
-        <div class="space-y-2">
-            <h1 class="text-3xl sm:text-4xl font-black text-red-600 tracking-tight uppercase">
-                Access Denied
-            </h1>
-            <p class="text-sm text-slate-600 leading-relaxed max-w-xs mx-auto">
-                You do not have permission to view or perform operations on this page.
-            </p>
-        </div>
-
-        <!-- Role Badge If Authenticated -->
+<body class="error-page">
+    <a href="#main" class="skip-link">Skip to content</a>
+    <main id="main" class="error-card">
+        <p class="error-kicker">HTTP 403</p>
+        <h1>Access Denied</h1>
+        <p>You do not have permission to view or perform operations on this page.</p>
         {% if user.is_authenticated %}
-        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/70 border border-slate-300 text-slate-700 text-xs font-semibold">
-            <i data-lucide="user" class="w-3.5 h-3.5 text-slate-500"></i>
-            <span>Signed in as: <strong>{{ user.display_name }}</strong> ({{ user.get_role_display|default:"Staff" }})</span>
-        </div>
+        <p class="error-meta">Signed in as <strong>{{ user.display_name }}</strong> ({{ user.get_role_display|default:"Staff" }})</p>
         {% endif %}
-
-        <!-- Clean Navigation Buttons -->
-        <div class="flex items-center justify-center gap-3 pt-2">
-            <button onclick="window.history.back()" 
-                    class="px-4 py-2.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                <span>Go Back</span>
-            </button>
-            <a href="/" 
-               class="px-5 py-2.5 text-xs font-bold text-white bg-[#002D62] hover:bg-[#0B2545] rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="layout-dashboard" class="w-4 h-4 text-blue-300"></i>
-                <span>Dashboard</span>
-            </a>
-        </div>
-
-    </div>
-
-    <script>
-        lucide.createIcons();
-    </script>
+        <p class="error-actions">
+            <a href="/">Dashboard</a>
+        </p>
+    </main>
 </body>
 </html>

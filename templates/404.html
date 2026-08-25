@@ -1,93 +1,24 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-100">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - Page Not Found | Nairobi Hospice PCMS</title>
-    
-    <!-- Google Fonts: Sora -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Sora', 'sans-serif'],
-                        heading: ['Matter', 'Sora', 'sans-serif'],
-                        title: ['Matter', 'Sora', 'sans-serif'],
-                        matter: ['Matter', 'Sora', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { font-family: 'Sora', sans-serif; }
-        h1, h2, h3, h4, h5, h6, .font-heading, .font-title, .font-matter {
-            font-family: 'Matter', 'Sora', sans-serif;
-        }
-    </style>
 </head>
-<body class="min-h-full font-sans antialiased text-slate-800 bg-slate-100 flex items-center justify-center p-4">
-
-    <div class="max-w-lg w-full bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-xl text-center space-y-6 relative overflow-hidden">
-        
-        <!-- Decorative Ambient Top Border -->
-        <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#002D62] via-[#991B1B] to-[#002D62]"></div>
-
-        <!-- Official Logo -->
-        <div class="flex justify-center mb-1">
-            <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="h-14 sm:h-16 w-auto object-contain">
-        </div>
-
-        <!-- 404 Visual Icon & Code -->
-        <div class="space-y-2">
-            <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-[#002D62] border border-blue-200 flex items-center justify-center shadow-xs">
-                <i data-lucide="compass" class="w-7 h-7 text-[#002D62]"></i>
-            </div>
-            <div class="inline-block px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-black tracking-widest uppercase">
-                Error Code: 404 Not Found
-            </div>
-            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Page Not Found</h1>
-            <p class="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                The requested URL or clinical resource does not exist on this server.
-            </p>
-        </div>
-
-        <!-- Quick Action Navigation -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            <a href="/" 
-               class="inline-flex items-center justify-center px-4 py-2.5 bg-[#002D62] hover:bg-[#0B2545] text-white text-xs font-bold rounded-xl shadow-sm transition space-x-1.5 cursor-pointer">
-                <i data-lucide="home" class="w-4 h-4 text-red-300"></i>
-                <span>Return to Home</span>
-            </a>
-            <a href="{% url 'patients:patient_list' %}" 
-               class="inline-flex items-center justify-center px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold rounded-xl transition space-x-1.5 cursor-pointer">
-                <i data-lucide="users" class="w-4 h-4 text-slate-500"></i>
-                <span>Patient Directory</span>
-            </a>
-        </div>
-
-        <!-- Support Assistance Footer -->
-        <div class="pt-4 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-center space-x-2">
-            <i data-lucide="phone-call" class="w-3.5 h-3.5 text-slate-400"></i>
-            <span>Nairobi Hospice Helpdesk: <strong class="text-slate-600 font-mono">+254 722 200 413</strong></span>
-        </div>
-
-    </div>
-
-    <script>
-        lucide.createIcons();
-    </script>
+<body class="error-page">
+    <a href="#main" class="skip-link">Skip to content</a>
+    <main id="main" class="error-card">
+        <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="error-logo">
+        <p class="error-kicker">HTTP 404</p>
+        <h1>Page Not Found</h1>
+        <p>The requested URL or clinical resource does not exist on this server.</p>
+        <p class="error-actions">
+            <a href="/">Return to Home</a>
+            <a href="{% url 'patients:patient_list' %}">Patient Directory</a>
+        </p>
+        <p class="error-meta">Nairobi Hospice Helpdesk: +254 722 200 413</p>
+    </main>
 </body>
 </html>

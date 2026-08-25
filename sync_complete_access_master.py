@@ -6,6 +6,8 @@ from datetime import datetime
 from decimal import Decimal
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+from access_sync_guard import abort_if_production_access_sync
+abort_if_production_access_sync()
 django.setup()
 
 from apps.operations.models import StockItem, StockCategoryChoices, Vendor, VendorCategoryChoices, VendorStatusChoices

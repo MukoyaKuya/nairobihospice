@@ -64,6 +64,12 @@ At least quarterly:
 
 A backup is not considered reliable until a restore drill succeeds and is recorded.
 
+The historical local rehearsal is recorded in `docs/RESTORE_DRILL_2026-08-22.md`. That record is not a production backup or production restore acceptance.
+
+Production restore is **not** done until a HostPinnacle backup is restored onto isolated staging and verified with a full SHA-256 of the transferred bundle. Do not treat a local `backup.ps1` archive, a truncated hash, or an invented patient count as restore evidence.
+
 ## Release handoff
 
 Before each production release, record the latest successful backup timestamp, database engine, private-media location, restore owner, and restore-test result. The release is not approved if the database backup exists without the matching private-media archive.
+
+---

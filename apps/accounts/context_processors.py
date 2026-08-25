@@ -25,4 +25,5 @@ def user_role_context(request):
         'is_administrator': user.is_administrator,
         'is_manager': user.is_manager,
         'RoleChoices': RoleChoices,
+        'csp_nonce': getattr(request, 'csp_nonce', ''),
     }

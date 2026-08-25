@@ -21,14 +21,20 @@ class AuditMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        import base64
+        import os
         request.request_id = uuid.uuid4().hex
+        request.csp_nonce = base64.b64encode(os.urandom(16)).decode('ascii')
         _thread_locals.request = request
         try:
             response = self.get_response(request)
             response['X-Request-ID'] = request.request_id
             content_security_policy = getattr(settings, 'CONTENT_SECURITY_POLICY', None)
             if content_security_policy:
-                response['Content-Security-Policy'] = content_security_policy
+                if '{csp_nonce}' in content_security_policy:
+                    response['Content-Security-Policy'] = content_security_policy.format(csp_nonce=request.csp_nonce)
+                else:
+                    response['Content-Security-Policy'] = content_security_policy
             if response.status_code == 429:
                 logger.warning(
                     'Rate limit response path=%s method=%s user=%s',

@@ -332,3 +332,52 @@ class TestOperationsSuite:
         assert s_pdf.status_code == 200
         assert s_pdf['Content-Type'] == 'application/pdf'
         assert b'%PDF' in s_pdf.content[:10]
+        assert s_pdf['Cache-Control'] == 'private, no-store, max-age=0, must-revalidate'
+        assert s_pdf['X-Content-Type-Options'] == 'nosniff'
+
+    def test_controlled_substances_register_export_endpoint(self):
+        """Controlled substance export streams a valid PPB-compliant CSV ledger with patient and Rx FKs."""
+        from apps.medications.models import MedicationStatement, MedicationStatusChoices
+        from apps.patients.services import register_patient
+
+        doctor = create_staff_user(
+            email='doc_export@nairobihospice.or.ke',
+            username='doc_export',
+            first_name='Dr',
+            last_name='Export',
+            password='Pass!',
+            role=RoleChoices.DOCTOR,
+        )
+        patient = register_patient(first_name='Mary', last_name='Export', created_by=doctor)
+        med = MedicationStatement.objects.create(
+            patient=patient,
+            medication_name="Oral Morphine 10mg/5ml",
+            status=MedicationStatusChoices.ACTIVE,
+            prescriber=doctor,
+        )
+        stock_item = StockItem.objects.create(
+            name="Oral Morphine 10mg/5ml",
+            item_code="STK-OPIOID-EXPORT",
+            quantity_on_hand=50,
+            unit_of_measure="bottle",
+            is_controlled_substance=True,
+        )
+        record_stock_movement(
+            stock_item=stock_item,
+            movement_type=MovementTypeChoices.DISPENSE,
+            quantity=2,
+            patient=patient,
+            medication_statement=med,
+            user=doctor,
+            notes="Dispensed for breakthrough pain",
+        )
+
+        resp = self.client_manager.get('/operations/pharmacy/controlled-register/export/')
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'text/csv'
+        assert 'attachment; filename="ppb_controlled_substances_register_' in resp['Content-Disposition']
+        content = resp.content.decode('utf-8')
+        assert 'Controlled Substance Name' in content
+        assert 'STK-OPIOID-EXPORT' in content
+        assert 'Mary Export' in content
+        assert 'Oral Morphine 10mg/5ml' in content

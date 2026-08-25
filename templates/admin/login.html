@@ -1,152 +1,48 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-[#0A192F]">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Admin Sign In | Nairobi Hospice PCMS</title>
-    
-    <!-- Google Fonts: Sora -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Sora', 'sans-serif'],
-                        heading: ['Matter', 'Sora', 'sans-serif'],
-                        title: ['Matter', 'Sora', 'sans-serif'],
-                        matter: ['Matter', 'Sora', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        body { font-family: 'Sora', sans-serif; }
-        h1, h2, h3, h4, h5, h6, .font-heading, .font-title, .font-matter {
-            font-family: 'Matter', 'Sora', sans-serif;
-        }
-    </style>
 </head>
-<body class="min-h-full font-sans antialiased text-slate-800 bg-[#0A192F] flex items-center justify-center p-4 relative overflow-hidden">
+<body class="error-page admin-login-page">
+    <a href="#main" class="skip-link">Skip to content</a>
+    <main id="main" class="error-card admin-login-card">
+        <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="error-logo">
+        <p class="error-kicker">Super Admin</p>
+        <h1>Sign in</h1>
 
-    <!-- Faint Faded Nairobi Hospice Building Background -->
-    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25 filter scale-105"
-         style="background-image: url({% static 'images/hospice_building.jpg' %});">
-    </div>
-
-    <!-- Deep Navy Blue Gradient Overlay -->
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0A192F]/95 via-[#002D62]/85 to-[#0B1B2B]/95 backdrop-blur-[2px]"></div>
-
-    <!-- Clean Centered Authentication Card -->
-    <div class="relative z-10 w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 sm:p-7 border border-slate-100/90 text-center space-y-4">
-        
-        <!-- Logo & Super Admin Header -->
-        <div class="flex flex-col items-center space-y-2">
-            <img src="{% static 'images/logo.png' %}" alt="Nairobi Hospice" class="h-14 sm:h-16 w-auto object-contain">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-[#002D62] text-[10px] font-extrabold uppercase tracking-wider">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#991B1B] mr-1.5"></span>
-                Super Admin
-            </span>
-        </div>
-
-        <!-- Compact Alert if Logged in without Super Admin permission -->
         {% if user.is_authenticated and not user.is_staff %}
-        <div class="p-2.5 bg-amber-50 text-amber-800 text-[11px] font-semibold rounded-xl border border-amber-200 text-left flex items-center space-x-2">
-            <i data-lucide="shield-alert" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
-            <span>Access restricted to Super Admins. Please sign in.</span>
-        </div>
+        <p class="error-meta">Access restricted to Super Admins. Please sign in.</p>
         {% endif %}
 
-        <!-- Error Notification -->
         {% if form.errors and not form.non_field_errors %}
-        <div class="p-2.5 bg-red-50 text-red-700 text-[11px] font-semibold rounded-xl border border-red-200 text-left flex items-center space-x-2">
-            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 flex-shrink-0"></i>
-            <span>Invalid email or password.</span>
-        </div>
+        <p class="form-error">Invalid email or password.</p>
         {% elif form.non_field_errors %}
-        <div class="p-2.5 bg-red-50 text-red-700 text-[11px] font-semibold rounded-xl border border-red-200 text-left flex items-center space-x-2">
-            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 flex-shrink-0"></i>
-            <span>{{ form.non_field_errors.0 }}</span>
-        </div>
+        <p class="form-error">{{ form.non_field_errors.0 }}</p>
         {% endif %}
 
-        <!-- Login Form -->
-        <form method="POST" action="{{ app_path }}" class="space-y-3.5 text-left">
+        <form method="POST" action="{{ app_path }}" class="admin-login-form">
             {% csrf_token %}
+            <label for="id_username">Email or Username</label>
+            <input type="text" name="username" id="id_username" required autofocus value="{{ form.username.value|default:'' }}" autocomplete="username">
 
-            <div>
-                <label for="id_username" class="block text-[11px] font-bold text-slate-700 mb-1">
-                    Email or Username
-                </label>
-                <div class="relative">
-                    <input type="text" 
-                           name="username" 
-                           id="id_username" 
-                           required 
-                           autofocus
-                           value="{{ form.username.value|default:'' }}"
-                           placeholder="admin@nairobihospice.or.ke"
-                           class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
-                    <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
-                </div>
-            </div>
-
-            <div>
-                <label for="id_password" class="block text-[11px] font-bold text-slate-700 mb-1">
-                    Password
-                </label>
-                <div class="relative">
-                    <input type="password" 
-                           name="password" 
-                           id="id_password" 
-                           required
-                           placeholder="••••••••••••"
-                           class="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:border-[#002D62] focus:outline-none transition">
-                    <i data-lucide="lock" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
-                </div>
-            </div>
+            <label for="id_password">Password</label>
+            <input type="password" name="password" id="id_password" required autocomplete="current-password">
 
             {% if next %}
             <input type="hidden" name="next" value="{{ next }}">
             {% endif %}
 
-            <div class="pt-1.5">
-                <button type="submit" 
-                        class="w-full py-2.5 px-4 bg-[#002D62] hover:bg-[#0B2545] text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-1.5 cursor-pointer">
-                    <span>Sign In</span>
-                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-red-300"></i>
-                </button>
-            </div>
+            <button type="submit">Sign In</button>
         </form>
 
-        <!-- Back to Clinical Portal Link -->
-        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <a href="{% url 'reporting:clinical_dashboard' %}" class="inline-flex items-center font-bold text-[#002D62] hover:underline">
-                <i data-lucide="chevron-left" class="w-3.5 h-3.5 mr-0.5"></i>
-                <span>Clinical Dashboard</span>
-            </a>
-            <a href="{% url 'accounts:login' %}" class="font-semibold text-slate-500 hover:text-slate-800">
-                Staff Portal
-            </a>
-        </div>
-
-    </div>
-
-    <script>
-        lucide.createIcons();
-    </script>
+        <p class="error-actions">
+            <a href="{% url 'reporting:clinical_dashboard' %}">Clinical Dashboard</a>
+            <a href="{% url 'accounts:login' %}">Staff Portal</a>
+        </p>
+    </main>
 </body>
 </html>

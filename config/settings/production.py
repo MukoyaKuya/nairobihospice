@@ -64,7 +64,7 @@ CONTENT_SECURITY_POLICY = os.environ.get(
     "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
     "img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-    "script-src 'self' 'unsafe-inline'; "
+    "script-src 'self' 'nonce-{csp_nonce}' 'unsafe-eval'; "
     "connect-src 'self'; form-action 'self';"
 )
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -118,3 +118,19 @@ if not CSRF_TRUSTED_ORIGINS:
 webhook_urls = os.environ.get('PCMS_WEBHOOK_URLS') or os.environ.get('PCMS_WEBHOOK_URL') or os.environ.get('WEBHOOK_URL')
 if webhook_urls and not os.environ.get('PCMS_WEBHOOK_SECRET'):
     raise RuntimeError('PCMS_WEBHOOK_SECRET must be configured when production webhooks are enabled.')
+
+# Sentry Monitoring (Fail-safe, PII-scrubbed)
+sentry_dsn = os.environ.get('SENTRY_DSN', '').strip()
+if sentry_dsn:
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        sentry_sdk.init(
+            dsn=sentry_dsn,
+            integrations=[DjangoIntegration(), CeleryIntegration()],
+            traces_sample_rate=float(os.environ.get('SENTRY_TRACES_SAMPLE_RATE', '0.1')),
+            send_default_pii=False,  # Never transmit PHI/PII in error traces
+        )
+    except ImportError:
+        pass

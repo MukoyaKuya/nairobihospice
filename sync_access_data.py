@@ -5,6 +5,8 @@ import pyodbc
 from datetime import datetime
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.development')
+from access_sync_guard import abort_if_production_access_sync
+abort_if_production_access_sync()
 django.setup()
 
 from apps.patients.models import Patient, NextOfKin, Caregiver, PatientStatusChoices

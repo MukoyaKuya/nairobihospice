@@ -15,8 +15,8 @@
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
 
     <!-- Vendored, version-pinned frontend libraries (no third-party CDN at runtime) -->
-    <script src="{% static 'vendor/tailwind-play-3.4.16.js' %}"></script>
-    <script>
+    <script nonce="{{ csp_nonce }}" src="{% static 'vendor/tailwind-play-3.4.16.js' %}"></script>
+    <script nonce="{{ csp_nonce }}">
         tailwind.config = {
             theme: {
                 extend: {
@@ -56,16 +56,16 @@
     </script>
     
     <!-- Alpine.js -->
-    <script defer src="{% static 'vendor/alpine-3.14.8.min.js' %}"></script>
+    <script nonce="{{ csp_nonce }}" defer src="{% static 'vendor/alpine-3.14.8.min.js' %}"></script>
 
     <!-- HTMX -->
-    <script src="{% static 'vendor/htmx-1.9.12.min.js' %}"></script>
+    <script nonce="{{ csp_nonce }}" src="{% static 'vendor/htmx-1.9.12.min.js' %}"></script>
 
     <!-- Chart.js -->
-    <script src="{% static 'vendor/chartjs-4.4.9.umd.min.js' %}"></script>
+    <script nonce="{{ csp_nonce }}" src="{% static 'vendor/chartjs-4.4.9.umd.min.js' %}"></script>
 
     <!-- Lucide Icons -->
-    <script src="{% static 'vendor/lucide-0.454.0.umd.min.js' %}"></script>
+    <script nonce="{{ csp_nonce }}" src="{% static 'vendor/lucide-0.454.0.umd.min.js' %}"></script>
     
     <style>
         @font-face {
@@ -118,6 +118,7 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="h-full flex flex-col antialiased text-slate-800 bg-slate-100" x-data="{ sidebarOpen: false }">
+    <a href="#main" class="skip-link">Skip to content</a>
 
     {% if user.is_authenticated %}
     <div class="min-h-full flex flex-col">
@@ -129,7 +130,7 @@
             {% include 'components/sidebar.html' %}
 
             <!-- Main Content Container -->
-            <main class="flex-1 overflow-y-auto no-scrollbar bg-slate-100 p-3 sm:p-4 lg:p-5">
+            <main id="main" class="flex-1 overflow-y-auto no-scrollbar bg-slate-100 p-3 sm:p-4 lg:p-5">
                 <div class="w-full mx-auto">
                     <!-- Flash Messages -->
                     {% include 'components/messages.html' %}
@@ -141,8 +142,10 @@
     </div>
     {% else %}
     <!-- Unauthenticated Layout -->
+    <main id="main">
     {% include 'components/messages.html' %}
     {% block auth_content %}{% endblock %}
+    </main>
     {% endif %}
 
     <!-- Global Access Denied Modal -->
@@ -188,7 +191,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="{{ csp_nonce }}">
         window.showAccessDenied = function(message, title) {
             window.dispatchEvent(new CustomEvent('open-access-denied-modal', {
                 detail: {
