@@ -29,7 +29,7 @@ from .services import schedule_appointment, update_appointment_status
 
 class AppointmentCalendarView(LoginRequiredMixin, View):
     def get(self, request):
-        today = timezone.now().date()
+        today = timezone.localdate()
         date_str = request.GET.get('date')
         if date_str:
             try:
@@ -243,7 +243,7 @@ class HomeRouteLogisticsView(LoginRequiredMixin, View):
             from django.core.exceptions import PermissionDenied
             raise PermissionDenied("Home visit route logistics are restricted to clinical care and management teams.")
 
-        today = timezone.now().date()
+        today = timezone.localdate()
         date_str = request.GET.get('date')
         if date_str:
             try:
