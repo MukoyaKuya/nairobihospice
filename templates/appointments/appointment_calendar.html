@@ -15,6 +15,15 @@
     filterType: '',
     filterStatus: '',
     searchPatient: '',
+    matchesFilter(itemText, itemType, itemStatus) {
+        const q = (this.filterSearch || '').toLowerCase().trim();
+        const t = (this.filterType || '').toLowerCase().trim();
+        const s = (this.filterStatus || '').toLowerCase().trim();
+        const matchesQ = !q || (itemText || '').toLowerCase().includes(q);
+        const matchesT = !t || (itemType || '').toLowerCase().includes(t);
+        const matchesS = !s || (itemStatus || '').toLowerCase().includes(s);
+        return matchesQ && matchesT && matchesS;
+    },
     init() {
         this.$watch('deleteApptId', value => {
             if (value) {
@@ -162,11 +171,13 @@
         <!-- Quick Filter Toolbar -->
         <div class="px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
             <div class="sm:col-span-6 relative">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
                 <input type="text" 
                        x-model="filterSearch" 
                        placeholder="{% if clinical_access %}Filter by patient name, Hospice No, diagnosis, clinician, or reason...{% else %}Filter by patient name, Hospice No, clinician, or location...{% endif %}" 
-                       class="w-full pl-8.5 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
-                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5"></i>
+                       class="w-full pl-10 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none transition">
             </div>
 
             <div class="sm:col-span-3">
@@ -194,18 +205,7 @@
         <div x-cloak x-show="viewMode === 'upcoming'">
             <div class="divide-y divide-slate-200">
                 {% for group in grouped_upcoming %}
-                <div class="p-4 sm:p-6 space-y-3.5"
-                     x-data="{
-                         matchesFilter(itemText, itemType, itemStatus) {
-                             const q = filterSearch.toLowerCase().trim();
-                             const t = filterType.toLowerCase().trim();
-                             const s = filterStatus.toLowerCase().trim();
-                             const matchesQ = !q || itemText.toLowerCase().includes(q);
-                             const matchesT = !t || itemType.toLowerCase().includes(t);
-                             const matchesS = !s || itemStatus.toLowerCase().includes(s);
-                             return matchesQ && matchesT && matchesS;
-                         }
-                     }">
+                <div class="p-4 sm:p-6 space-y-3.5">
                     
                     <!-- Date Group Header -->
                     <div class="flex items-center justify-between pb-2.5 border-b border-slate-200">
@@ -377,35 +377,141 @@
         <!-- ============================================================== -->
         <!-- TAB 2: TODAY'S TIMELINE                                        -->
         <!-- ============================================================== -->
-        <div x-cloak x-show="viewMode === 'daily'" class="p-4 sm:p-6 space-y-3">
-            <div class="divide-y divide-slate-100">
+        <div x-cloak x-show="viewMode === 'daily'" class="p-4 sm:p-6 space-y-3.5">
+            <div class="grid grid-cols-1 gap-3">
                 {% for appt in daily_appointments %}
-                <div class="py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50/80 rounded-xl px-3 transition">
-                    <div class="flex items-center space-x-3.5">
-                        <span class="font-mono text-sm font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-                            {{ appt.scheduled_time|time:"H:i" }}
-                        </span>
-                        <div>
-                            <a href="{% url 'patients:patient_detail' appt.patient.pk %}" class="text-xs font-bold text-slate-900 hover:text-[#002D62] block">
-                                {{ appt.patient.full_name }}
-                            </a>
-                            <div class="text-[11px] text-slate-500">
-                                {{ appt.get_appointment_type_display }} &bull; {{ appt.location }}
+                <div x-show="matchesFilter('{{ appt.patient.full_name|escapejs }} {{ appt.patient.hospice_number|escapejs }} {% if clinical_access %}{{ appt.reason|escapejs }} {{ appt.patient.primary_diagnosis|escapejs }} {% endif %}{{ appt.location|escapejs }} {{ appt.staff_member.user.display_name|escapejs }}', '{{ appt.get_appointment_type_display|escapejs }}', '{{ appt.get_status_display|escapejs }}')"
+                     class="p-4 rounded-xl border transition duration-150 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 {% if appt.status == 'COMPLETED' %}bg-slate-50/60 border-slate-200{% else %}bg-white border-slate-200/90 shadow-2xs hover:border-slate-300{% endif %}">
+                    
+                    <!-- Left Block: Time + Modality + Patient & Clinical Details -->
+                    <div class="flex items-start space-x-3.5 min-w-0 flex-1">
+                        <!-- Time Badge -->
+                        <div class="w-20 flex-shrink-0 text-center p-2 rounded-xl border {% if appt.status == 'COMPLETED' %}bg-slate-100 border-slate-200 text-slate-600{% else %}bg-blue-50/80 border-blue-200 text-[#002D62]{% endif %}">
+                            <span class="text-sm font-black font-mono block tracking-tight">
+                                {{ appt.scheduled_time|time:"H:i" }}
+                            </span>
+                            <span class="text-[10px] font-mono font-bold block opacity-75">
+                                {{ appt.duration_minutes }}m
+                            </span>
+                        </div>
+
+                        <!-- Patient & Clinical Description -->
+                        <div class="min-w-0 flex-1 space-y-1.5">
+                            
+                            <!-- Row 1: Name, Hospice No, Modality Pill, Diagnosis -->
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <a href="{% url 'patients:patient_detail' appt.patient.pk %}" 
+                                   class="text-xs sm:text-sm font-black text-slate-900 hover:text-[#002D62] hover:underline">
+                                    {{ appt.patient.full_name }}
+                                </a>
+                                <span class="font-mono text-[10.5px] font-bold text-[#002D62] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                    {{ appt.patient.hospice_number }}
+                                </span>
+
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider
+                                    {% if appt.appointment_type == 'HOME_VISIT' %}bg-teal-50 text-teal-800 border border-teal-200
+                                    {% elif appt.appointment_type == 'DAY_CARE' %}bg-purple-50 text-purple-800 border border-purple-200
+                                    {% else %}bg-blue-50 text-[#002D62] border border-blue-200{% endif %}">
+                                    {{ appt.get_appointment_type_display }}
+                                </span>
+
+                                {% if clinical_access and appt.patient.primary_diagnosis %}
+                                <span class="text-[11px] text-slate-500 font-medium truncate max-w-xs block">
+                                    &bull; {{ appt.patient.primary_diagnosis }}
+                                </span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Row 2: Clinical Focus & Reason Block -->
+                            {% if clinical_access and appt.reason %}
+                            <div class="p-2 bg-slate-50/90 rounded-lg border border-slate-100 text-xs text-slate-700 leading-relaxed font-normal">
+                                <span class="text-slate-400 font-bold text-[10.5px] uppercase tracking-wider block">Clinical Focus</span>
+                                {{ appt.reason }}
+                            </div>
+                            {% endif %}
+
+                            <!-- Row 3: Location & Clinician -->
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500 pt-0.5">
+                                <span class="flex items-center">
+                                    <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>
+                                    <span>Location: <strong class="text-slate-700 font-semibold">{{ appt.location }}</strong></span>
+                                </span>
+                                <span class="text-slate-300">&bull;</span>
+                                <span class="flex items-center">
+                                    <i data-lucide="user" class="w-3.5 h-3.5 mr-1 text-slate-400"></i>
+                                    <span>Clinician: <strong class="text-slate-700 font-semibold">{{ appt.staff_member.user.display_name }}</strong></span>
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs font-bold {% if appt.status == 'COMPLETED' %}text-emerald-700{% else %}text-slate-600{% endif %}">
-                            {{ appt.get_status_display }}
-                        </span>
-                        <a href="{% url 'patients:patient_detail' appt.patient.pk %}" class="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg">
-                            Chart
-                        </a>
+
+                    <!-- Right Block: Status Indicator & Actions -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between lg:justify-end gap-2.5 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100">
+                        
+                        <!-- Status Badge -->
+                        <div>
+                            {% if appt.pk in pending_deletion_appt_ids %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 gap-1 shadow-2xs">
+                                <i data-lucide="clock" class="w-3 h-3 text-amber-700 animate-pulse"></i>
+                                <span>Deletion Pending</span>
+                            </span>
+                            {% elif appt.status == 'COMPLETED' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 gap-1">
+                                <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-600"></i>
+                                <span>Completed</span>
+                            </span>
+                            {% elif appt.status == 'CONFIRMED' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-teal-50 text-teal-800 border border-teal-200">
+                                Confirmed
+                            </span>
+                            {% elif appt.status == 'MISSED' or appt.status == 'CANCELLED' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-800 border border-rose-200">
+                                {{ appt.get_status_display }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-[#002D62] border border-blue-200">
+                                Scheduled
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action Buttons Strip -->
+                        <div class="flex items-center space-x-1.5">
+                            <a href="{% url 'patients:patient_detail' appt.patient.pk %}" 
+                               class="px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-[#002D62] bg-white hover:bg-slate-100 rounded-xl border border-slate-200 shadow-2xs transition">
+                                Open Chart
+                            </a>
+
+                            {% if appt.status != 'COMPLETED' %}
+                            <form method="POST" action="{% url 'appointments:appointment_update_status' appt.pk %}" class="inline-flex">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="COMPLETED">
+                                <button type="submit" 
+                                        class="px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1">
+                                    <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                    <span>Complete</span>
+                                </button>
+                            </form>
+                            {% endif %}
+
+                            <!-- Delete / Removal Request Button -->
+                            {% if appt.pk not in pending_deletion_appt_ids %}
+                            <button type="button" 
+                                    @click="deleteApptId = '{{ appt.pk }}'; deletePatientName = '{{ appt.patient.full_name|escapejs }}'; deleteApptDate = '{{ appt.scheduled_date|date:'d M Y' }}'; deleteModal = true;"
+                                    class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-200 transition cursor-pointer" 
+                                    title="Request Deletion / Removal">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+
                     </div>
+
                 </div>
                 {% empty %}
-                <div class="p-12 text-center text-xs text-slate-400">
-                    No consultations or visits scheduled for today.
+                <div class="p-16 text-center text-slate-500 text-xs">
+                    <i data-lucide="calendar-check" class="w-8 h-8 mx-auto text-slate-300 mb-2"></i>
+                    <p class="font-bold text-slate-700">No consultations or visits scheduled for today.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -427,7 +533,8 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 font-medium">
                     {% for appt in all_appointments %}
-                    <tr class="hover:bg-slate-50/80 transition {% if appt.status == 'COMPLETED' %}bg-slate-50/40{% endif %}">
+                    <tr x-show="matchesFilter('{{ appt.patient.full_name|escapejs }} {{ appt.patient.hospice_number|escapejs }} {% if clinical_access %}{{ appt.reason|escapejs }} {{ appt.patient.primary_diagnosis|escapejs }} {% endif %}{{ appt.location|escapejs }} {{ appt.staff_member.user.display_name|escapejs }}', '{{ appt.get_appointment_type_display|escapejs }}', '{{ appt.get_status_display|escapejs }}')"
+                        class="hover:bg-slate-50/80 transition {% if appt.status == 'COMPLETED' %}bg-slate-50/40{% endif %}">
                         <td class="px-4 py-3 whitespace-nowrap font-mono">
                             <span class="font-bold text-slate-900">{{ appt.scheduled_date|date:"d M Y" }}</span>
                             <span class="text-[10px] text-slate-400 block">{{ appt.scheduled_time|time:"H:i" }}</span>
@@ -465,7 +572,7 @@
                                 {% if appt.pk not in pending_deletion_appt_ids %}
                                 <button type="button" 
                                         @click="deleteApptId = '{{ appt.pk }}'; deletePatientName = '{{ appt.patient.full_name|escapejs }}'; deleteApptDate = '{{ appt.scheduled_date|date:'d M Y' }}'; deleteModal = true;"
-                                        class="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="Request Deletion">
+                                        class="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Request Deletion">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
                                 {% endif %}
