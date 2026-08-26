@@ -142,6 +142,11 @@ def test_care_team_assignment_via_view_is_audited():
 
 @pytest.mark.django_db
 def test_mfa_verification_locks_out_after_repeated_failures():
+    from apps.accounts.models import SecurityConfiguration
+    config = SecurityConfiguration.get_solo()
+    config.mfa_enabled = True
+    config.save()
+
     cache.clear()
     manager = make_staff('mfa_manager@nairobihospice.or.ke', RoleChoices.MANAGER)
     manager.mfa_secret = generate_secret()
@@ -166,6 +171,11 @@ def test_mfa_verification_locks_out_after_repeated_failures():
 
 @pytest.mark.django_db
 def test_totp_code_cannot_be_replayed():
+    from apps.accounts.models import SecurityConfiguration
+    config = SecurityConfiguration.get_solo()
+    config.mfa_enabled = True
+    config.save()
+
     from apps.accounts.mfa import encrypt_mfa_secret
     cache.clear()
     manager = make_staff('mfa_replay@nairobihospice.or.ke', RoleChoices.MANAGER)

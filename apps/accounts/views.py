@@ -126,14 +126,16 @@ class PCMSLoginView(DjangoLoginView):
         else:
             target_url = str(reverse_lazy(_role_redirect(user)))
 
-        if privileged_user_requires_mfa(user) and not user.is_mfa_enabled:
-            self.request.session['mfa_pending_user_id'] = str(user.pk)
-            self.request.session['mfa_next_url'] = target_url
-            return redirect('accounts:mfa_enroll')
-        if user.is_mfa_enabled:
-            self.request.session['mfa_pending_user_id'] = str(user.pk)
-            self.request.session['mfa_next_url'] = target_url
-            return redirect('accounts:mfa_verify')
+        if privileged_user_requires_mfa(user):
+            if not user.is_mfa_enabled:
+                self.request.session['mfa_pending_user_id'] = str(user.pk)
+                self.request.session['mfa_next_url'] = target_url
+                return redirect('accounts:mfa_enroll')
+            else:
+                self.request.session['mfa_pending_user_id'] = str(user.pk)
+                self.request.session['mfa_next_url'] = target_url
+                return redirect('accounts:mfa_verify')
+
         login(self.request, user)
         log_audit_event(
             action=AuditAction.LOGIN,
@@ -244,6 +246,10 @@ class MFAEnrollmentView(View):
         user = _pending_mfa_user(request)
         if not user:
             return redirect('accounts:login')
+        if not privileged_user_requires_mfa(user):
+            if not request.user.is_authenticated:
+                login(request, user)
+            return redirect(_role_redirect(user))
         secret = request.session.get('mfa_enrollment_secret')
         recovery_codes = request.session.get('mfa_recovery_codes_plain')
         if not secret or not recovery_codes:
@@ -264,6 +270,10 @@ class MFAEnrollmentView(View):
         user = _pending_mfa_user(request)
         if not user:
             return redirect('accounts:login')
+        if not privileged_user_requires_mfa(user):
+            if not request.user.is_authenticated:
+                login(request, user)
+            return redirect(_role_redirect(user))
         if is_mfa_rate_limited(str(user.pk)):
             return _abort_mfa_to_login(request, 'Too many verification attempts. Please sign in again.')
         secret = request.session.get('mfa_enrollment_secret')
@@ -293,13 +303,25 @@ class MFAVerifyView(View):
 
     def get(self, request):
         user = _pending_mfa_user(request)
-        if not user or not user.mfa_secret:
+        if not user:
+            return redirect('accounts:login')
+        if not privileged_user_requires_mfa(user):
+            if not request.user.is_authenticated:
+                login(request, user)
+            return redirect(_role_redirect(user))
+        if not user.mfa_secret:
             return redirect('accounts:login')
         return render(request, self.template_name, {'form': MFAVerifyForm(), 'user': user})
 
     def post(self, request):
         user = _pending_mfa_user(request)
-        if not user or not user.mfa_secret:
+        if not user:
+            return redirect('accounts:login')
+        if not privileged_user_requires_mfa(user):
+            if not request.user.is_authenticated:
+                login(request, user)
+            return redirect(_role_redirect(user))
+        if not user.mfa_secret:
             return redirect('accounts:login')
         if is_mfa_rate_limited(str(user.pk)):
             return _abort_mfa_to_login(request, 'Too many verification attempts. Please sign in again.')
