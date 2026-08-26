@@ -3,13 +3,7 @@
 {% block title %}Pharmacy Stock Dispense - Nairobi Hospice PCMS{% endblock %}
 
 {% block content %}
-<div class="space-y-6" x-data="{
-    stockItems: {{ stock_items_json|safe }},
-    selectedItemId: '{{ form.stock_item.value|default:'' }}',
-    get selectedItem() {
-        return this.stockItems.find(i => i.id == this.selectedItemId) || null;
-    }
-}">
+<div class="space-y-6" x-data="pharmacyDispenser()">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -184,4 +178,18 @@
 
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script nonce="{{ request.csp_nonce }}">
+document.addEventListener('alpine:init', () => {
+    Alpine.data('pharmacyDispenser', () => ({
+        stockItems: {{ stock_items_json|safe }},
+        selectedItemId: '{{ form.stock_item.value|default:'' }}',
+        get selectedItem() {
+            return (this.stockItems || []).find(i => String(i.id) === String(this.selectedItemId)) || null;
+        }
+    }));
+});
+</script>
 {% endblock %}
