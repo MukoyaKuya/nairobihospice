@@ -442,8 +442,13 @@ class PatientPhotoView(LoginRequiredMixin, View):
         if not patient.photo:
             raise Http404('This patient has no photograph.')
 
+        try:
+            photo_file = patient.photo.open('rb')
+        except (FileNotFoundError, ValueError, OSError):
+            raise Http404('Photograph file not found.')
+
         content_type = guess_type(patient.photo.name)[0] or 'application/octet-stream'
-        response = FileResponse(patient.photo.open('rb'), content_type=content_type)
+        response = FileResponse(photo_file, content_type=content_type)
         response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
         response['X-Content-Type-Options'] = 'nosniff'
         return response

@@ -546,6 +546,16 @@ class TestMedicationAndAppointmentLifecycle:
         assert appt.status == AppointmentStatusChoices.SCHEDULED
         assert appt.patient == patient
 
+        # Attempting to complete a future appointment must raise ValidationError
+        from django.core.exceptions import ValidationError
+        from apps.appointments.services import update_appointment_status
+        with pytest.raises(ValidationError):
+            update_appointment_status(
+                appointment=appt,
+                status=AppointmentStatusChoices.COMPLETED,
+                user=nurse,
+            )
+
     def test_appointment_form_excludes_non_clinical_roles(self):
         from apps.appointments.forms import AppointmentForm
         from apps.appointments.models import AppointmentTypeChoices

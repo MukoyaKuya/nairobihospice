@@ -71,12 +71,12 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
             grouped_dict[appt.scheduled_date].append(appt)
 
         grouped_upcoming = []
-        for d in sorted(grouped_dict.keys(), reverse=True):
+        for d in sorted(grouped_dict.keys()):
             grouped_upcoming.append({
                 'date': d,
                 'is_today': (d == today),
                 'is_tomorrow': (d == today + timezone.timedelta(days=1)),
-                'appointments': grouped_dict[d]
+                'appointments': sorted(grouped_dict[d], key=lambda a: (a.scheduled_time or timezone.datetime.min.time()))
             })
 
         recent_patients = Patient.objects.filter(status='ACTIVE')
@@ -158,13 +158,17 @@ class AppointmentStatusUpdateView(LoginRequiredMixin, View):
         new_status = request.POST.get('status')
         outcome = request.POST.get('outcome_notes', '') if (request.user.is_clinical or request.user.is_manager) else ''
         if new_status in AppointmentStatusChoices.values:
-            update_appointment_status(
-                appointment=appt,
-                status=new_status,
-                outcome_notes=outcome,
-                user=request.user,
-            )
-            messages.success(request, f"Home visit status for {appt.patient.full_name} updated to {appt.get_status_display()}.")
+            from django.core.exceptions import ValidationError
+            try:
+                update_appointment_status(
+                    appointment=appt,
+                    status=new_status,
+                    outcome_notes=outcome,
+                    user=request.user,
+                )
+                messages.success(request, f"Appointment status for {appt.patient.full_name} updated to {appt.get_status_display()}.")
+            except ValidationError as exc:
+                messages.error(request, str(exc.message if hasattr(exc, 'message') else exc))
         
         next_url = request.POST.get('next') or request.GET.get('next')
         from django.utils.http import url_has_allowed_host_and_scheme

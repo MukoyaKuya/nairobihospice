@@ -335,7 +335,7 @@
                                         Open Chart
                                     </a>
 
-                                    {% if appt.status != 'COMPLETED' %}
+                                    {% if appt.status != 'COMPLETED' and appt.scheduled_date <= today %}
                                     <form method="POST" action="{% url 'appointments:appointment_update_status' appt.pk %}" class="inline-flex">
                                         {% csrf_token %}
                                         <input type="hidden" name="status" value="COMPLETED">
@@ -482,7 +482,7 @@
                                 Open Chart
                             </a>
 
-                            {% if appt.status != 'COMPLETED' %}
+                            {% if appt.status != 'COMPLETED' and appt.scheduled_date <= today %}
                             <form method="POST" action="{% url 'appointments:appointment_update_status' appt.pk %}" class="inline-flex">
                                 {% csrf_token %}
                                 <input type="hidden" name="status" value="COMPLETED">

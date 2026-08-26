@@ -71,3 +71,11 @@ class AppointmentStatusForm(forms.ModelForm):
         widgets = {
             'outcome_notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Consultation outcome, follow-up required...'}),
         }
+
+    def clean_status(self):
+        from apps.appointments.models import AppointmentStatusChoices
+        from django.utils import timezone
+        status = self.cleaned_data.get('status')
+        if status == AppointmentStatusChoices.COMPLETED and self.instance and self.instance.scheduled_date > timezone.now().date():
+            raise forms.ValidationError("A future appointment cannot be marked as completed until the visit date.")
+        return status

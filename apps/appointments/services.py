@@ -53,6 +53,11 @@ def schedule_appointment(
 
 @transaction.atomic
 def update_appointment_status(*, appointment: Appointment, status: AppointmentStatusChoices, outcome_notes: str = '', user=None) -> Appointment:
+    from django.core.exceptions import ValidationError
+    from django.utils import timezone
+    if status == AppointmentStatusChoices.COMPLETED and appointment.scheduled_date > timezone.now().date():
+        raise ValidationError("A future appointment cannot be marked as completed until the visit date.")
+
     appointment.status = status
     if outcome_notes:
         appointment.outcome_notes = outcome_notes

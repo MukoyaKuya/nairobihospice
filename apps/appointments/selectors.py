@@ -11,7 +11,7 @@ from .models import Appointment, AppointmentStatusChoices, AppointmentTypeChoice
 
 def get_daily_appointments(target_date: Optional[date] = None) -> QuerySet[Appointment]:
     d = target_date or timezone.now().date()
-    return Appointment.objects.filter(scheduled_date=d).select_related('patient', 'staff_member__user').order_by('-scheduled_time')
+    return Appointment.objects.filter(scheduled_date=d).select_related('patient', 'staff_member__user').order_by('scheduled_time')
 
 
 def get_upcoming_appointments(
@@ -23,7 +23,7 @@ def get_upcoming_appointments(
     base_queryset = queryset if queryset is not None else Appointment.objects.all()
     return base_queryset.filter(
         scheduled_date__gte=s
-    ).select_related('patient', 'staff_member__user').order_by('-scheduled_date', '-scheduled_time')[:limit]
+    ).select_related('patient', 'staff_member__user').order_by('scheduled_date', 'scheduled_time')[:limit]
 
 
 def get_weekly_appointments(start_date: Optional[date] = None) -> QuerySet[Appointment]:
@@ -31,7 +31,7 @@ def get_weekly_appointments(start_date: Optional[date] = None) -> QuerySet[Appoi
     e = s + timedelta(days=7)
     return Appointment.objects.filter(
         scheduled_date__gte=s, scheduled_date__lte=e
-    ).select_related('patient', 'staff_member__user').order_by('-scheduled_date', '-scheduled_time')
+    ).select_related('patient', 'staff_member__user').order_by('scheduled_date', 'scheduled_time')
 
 
 def search_appointments(
