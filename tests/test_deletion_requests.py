@@ -47,7 +47,8 @@ def test_patient(db):
 
 
 @pytest.mark.django_db
-def test_receptionist_can_submit_deletion_request(receptionist_user, test_patient):
+def test_receptionist_can_submit_deletion_request(manager_user, receptionist_user, test_patient):
+    from apps.notifications.models import Notification, NotificationTypeChoices
     client = Client()
     client.force_login(receptionist_user)
 
@@ -65,12 +66,18 @@ def test_receptionist_can_submit_deletion_request(receptionist_user, test_patien
     assert 'Duplicate patient file' in req.reason
     assert req.patient == test_patient
 
+    # Operations manager receives notification
+    notif = Notification.objects.filter(recipient=manager_user, notification_type=NotificationTypeChoices.DELETION_REQUEST_CREATED).first()
+    assert notif is not None
+    assert test_patient.full_name in notif.title
+
     # Patient is NOT yet deleted
     assert Patient.objects.filter(pk=test_patient.pk).exists()
 
 
 @pytest.mark.django_db
 def test_manager_can_approve_deletion_and_closes_patient(manager_user, receptionist_user, test_patient):
+    from apps.notifications.models import Notification, NotificationTypeChoices
     # Submit request first
     deletion_req = PatientDeletionRequest.objects.create(
         patient=test_patient,
@@ -98,11 +105,13 @@ def test_manager_can_approve_deletion_and_closes_patient(manager_user, reception
     assert deletion_req.reviewed_by == manager_user
     assert 'Verified duplicate' in deletion_req.review_notes
 
-    # Patient is preserved in DB for clinical governance but status is CLOSED
-    test_patient.refresh_from_db()
-    assert test_patient.status == 'CLOSED'
-    assert test_patient.file_closed == 'Yes'
-    assert test_patient.closure_date is not None
+    # Patient is deleted from DB
+    assert not Patient.objects.filter(pk=test_patient.pk).exists()
+
+    # Receptionist receives approval notification
+    notif = Notification.objects.filter(recipient=receptionist_user, notification_type=NotificationTypeChoices.DELETION_REQUEST_APPROVED).first()
+    assert notif is not None
+    assert test_patient.full_name in notif.title
 
     # Audit log created
     audit = AuditEvent.objects.filter(action=AuditAction.DELETE, resource_type='Patient').first()
@@ -113,6 +122,7 @@ def test_manager_can_approve_deletion_and_closes_patient(manager_user, reception
 
 @pytest.mark.django_db
 def test_manager_can_reject_deletion_and_preserves_patient(manager_user, receptionist_user, test_patient):
+    from apps.notifications.models import Notification, NotificationTypeChoices
     deletion_req = PatientDeletionRequest.objects.create(
         patient=test_patient,
         patient_id_copy=test_patient.pk,
@@ -139,13 +149,19 @@ def test_manager_can_reject_deletion_and_preserves_patient(manager_user, recepti
     assert deletion_req.reviewed_by == manager_user
     assert 'clinical governance' in deletion_req.review_notes
 
+    # Receptionist receives rejection notification
+    notif = Notification.objects.filter(recipient=receptionist_user, notification_type=NotificationTypeChoices.DELETION_REQUEST_REJECTED).first()
+    assert notif is not None
+    assert test_patient.full_name in notif.title
+
     # Patient remains safely intact in DB
     assert Patient.objects.filter(pk=test_patient.pk).exists()
 
 
 @pytest.mark.django_db
-def test_clinician_can_submit_appointment_deletion_request(receptionist_user, test_patient):
+def test_clinician_can_submit_appointment_deletion_request(manager_user, receptionist_user, test_patient):
     from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
+    from apps.notifications.models import Notification, NotificationTypeChoices
     staff_profile = receptionist_user.staff_profile
     appt = Appointment.objects.create(
         patient=test_patient,
@@ -174,11 +190,16 @@ def test_clinician_can_submit_appointment_deletion_request(receptionist_user, te
     assert req.appointment == appt
     assert Appointment.objects.filter(pk=appt.pk).exists()
 
+    # Operations manager receives notification
+    notif = Notification.objects.filter(recipient=manager_user, notification_type=NotificationTypeChoices.DELETION_REQUEST_CREATED).first()
+    assert notif is not None
+
 
 @pytest.mark.django_db
 def test_manager_can_approve_appointment_deletion_and_cancels_appointment(manager_user, receptionist_user, test_patient):
     from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
     from apps.operations.models import AppointmentDeletionRequest
+    from apps.notifications.models import Notification, NotificationTypeChoices
     
     staff_profile = receptionist_user.staff_profile
     appt = Appointment.objects.create(
@@ -216,14 +237,18 @@ def test_manager_can_approve_appointment_deletion_and_cancels_appointment(manage
     deletion_req.refresh_from_db()
     assert deletion_req.status == DeletionRequestStatusChoices.APPROVED
     assert deletion_req.reviewed_by == manager_user
-    appt.refresh_from_db()
-    assert appt.status == AppointmentStatusChoices.CANCELLED
+    assert not Appointment.objects.filter(pk=appt.pk).exists()
+
+    # Receptionist receives notification
+    notif = Notification.objects.filter(recipient=receptionist_user, notification_type=NotificationTypeChoices.DELETION_REQUEST_APPROVED).first()
+    assert notif is not None
 
 
 @pytest.mark.django_db
 def test_manager_can_reject_appointment_deletion_and_preserves_appointment(manager_user, receptionist_user, test_patient):
     from apps.appointments.models import Appointment, AppointmentStatusChoices, AppointmentTypeChoices
     from apps.operations.models import AppointmentDeletionRequest
+    from apps.notifications.models import Notification, NotificationTypeChoices
     
     staff_profile = receptionist_user.staff_profile
     appt = Appointment.objects.create(
@@ -262,3 +287,8 @@ def test_manager_can_reject_appointment_deletion_and_preserves_appointment(manag
     assert deletion_req.status == DeletionRequestStatusChoices.REJECTED
     assert deletion_req.reviewed_by == manager_user
     assert Appointment.objects.filter(pk=appt.pk).exists()
+
+    # Receptionist receives rejection notification
+    notif = Notification.objects.filter(recipient=receptionist_user, notification_type=NotificationTypeChoices.DELETION_REQUEST_REJECTED).first()
+    assert notif is not None
+

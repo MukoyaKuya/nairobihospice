@@ -640,29 +640,28 @@ class PatientDeletionRequestApproveView(ManagerRequiredMixin, View):
             deletion_req.reviewed_by = request.user
             deletion_req.reviewed_at = timezone.now()
             deletion_req.review_notes = review_notes
+            deletion_req.patient = None
             deletion_req.save()
 
             if patient:
-                from apps.patients.models import PatientStatusChoices
-                patient.status = PatientStatusChoices.CLOSED
-                closure_note = f"File closed and archived via approved deletion request. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}"
-                patient.notes = f"{patient.notes}\n\n{closure_note}".strip() if patient.notes else closure_note
-                patient.file_closed = "Yes"
-                patient.closure_date = timezone.now().date()
-                patient.save(update_fields=['status', 'notes', 'file_closed', 'closure_date', 'updated_at'])
+                patient_pk = str(patient.pk)
+                patient.delete()
 
                 # Log audit trail
                 log_audit_event(
                     action=AuditAction.DELETE,
                     resource_type='Patient',
-                    resource_id=str(patient.id),
-                    summary=f"Approved deletion request and closed/archived patient file for {patient_name} ({hospice_number}). Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
+                    resource_id=patient_pk,
+                    summary=f"Approved deletion request and purged patient record for {patient_name} ({hospice_number}). Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
                     user=request.user,
                 )
 
+        from apps.notifications.services import notify_requester_of_deletion_resolution
+        notify_requester_of_deletion_resolution(deletion_req=deletion_req, approved=True, request_type='patient')
+
         messages.success(
             request,
-            f"Patient record for {patient_name} ({hospice_number}) has been closed, archived, and updated in audit records."
+            f"Patient record for {patient_name} ({hospice_number}) has been approved, deleted, and removed from active registries."
         )
         return redirect('operations:deletion_requests')
 
@@ -691,6 +690,9 @@ class PatientDeletionRequestRejectView(ManagerRequiredMixin, View):
             user=request.user,
         )
 
+        from apps.notifications.services import notify_requester_of_deletion_resolution
+        notify_requester_of_deletion_resolution(deletion_req=deletion_req, approved=False, request_type='patient')
+
         messages.info(
             request,
             f"Deletion request for {deletion_req.patient_name} ({deletion_req.hospice_number}) has been rejected."
@@ -717,27 +719,28 @@ class AppointmentDeletionRequestApproveView(ManagerRequiredMixin, View):
             deletion_req.reviewed_by = request.user
             deletion_req.reviewed_at = timezone.now()
             deletion_req.review_notes = review_notes
+            deletion_req.appointment = None
             deletion_req.save()
 
             if appt:
-                from apps.appointments.models import AppointmentStatusChoices
-                appt.status = AppointmentStatusChoices.CANCELLED
-                cancellation_note = f"Cancelled via approved deletion request. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}"
-                appt.notes = f"{appt.notes}\n\n{cancellation_note}".strip() if appt.notes else cancellation_note
-                appt.save(update_fields=['status', 'notes', 'updated_at'])
+                appt_pk = str(appt.pk)
+                appt.delete()
 
                 # Log audit trail
                 log_audit_event(
                     action=AuditAction.DELETE,
                     resource_type='Appointment',
-                    resource_id=str(appt.id),
-                    summary=f"Approved deletion request and cancelled appointment for {patient_name} scheduled on {sched_date}. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
+                    resource_id=appt_pk,
+                    summary=f"Approved deletion request and purged appointment for {patient_name} scheduled on {sched_date}. Justification: {deletion_req.reason}. Reviewer notes: {review_notes}",
                     user=request.user,
                 )
 
+        from apps.notifications.services import notify_requester_of_deletion_resolution
+        notify_requester_of_deletion_resolution(deletion_req=deletion_req, approved=True, request_type='appointment')
+
         messages.success(
             request,
-            f"Appointment for {patient_name} on {sched_date} has been cancelled and archived in audit records."
+            f"Appointment for {patient_name} on {sched_date} has been approved, deleted, and removed from schedule."
         )
         return redirect(f"{redirect('operations:deletion_requests').url}?tab=appointments")
 
@@ -765,6 +768,9 @@ class AppointmentDeletionRequestRejectView(ManagerRequiredMixin, View):
             summary=f"Rejected appointment deletion request for {deletion_req.patient_name} on {deletion_req.scheduled_date}. Reason: {review_notes}",
             user=request.user,
         )
+
+        from apps.notifications.services import notify_requester_of_deletion_resolution
+        notify_requester_of_deletion_resolution(deletion_req=deletion_req, approved=False, request_type='appointment')
 
         messages.info(
             request,

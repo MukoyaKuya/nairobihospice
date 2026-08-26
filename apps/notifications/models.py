@@ -14,6 +14,9 @@ class NotificationTypeChoices(models.TextChoices):
     CLINICAL_ALERT = 'CLINICAL_ALERT', _('High Distress Symptom / Clinical Alert')
     NEW_PATIENT_REGISTERED = 'NEW_PATIENT_REGISTERED', _('New Patient Registered')
     NEW_APPOINTMENT_SCHEDULED = 'NEW_APPOINTMENT_SCHEDULED', _('New Appointment Scheduled')
+    DELETION_REQUEST_CREATED = 'DELETION_REQUEST_CREATED', _('Deletion Request Submitted')
+    DELETION_REQUEST_APPROVED = 'DELETION_REQUEST_APPROVED', _('Deletion Request Approved')
+    DELETION_REQUEST_REJECTED = 'DELETION_REQUEST_REJECTED', _('Deletion Request Rejected')
 
 
 class Notification(models.Model):

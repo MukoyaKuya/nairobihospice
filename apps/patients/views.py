@@ -506,6 +506,9 @@ class PatientRequestDeleteView(LoginRequiredMixin, View):
             user=request.user,
         )
 
+        from apps.notifications.services import notify_operations_of_deletion_request
+        notify_operations_of_deletion_request(deletion_req=deletion_req, request_type='patient')
+
         messages.success(
             request,
             f"Deletion request for {patient.full_name} ({patient.hospice_number}) has been submitted to Operations Management for approval."

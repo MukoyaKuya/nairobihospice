@@ -219,7 +219,10 @@ class AppointmentDeletionRequestCreateView(LoginRequiredMixin, View):
             summary=f"Requested deletion of appointment for {appt.patient.full_name} on {appt.scheduled_date}. Reason: {reason}",
             user=request.user,
         )
-        
+
+        from apps.notifications.services import notify_operations_of_deletion_request
+        notify_operations_of_deletion_request(deletion_req=deletion_req, request_type='appointment')
+
         messages.success(
             request, 
             f"Deletion request for {appt.patient.full_name}'s appointment on {appt.scheduled_date} has been submitted for Operations approval."
