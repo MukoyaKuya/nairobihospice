@@ -19,18 +19,26 @@ def get_upcoming_appointments(
     limit: int = 50,
     queryset: Optional[QuerySet[Appointment]] = None,
 ) -> QuerySet[Appointment]:
-    s = start_date or timezone.localdate()
+    today = start_date or timezone.localdate()
+    now_time = timezone.localtime(timezone.now()).time()
     base_queryset = queryset if queryset is not None else Appointment.objects.all()
-    return base_queryset.filter(
-        scheduled_date__gte=s
+    return base_queryset.exclude(
+        status=AppointmentStatusChoices.COMPLETED
+    ).filter(
+        Q(scheduled_date__gt=today) |
+        Q(scheduled_date=today, scheduled_time__gte=now_time)
     ).select_related('patient', 'staff_member__user').order_by('scheduled_date', 'scheduled_time')[:limit]
 
 
 def get_weekly_appointments(start_date: Optional[date] = None) -> QuerySet[Appointment]:
-    s = start_date or timezone.localdate()
-    e = s + timedelta(days=7)
-    return Appointment.objects.filter(
-        scheduled_date__gte=s, scheduled_date__lte=e
+    today = start_date or timezone.localdate()
+    now_time = timezone.localtime(timezone.now()).time()
+    e = today + timedelta(days=7)
+    return Appointment.objects.exclude(
+        status=AppointmentStatusChoices.COMPLETED
+    ).filter(
+        Q(scheduled_date__gt=today, scheduled_date__lte=e) |
+        Q(scheduled_date=today, scheduled_time__gte=now_time)
     ).select_related('patient', 'staff_member__user').order_by('scheduled_date', 'scheduled_time')
 
 
