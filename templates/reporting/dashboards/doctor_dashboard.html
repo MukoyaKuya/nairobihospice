@@ -121,9 +121,15 @@
                                 </p>
                             </div>
                         </div>
+                        {% if can_conduct_encounters %}
                         <a href="{% url 'encounters:encounter_create' appt.patient.id %}" class="px-2.5 py-1.5 bg-[#002D62] hover:bg-[#0B2545] text-white text-[10px] font-bold rounded-lg whitespace-nowrap shadow-xs transition">
                             Start Encounter
                         </a>
+                        {% else %}
+                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg whitespace-nowrap">
+                            {{ appt.get_status_display }}
+                        </span>
+                        {% endif %}
                     </div>
                     {% empty %}
                     <div class="py-8 text-center text-xs text-slate-400">
@@ -358,6 +364,7 @@
             </div>
 
             <div class="space-y-2">
+                {% if can_conduct_encounters %}
                 <a href="{% url 'patients:patient_list' %}" class="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#002D62] hover:bg-slate-50 transition flex items-center justify-between group">
                     <div class="flex items-center space-x-2.5">
                         <div class="w-7 h-7 rounded-lg bg-blue-50 text-[#002D62] flex items-center justify-center">
@@ -370,6 +377,7 @@
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition"></i>
                 </a>
+                {% endif %}
 
                 <a href="{% url 'referrals:referral_create' %}" class="w-full p-2.5 rounded-xl border border-slate-200 hover:border-[#991B1B] hover:bg-slate-50 transition flex items-center justify-between group">
                     <div class="flex items-center space-x-2.5">

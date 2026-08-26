@@ -15,6 +15,72 @@ def can_manage_all_patients(user):
     )
 
 
+def is_operations_manager(user) -> bool:
+    """True specifically for non-superuser Operations Managers without clinical role."""
+    return bool(
+        user
+        and user.is_authenticated
+        and getattr(user, 'role', '') == RoleChoices.MANAGER
+        and not user.is_superuser
+        and getattr(user, 'role', '') != RoleChoices.ADMINISTRATOR
+    )
+
+
+def can_access_clinical_phi(user) -> bool:
+    """
+    Returns True for clinical staff (Doctors, Nurses, Clinical Officers, etc.) and System Administrators.
+    Operations Managers and Receptionists are non-clinical and must NOT view sensitive clinical diagnoses.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser or getattr(user, 'role', '') == RoleChoices.ADMINISTRATOR:
+        return True
+    if getattr(user, 'is_receptionist', False) or getattr(user, 'role', '') == RoleChoices.MANAGER or getattr(user, 'role', '') == RoleChoices.PHARMACIST:
+        return False
+    return bool(getattr(user, 'is_clinical', False))
+
+
+def can_schedule_appointments(user) -> bool:
+    """
+    Returns True for Receptionists, Clinical Staff, and Administrators.
+    Operations Managers cannot book appointments.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser or getattr(user, 'role', '') == RoleChoices.ADMINISTRATOR:
+        return True
+    if getattr(user, 'role', '') == RoleChoices.MANAGER or getattr(user, 'role', '') == RoleChoices.PHARMACIST:
+        return False
+    return bool(getattr(user, 'is_receptionist', False) or getattr(user, 'is_clinical', False))
+
+
+def can_register_patients(user) -> bool:
+    """
+    Returns True for Front Desk Receptionists and System Administrators.
+    Operations Managers cannot register patients.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser or getattr(user, 'role', '') == RoleChoices.ADMINISTRATOR:
+        return True
+    if getattr(user, 'role', '') == RoleChoices.MANAGER or getattr(user, 'role', '') == RoleChoices.PHARMACIST:
+        return False
+    return bool(getattr(user, 'is_receptionist', False))
+
+
+def can_conduct_clinical_encounters(user) -> bool:
+    """
+    Returns True for clinical practitioners.
+    Operations Managers and Receptionists cannot conduct clinical encounters.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    if getattr(user, 'role', '') == RoleChoices.MANAGER or getattr(user, 'is_receptionist', False) or getattr(user, 'role', '') == RoleChoices.PHARMACIST:
+        return False
+    return bool(getattr(user, 'is_clinical', False) or user.is_superuser or getattr(user, 'role', '') == RoleChoices.ADMINISTRATOR)
+
+
+
 import datetime
 
 

@@ -1,5 +1,6 @@
 import pytest
 from django.test import Client
+from django.urls import reverse
 
 from apps.accounts.models import RoleChoices
 from apps.accounts.services import create_staff_user
@@ -381,3 +382,54 @@ class TestOperationsSuite:
         assert 'STK-OPIOID-EXPORT' in content
         assert 'Mary Export' in content
         assert 'Oral Morphine 10mg/5ml' in content
+
+    def test_operations_manager_cannot_perform_clinical_actions_or_see_diagnosis(self):
+        """Operations Manager is restricted from clinical actions and cannot view sensitive diagnosis PHI."""
+        from apps.patients.services import register_patient
+
+        receptionist = create_staff_user(
+            email='rec_sec@nairobihospice.or.ke',
+            username='rec_sec',
+            first_name='Rec',
+            last_name='Security',
+            password='Pass!',
+            role=RoleChoices.RECEPTIONIST,
+        )
+        patient = register_patient(
+            first_name='Protected',
+            last_name='Patient',
+            primary_diagnosis='Metastatic Pancreatic Adenocarcinoma',
+            hiv_status='POSITIVE',
+            clinical_alerts='High aspiration risk',
+            created_by=receptionist,
+        )
+
+        # 1. Cannot register patients
+        assert self.client_manager.get(reverse('patients:patient_register')).status_code == 403
+        assert self.client_manager.post(reverse('patients:patient_register'), {'first_name': 'Hacker', 'last_name': 'Patient'}).status_code == 403
+
+        # 2. Cannot book/schedule appointments
+        appt_url = reverse('appointments:appointment_create', kwargs={'patient_id': patient.id})
+        assert self.client_manager.get(appt_url).status_code == 403
+        assert self.client_manager.post(appt_url, {'scheduled_date': '2026-08-30'}).status_code == 403
+
+        # 3. Cannot start or record clinical encounters
+        enc_url = reverse('encounters:encounter_create', kwargs={'patient_id': patient.id})
+        assert self.client_manager.get(enc_url).status_code == 403
+
+        # 4. Patient detail view hides diagnosis, HIV status, and clinical action buttons
+        resp = self.client_manager.get(reverse('patients:patient_detail', kwargs={'pk': patient.id}))
+        assert resp.status_code == 200
+        content = resp.content.decode('utf-8')
+        assert 'Protected Patient' in content
+        assert 'General Data &amp; NOK' in content or 'General Data & NOK' in content
+        assert 'Caregivers' in content
+
+        # Sensitive PHI and clinical actions must NOT be present
+        assert 'Metastatic Pancreatic Adenocarcinoma' not in content
+        assert 'POSITIVE' not in content
+        assert 'High aspiration risk' not in content
+        assert '+ Encounter' not in content
+        assert 'Book Appointment' not in content
+        assert 'Clinical Timeline &amp; Encounters' not in content
+

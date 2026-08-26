@@ -17,9 +17,13 @@ from apps.reporting.charting import chart_json
 
 from .access import (
     authorized_patient_queryset,
+    can_access_clinical_phi,
     can_manage_all_patients,
+    can_register_patients,
+    can_schedule_appointments,
     get_authorized_patient_or_404,
     get_operational_patient_or_404,
+    is_operations_manager,
 )
 from .constants import HOSPICE_DIAGNOSES
 from .forms import PatientRegistrationForm, PatientUpdateForm, ReceptionistPatientUpdateForm
@@ -133,11 +137,15 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         patient = self.object
         user = self.request.user
         is_pharmacist = getattr(user, 'role', '') == RoleChoices.PHARMACIST
-        clinical_access = not user.is_receptionist and not is_pharmacist and (
-            user.is_clinical or can_manage_all_patients(user)
-        )
+        is_manager = is_operations_manager(user)
+        clinical_access = can_access_clinical_phi(user)
+        can_schedule = can_schedule_appointments(user)
+
         context['clinical_access'] = clinical_access
         context['is_pharmacist'] = is_pharmacist
+        context['is_operations_manager'] = is_manager
+        context['can_schedule'] = can_schedule
+        context['can_view_diagnosis'] = clinical_access
 
         if not clinical_access:
             context['assessments'] = []
@@ -162,7 +170,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
             context['symptom_trends_json'] = '{}'
             context['upcoming_appointments'] = patient.appointments.filter(
                 status__in=['SCHEDULED', 'CONFIRMED']
-            ).select_related('staff_member').order_by('scheduled_date', 'scheduled_time')[:5]
+            ).select_related('staff_member').order_by('scheduled_date', 'scheduled_time')[:5] if can_schedule else []
             context['documents'] = []
             context['communications'] = []
             return context
@@ -181,21 +189,23 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         medications = list(patient.medications.select_related('prescriber').order_by('-status', '-start_date')[:100])
         context['medications'] = medications
         context['active_medications'] = [m for m in medications if m.status == 'ACTIVE']
+        context['dispenses'] = list(patient.stock_movements.select_related('stock_item', 'recorded_by').order_by('-created_at')[:50])
 
-        # Care Plans
-        active_care_plan = patient.care_plans.filter(status='ACTIVE').first()
-        context['active_care_plan'] = active_care_plan
-        context['care_plan'] = active_care_plan
-        context['care_plans'] = list(patient.care_plans.order_by('-created_at')[:50])
+        # Active care plan & care team
+        context['active_care_plan'] = patient.care_plans.filter(status='ACTIVE').first()
+        context['care_plan'] = context['active_care_plan']
+        context['care_plans'] = list(patient.care_plans.select_related('created_by').order_by('-created_at')[:20])
+        context['active_episode'] = patient.episodes.filter(status='ACTIVE').first()
+        if context['active_episode']:
+            context['care_team'] = list(
+                context['active_episode'].team_members.filter(end_date__isnull=True).select_related('staff_member__user')
+            )
+        else:
+            context['care_team'] = []
 
-        # Episodes and Care Team
-        active_episode = patient.episodes.filter(status='ACTIVE').order_by('-start_date').first()
-        context['active_episode'] = active_episode
-        context['care_team'] = active_episode.team_members.select_related('staff_member__user') if active_episode else []
-
-        # Longitudinal Symptoms (Last 10 ESAS records)
-        symptoms = list(patient.symptom_records.prefetch_related('scores').order_by('-recorded_at')[:100])
-        context['recent_symptoms'] = symptoms[:10]
+        # Recent Symptoms (last 5)
+        symptoms = list(patient.symptom_records.select_related('recorded_by').order_by('-recorded_at')[:10])
+        context['recent_symptoms'] = symptoms
 
         # Symptom trends for Chart.js
         trend_records = list(reversed(symptoms))
@@ -211,7 +221,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         # Upcoming Appointments
         context['upcoming_appointments'] = patient.appointments.filter(
             status__in=['SCHEDULED', 'CONFIRMED']
-        ).select_related('staff_member').order_by('scheduled_date', 'scheduled_time')[:5]
+        ).select_related('staff_member').order_by('scheduled_date', 'scheduled_time')[:5] if can_schedule else []
 
         # Documents & Communications
         context['documents'] = patient.documents.select_related('uploaded_by').order_by('-uploaded_at')[:10]
@@ -229,13 +239,13 @@ def kenya_locations_api(request):
 
 class PatientCreateView(LoginRequiredMixin, View):
     def get(self, request):
-        if getattr(request.user, 'is_pharmacist', False):
+        if not can_register_patients(request.user):
             from django.core.exceptions import PermissionDenied
-            raise PermissionDenied("Pharmacists are not authorized to register new patients.")
+            raise PermissionDenied("Only Front Desk Receptionists and Administrators are authorized to register new intake patients.")
         from .services import generate_next_ip_op_number
         suggested_ip_op = generate_next_ip_op_number()
         form = PatientRegistrationForm(initial={'ip_op_number': suggested_ip_op})
-        clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
+        clinical_access = can_access_clinical_phi(request.user)
         return render(request, 'patients/patient_form.html', {
             'form': form,
             'is_create': True,
@@ -246,10 +256,10 @@ class PatientCreateView(LoginRequiredMixin, View):
         })
 
     def post(self, request):
-        if getattr(request.user, 'is_pharmacist', False):
+        if not can_register_patients(request.user):
             from django.core.exceptions import PermissionDenied
-            raise PermissionDenied("Pharmacists are not authorized to register new patients.")
-        clinical_access = getattr(request.user, 'is_clinical', False) or can_manage_all_patients(request.user)
+            raise PermissionDenied("Only Front Desk Receptionists and Administrators are authorized to register new intake patients.")
+        clinical_access = can_access_clinical_phi(request.user)
         form = PatientRegistrationForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data

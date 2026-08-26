@@ -11,7 +11,12 @@ from apps.referrals.models import Referral, ReferralStatusChoices
 from apps.symptoms.models import SymptomAssessmentRecord
 
 
-from apps.patients.access import authorized_patient_queryset, can_manage_all_patients
+from apps.patients.access import (
+    authorized_patient_queryset,
+    can_conduct_clinical_encounters,
+    can_manage_all_patients,
+    is_operations_manager,
+)
 
 
 def get_clinical_dashboard_data(user):
@@ -160,6 +165,8 @@ def get_clinical_dashboard_data(user):
         'is_doctor': is_doc,
         'is_pharmacist': is_pharm,
         'is_social_worker': is_psy,
+        'is_manager': is_operations_manager(user),
+        'can_conduct_encounters': can_conduct_clinical_encounters(user),
     }
 
 

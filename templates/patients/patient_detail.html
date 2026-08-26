@@ -136,6 +136,12 @@
                         <i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-600"></i>
                         <span>Dispense Stock</span>
                     </a>
+                    {% elif is_operations_manager %}
+                    <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
+                       class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-red-300"></i>
+                        <span>Print ID</span>
+                    </a>
                     {% elif clinical_access %}
                     <a href="{% url 'patients:patient_download_report' patient.pk %}" target="_blank" 
                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-[#002D62] hover:bg-[#0B2545] text-white rounded-lg shadow-xs transition space-x-1"
@@ -168,7 +174,7 @@
                         <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
                         <span>Schedule</span>
                     </a>
-                    {% if is_manager or is_administrator %}
+                    {% if is_administrator %}
                     <a href="{% url 'patients:patient_id_card' patient.pk %}" target="_blank" 
                        class="inline-flex items-center px-2.5 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition" title="Print ID Card">
                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>
@@ -296,7 +302,7 @@
             <div x-cloak x-show="activeTab === 'biodata'" class="space-y-4">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                     <!-- Left: Bio-Data & Next of Kin -->
-                    <div class="lg:col-span-8 space-y-4">
+                    <div class="{% if can_schedule %}lg:col-span-8{% else %}lg:col-span-12{% endif %} space-y-4">
                         <!-- Patients Bio-Data Card -->
                         <div class="bg-slate-50/70 rounded-xl p-4 border border-slate-200 space-y-3">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
@@ -405,6 +411,7 @@
                     </div>
 
                     <!-- Right: Schedule Appointments Panel -->
+                    {% if can_schedule %}
                     <div class="lg:col-span-4 bg-slate-50/70 rounded-xl p-4 border border-slate-200 space-y-3">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
                             <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#002D62]"></i>
@@ -445,6 +452,7 @@
                             </button>
                         </form>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 

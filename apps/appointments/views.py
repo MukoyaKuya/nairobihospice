@@ -116,6 +116,11 @@ class AppointmentCalendarView(LoginRequiredMixin, View):
 
 class AppointmentCreateView(LoginRequiredMixin, View):
     def get(self, request, patient_id):
+        from apps.patients.access import can_schedule_appointments
+        if not can_schedule_appointments(request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Operations Managers are not authorized to book or schedule patient appointments.")
+
         patient = get_operational_patient_or_404(request.user, patient_id)
         initial_date = timezone.now().date()
         initial_type = request.GET.get('type', AppointmentTypeChoices.CLINIC_VISIT)
@@ -128,6 +133,11 @@ class AppointmentCreateView(LoginRequiredMixin, View):
         return render(request, 'appointments/appointment_form.html', {'form': form, 'patient': patient})
 
     def post(self, request, patient_id):
+        from apps.patients.access import can_schedule_appointments
+        if not can_schedule_appointments(request.user):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Operations Managers are not authorized to book or schedule patient appointments.")
+
         patient = get_operational_patient_or_404(request.user, patient_id)
         form = AppointmentForm(request.POST)
         if form.is_valid():
