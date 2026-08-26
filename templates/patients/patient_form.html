@@ -85,6 +85,64 @@
                 </div>
             </div>
 
+            {% if is_create %}
+            <!-- Registration Consultation Fee & Payment Verification -->
+            <div class="bg-gradient-to-r from-emerald-50/80 via-blue-50/50 to-emerald-50/80 p-5 rounded-2xl border border-emerald-200/90 shadow-xs space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/70 pb-3">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                            <i data-lucide="receipt" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                                Registration & Consultation Fee
+                                <span class="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-200">
+                                    Required for Intake
+                                </span>
+                            </h3>
+                            <p class="text-[11px] text-slate-500">Fixed outpatient intake fee of <strong>KES 1,200.00</strong>. Automatically reconciles and logs to Operations Invoicing ledger.</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Standard Intake Fee</span>
+                        <span class="text-base font-black text-emerald-700 font-mono">KES 1,200.00</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Fee Amount (KES)</label>
+                        <input type="number" step="0.01" name="consultation_fee" value="{{ form.consultation_fee.value|default:'1200.00' }}" readonly class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-100 text-slate-800 font-mono font-bold cursor-not-allowed select-none focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Payment Method / Channel *</label>
+                        <select name="payment_method" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900">
+                            <option value="M-PESA (Paybill 981234)" {% if form.payment_method.value == 'M-PESA (Paybill 981234)' or not form.payment_method.value %}selected{% endif %}>M-PESA (Paybill 981234)</option>
+                            <option value="Bank Transfer (EFT / RTGS)" {% if form.payment_method.value == 'Bank Transfer (EFT / RTGS)' %}selected{% endif %}>Bank Transfer (EFT / RTGS)</option>
+                            <option value="Cash" {% if form.payment_method.value == 'Cash' %}selected{% endif %}>Cash</option>
+                            <option value="Cheque" {% if form.payment_method.value == 'Cheque' %}selected{% endif %}>Cheque</option>
+                            <option value="DHA / SHA / Insurance" {% if form.payment_method.value == 'DHA / SHA / Insurance' %}selected{% endif %}>DHA / SHA / Insurance</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700">M-PESA / Bank Transaction ID *</label>
+                            <span class="text-[10px] text-slate-400 font-mono">e.g. QHK8923KLM</span>
+                        </div>
+                        <input type="text" name="payment_reference" value="{{ form.payment_reference.value|default:'' }}" required placeholder="e.g. QHK8923KLM or FT2408269001" class="w-full px-3 py-2 text-xs border border-emerald-300 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono font-bold uppercase text-slate-900">
+                    </div>
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-white/70 border border-emerald-100 flex items-center justify-between text-[11px] text-slate-600">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        M-PESA Paybill: <strong class="text-slate-800 font-mono">981234</strong> | Account: <strong class="text-slate-800">Patient Name or IP/OP</strong>
+                    </span>
+                    <span class="text-slate-500 font-medium">Auto-creates Operations Tax Invoice & Official Receipt</span>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Names -->
             <div class="space-y-4">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">

@@ -114,6 +114,9 @@ def register_patient(
     primary_nurse=None,
     primary_doctor=None,
     require_care_team: bool = False,
+    consultation_fee=None,
+    payment_method: str = 'M-PESA (Paybill 981234)',
+    payment_reference: str = '',
 ) -> Patient:
     """
     Registers a new patient, generates unique identifier, and records next of kin / caregiver.
@@ -277,6 +280,47 @@ def register_patient(
             role=CareTeamRoleChoices.PRIMARY_DOCTOR,
             is_primary=True,
             start_date=episode.start_date,
+        )
+
+    # Record Consultation Fee Invoice & Payment in Operations
+    fee_val = consultation_fee if consultation_fee is not None else (1200.00 if payment_reference else 0.00)
+    from decimal import Decimal
+    fee_kes = Decimal(str(fee_val))
+    if fee_kes > 0 and payment_reference:
+        from apps.operations.models import (
+            Invoice,
+            InvoiceLineItem,
+            InvoiceTypeChoices,
+            PaymentStatusChoices,
+        )
+        invoice = Invoice.objects.create(
+            invoice_type=InvoiceTypeChoices.PATIENT_SERVICE,
+            patient=patient,
+            status=PaymentStatusChoices.PAID,
+            subtotal_amount_kes=fee_kes,
+            tax_amount_kes=Decimal('0.00'),
+            discount_amount_kes=Decimal('0.00'),
+            total_amount_kes=fee_kes,
+            amount_paid_kes=fee_kes,
+            payment_method=payment_method or 'M-PESA (Paybill 981234)',
+            payment_reference=payment_reference.strip(),
+            notes=f"Initial Registration Consultation Fee ({payment_reference.strip()})",
+            created_by=created_by,
+        )
+        InvoiceLineItem.objects.create(
+            invoice=invoice,
+            description="Initial Outpatient Registration & Medical Consultation Fee",
+            quantity=1,
+            unit_price_kes=fee_kes,
+            total_price_kes=fee_kes,
+        )
+        log_audit_event(
+            action=AuditAction.CREATE,
+            resource_type='Invoice',
+            resource_id=str(invoice.id),
+            summary=f"Issued & reconciled registration consultation invoice {invoice.invoice_number} (KES {fee_kes:,.2f}) for patient {patient.full_name} via {payment_method} [Ref: {payment_reference}]",
+            user=created_by,
+            metadata={'invoice_number': invoice.invoice_number, 'payment_reference': payment_reference, 'amount': str(fee_kes)}
         )
 
     log_audit_event(

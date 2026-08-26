@@ -321,8 +321,13 @@ class PatientCreateView(LoginRequiredMixin, View):
                     primary_nurse=cd.get('primary_nurse'),
                     primary_doctor=cd.get('primary_doctor'),
                     require_care_team=True,
+                    consultation_fee=cd.get('consultation_fee', 1200.00),
+                    payment_method=cd.get('payment_method', 'M-PESA (Paybill 981234)'),
+                    payment_reference=cd.get('payment_reference', ''),
                 )
-                messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.")
+                pay_ref_display = cd.get('payment_reference')
+                ref_msg = f" Consultation Fee of KES 1,200 recorded (Ref: {pay_ref_display})." if pay_ref_display else ""
+                messages.success(request, f"Patient {patient.full_name} registered successfully with Hospice ID {patient.hospice_number}.{ref_msg}")
                 return redirect('patients:patient_detail', pk=patient.pk)
             except ValidationError as e:
                 form.add_error(None, e)

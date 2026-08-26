@@ -10,6 +10,35 @@ from .models import (
 
 
 class PatientRegistrationForm(forms.ModelForm):
+    # Consultation & Registration Fee fields
+    consultation_fee = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        initial=1200.00,
+        required=True,
+        label="Consultation Fee (KES)",
+        widget=forms.NumberInput(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-slate-100 font-mono font-bold text-slate-800 focus:outline-none', 'readonly': 'readonly'})
+    )
+    payment_method = forms.ChoiceField(
+        choices=[
+            ('M-PESA (Paybill 981234)', 'M-PESA (Paybill 981234)'),
+            ('Bank Transfer (EFT / RTGS)', 'Bank Transfer (EFT / RTGS)'),
+            ('Cash', 'Cash'),
+            ('Cheque', 'Cheque'),
+            ('DHA / SHA / Insurance', 'DHA / SHA / Insurance'),
+        ],
+        initial='M-PESA (Paybill 981234)',
+        required=True,
+        label="Payment Method / Channel",
+        widget=forms.Select(attrs={'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-semibold text-slate-900'})
+    )
+    payment_reference = forms.CharField(
+        max_length=100,
+        required=True,
+        label="M-PESA Code or Bank Transaction ID",
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. QHK8923KLM or FT2408269001', 'class': 'w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white focus:ring-2 focus:ring-[#002D62] focus:outline-none font-mono font-bold uppercase'})
+    )
+
     # Mandatory Primary Care Team
     primary_nurse = forms.ModelChoiceField(
         queryset=None,
@@ -48,6 +77,14 @@ class PatientRegistrationForm(forms.ModelForm):
             self.add_error('primary_nurse', 'A primary palliative nurse must be assigned upon patient registration.')
         if doctors_exist and not cleaned_data.get('primary_doctor'):
             self.add_error('primary_doctor', 'A primary doctor or clinical officer must be assigned upon patient registration.')
+
+        # Registration Consultation Payment validation
+        payment_ref = (cleaned_data.get('payment_reference') or '').strip()
+        if not payment_ref:
+            self.add_error('payment_reference', 'A valid M-PESA Confirmation Code or Bank Transaction ID is required before completing registration.')
+        fee = cleaned_data.get('consultation_fee')
+        if fee is not None and fee < 0:
+            self.add_error('consultation_fee', 'Consultation fee cannot be negative.')
 
         # Duplicate registration guard
         first_name = (cleaned_data.get('first_name') or '').strip()

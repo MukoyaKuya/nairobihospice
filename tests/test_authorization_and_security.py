@@ -1079,8 +1079,8 @@ class TestAPISecurityAndAuthorization:
         client.force_login(self.receptionist)
 
         response = client.post('/patients/register/', {
-            'first_name': 'Grace',
-            'last_name': 'Wanjiru',
+            'first_name': 'Faith',
+            'last_name': 'Nyambura',
             'sex': 'F',
             'marital_status': 'MARRIED',
             'identification_type': 'NATIONAL_ID',
@@ -1094,6 +1094,9 @@ class TestAPISecurityAndAuthorization:
             'status': 'ACTIVE',
             'primary_nurse': str(nurse.staff_profile.id),
             'primary_doctor': str(self.doctor.staff_profile.id),
+            'consultation_fee': '1200.00',
+            'payment_method': 'M-PESA (Paybill 981234)',
+            'payment_reference': 'QHK8923KLM',
             # Attempted clinical fields submitted by receptionist:
             'hiv_status': 'POSITIVE',
             'primary_diagnosis': 'Metastatic Breast Carcinoma',
@@ -1103,10 +1106,18 @@ class TestAPISecurityAndAuthorization:
         form_errs = response.context['form'].errors if hasattr(response, 'context') and response.context and 'form' in response.context else None
         assert response.status_code == 302, f"Form validation failed with errors: {form_errs}"
         from apps.patients.models import Patient
-        created = Patient.objects.filter(first_name='Grace', last_name='Wanjiru').first()
+        created = Patient.objects.filter(first_name='Faith', last_name='Nyambura').first()
         assert created is not None
         assert created.hiv_status == ''
         assert created.primary_diagnosis == ''
+        # Verify invoice was created in Operations
+        from decimal import Decimal
+        from apps.operations.models import Invoice, PaymentStatusChoices
+        inv = Invoice.objects.filter(patient=created).first()
+        assert inv is not None
+        assert inv.status == PaymentStatusChoices.PAID
+        assert inv.total_amount_kes == Decimal('1200.00')
+        assert inv.payment_reference == 'QHK8923KLM'
 
     def test_dispense_form_rejects_mismatched_patient_and_medication(self):
         """StockDispenseForm fails validation when medication prescription belongs to another patient."""
