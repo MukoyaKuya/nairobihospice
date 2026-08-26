@@ -35,3 +35,13 @@ class StaffProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'role', 'department', 'license_number', 'is_active_staff')
     list_filter = ('role', 'department', 'is_active_staff')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'license_number')
+
+
+from .models import SecurityConfiguration
+
+
+@admin.register(SecurityConfiguration)
+class SecurityConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('mfa_enabled', 'updated_at', 'updated_by')
+    readonly_fields = ('updated_at',)
+

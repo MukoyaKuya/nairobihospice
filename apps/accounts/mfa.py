@@ -120,11 +120,13 @@ def consume_recovery_code(user, code):
 
 
 def privileged_user_requires_mfa(user):
-    from django.conf import settings
+    from apps.accounts.models import SecurityConfiguration
+
+    if not SecurityConfiguration.is_mfa_globally_enabled():
+        return False
 
     return bool(
-        getattr(settings, 'MFA_REQUIRED_FOR_PRIVILEGED', True)
-        and user
+        user
         and user.is_authenticated
         and (
             user.is_superuser

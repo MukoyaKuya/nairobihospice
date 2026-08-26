@@ -497,6 +497,11 @@ def test_health_endpoints_are_available():
 
 @pytest.mark.django_db
 def test_privileged_login_requires_mfa_enrollment_and_supports_recovery_code():
+    from apps.accounts.models import SecurityConfiguration
+    config = SecurityConfiguration.get_solo()
+    config.mfa_enabled = True
+    config.save()
+
     manager = create_staff_user(
         email='mfa_manager@nairobihospice.or.ke',
         username='mfa_manager',

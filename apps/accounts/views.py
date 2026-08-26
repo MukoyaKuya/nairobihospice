@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
 from apps.audit.models import AuditAction
@@ -190,11 +191,50 @@ def profile_view(request):
             }
         )
 
+    from .models import SecurityConfiguration
+    security_config = SecurityConfiguration.get_solo()
+
     return render(request, 'accounts/profile.html', {
         'user': request.user,
         'profile': profile,
         'form': form,
+        'security_config': security_config,
+        'is_mfa_globally_enabled': security_config.mfa_enabled,
     })
+
+
+@login_required
+@require_POST
+def toggle_mfa_view(request):
+    """
+    Administrator security switch allowing instant toggling of Google Authenticator (MFA)
+    organization-wide without removing the underlying implementation.
+    """
+    if not (request.user.is_superuser or getattr(request.user, 'is_administrator', False) or request.user.is_manager):
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied("Only System Administrators and Operations Managers can modify security policies.")
+
+    from .models import SecurityConfiguration
+    config = SecurityConfiguration.get_solo()
+    new_state = not config.mfa_enabled
+    config.mfa_enabled = new_state
+    config.updated_by = request.user
+    config.save()
+
+    status_str = "ACTIVATED (Google Authenticator Required)" if new_state else "DEACTIVATED (Direct Sign-In Active)"
+    log_audit_event(
+        action=AuditAction.UPDATE,
+        resource_type='SecurityConfiguration',
+        resource_id=str(config.id),
+        summary=f"Admin {request.user.email} switched Google Authenticator MFA to {status_str}",
+        user=request.user,
+        request=request,
+        metadata={'mfa_enabled': new_state}
+    )
+
+    messages.success(request, f"Google Authenticator / Two-Factor Authentication has been {status_str}.")
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse_lazy('accounts:profile')
+    return redirect(next_url)
 
 
 class MFAEnrollmentView(View):

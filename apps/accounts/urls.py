@@ -8,6 +8,7 @@ urlpatterns = [
     path('login/', views.PCMSLoginView.as_view(), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
+    path('toggle-mfa/', views.toggle_mfa_view, name='toggle_mfa'),
     path('mfa/enroll/', views.MFAEnrollmentView.as_view(), name='mfa_enroll'),
     path('mfa/verify/', views.MFAVerifyView.as_view(), name='mfa_verify'),
     path('password-reset/', views.PasswordResetRequestView.as_view(

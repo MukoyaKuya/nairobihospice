@@ -1158,6 +1158,11 @@ class TestAPISecurityAndAuthorization:
     def test_privileged_session_without_mfa_fails_closed(self):
         """Privileged users without verified MFA session are intercepted by middleware."""
         from django.test import Client, override_settings
+        from apps.accounts.models import SecurityConfiguration
+        config = SecurityConfiguration.get_solo()
+        config.mfa_enabled = True
+        config.save()
+
         with override_settings(MFA_ENFORCEMENT_MIDDLEWARE_ENABLED=True):
             manager = create_staff_user(
                 email='mgr_mfa_test@nairobihospice.or.ke',
@@ -1171,7 +1176,7 @@ class TestAPISecurityAndAuthorization:
             # Force login without setting mfa_verified session marker
             client.force_login(manager)
 
-            response = client.get('/dashboard/')
+            response = client.get('/patients/')
             assert response.status_code == 302
             assert '/accounts/mfa/enroll/' in response.url or '/accounts/mfa/verify/' in response.url
 
@@ -1550,6 +1555,11 @@ class TestInputValidationAndAuditIntegrity:
 
     def test_all_phi_access_roles_enforce_mfa_middleware(self, settings):
         """MFA middleware intercepts Doctor, Nurse, Pharmacist, and Receptionist sessions lacking MFA verification."""
+        from apps.accounts.models import SecurityConfiguration
+        config = SecurityConfiguration.get_solo()
+        config.mfa_enabled = True
+        config.save()
+
         settings.MFA_ENFORCEMENT_MIDDLEWARE_ENABLED = True
         settings.MFA_REQUIRED_FOR_PRIVILEGED = True
 
@@ -1579,3 +1589,41 @@ class TestInputValidationAndAuditIntegrity:
             resp = client.get('/patients/')
             assert resp.status_code == 302
             assert '/accounts/mfa/' in resp.url
+
+    def test_admin_can_toggle_mfa_switch_and_receptionist_denied(self):
+        """Administrator can toggle MFA global state; non-admin users cannot."""
+        from django.test import Client
+        from apps.accounts.models import SecurityConfiguration
+
+        config = SecurityConfiguration.get_solo()
+        config.mfa_enabled = False
+        config.save()
+
+        # Admin toggles MFA ON
+        admin_user = create_staff_user(
+            email='mfa_switch_admin@nairobihospice.or.ke',
+            username='mfa_switch_admin',
+            first_name='Admin',
+            last_name='Switch',
+            password='Pass!',
+            role=RoleChoices.ADMINISTRATOR,
+        )
+        client = Client()
+        client.force_login(admin_user)
+
+        response = client.post('/accounts/toggle-mfa/')
+        assert response.status_code == 302
+        assert SecurityConfiguration.is_mfa_globally_enabled() is True
+
+        # Non-admin receptionist tries to toggle MFA -> 403 Forbidden
+        rec_client = Client()
+        rec_client.force_login(self.receptionist)
+        rec_resp = rec_client.post('/accounts/toggle-mfa/')
+        assert rec_resp.status_code == 403
+        assert SecurityConfiguration.is_mfa_globally_enabled() is True
+
+        # Admin toggles MFA back OFF
+        response = client.post('/accounts/toggle-mfa/')
+        assert response.status_code == 302
+        assert SecurityConfiguration.is_mfa_globally_enabled() is False
+

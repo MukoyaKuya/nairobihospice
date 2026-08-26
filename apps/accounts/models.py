@@ -129,3 +129,46 @@ class StaffProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.display_name} - {self.get_role_display()}"
+
+
+class SecurityConfiguration(models.Model):
+    """
+    Global security switches for Nairobi Hospice PCMS.
+    Singleton pattern - controlled by System Administrators.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    mfa_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_('Multi-Factor Authentication (Google Authenticator) Enabled'),
+        help_text=_('When enabled, staff accounts require TOTP authenticator code verification at login.')
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='security_config_updates'
+    )
+
+    class Meta:
+        verbose_name = _('Security Configuration')
+        verbose_name_plural = _('Security Configurations')
+
+    @classmethod
+    def get_solo(cls):
+        config = cls.objects.first()
+        if not config:
+            config = cls.objects.create(mfa_enabled=False)
+        return config
+
+    @classmethod
+    def is_mfa_globally_enabled(cls) -> bool:
+        from django.conf import settings
+        if not getattr(settings, 'MFA_REQUIRED_FOR_PRIVILEGED', True):
+            return False
+        try:
+            return cls.get_solo().mfa_enabled
+        except Exception:
+            return False
+
