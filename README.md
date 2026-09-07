@@ -9,7 +9,7 @@ A secure, web-based clinical and operational platform for Nairobi Hospice.
 - **Background Jobs**: Celery + Redis (synchronous fallback in dev)
 - **Deployment**: HostPinnacle / cPanel Python (Passenger WSGI) ready
 
-## Quick Start (Development)
+## Quick Start (Development) 
 ```bash
 # Install dependencies
 uv sync --extra dev
