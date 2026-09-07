@@ -1,6 +1,6 @@
 # Nairobi Hospice Palliative Care Management System (PCMS)
  
-A secure, web-based clinical and operational platform for Nairobi Hospice. 
+A secure, web-based clinical and operational platform for Nairobi Hospice.  
 
 ## Architecture
 - **Backend**: Django 5.x Modular Monolith + PostgreSQL / SQLite fallback
