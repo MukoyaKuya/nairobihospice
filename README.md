@@ -8,7 +8,7 @@ A secure, web-based clinical and operational platform for Nairobi Hospice.
 - **API**: Django REST Framework (v1) with OpenAPI / Swagger documentation
 - **Background Jobs**: Celery + Redis (synchronous fallback in dev)
 - **Deployment**: HostPinnacle / cPanel Python (Passenger WSGI) ready
-    
+
 ## Quick Start (Development)
 ```bash
 # Install dependencies
